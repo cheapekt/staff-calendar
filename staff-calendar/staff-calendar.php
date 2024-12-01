@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Staff Calendar
  * Description: Calendario laboral para gestionar destinos de trabajo
- * Version: 1.0.3
+ * Version: 1.1.3
  * Author: Carlos Reyes
  */
 
