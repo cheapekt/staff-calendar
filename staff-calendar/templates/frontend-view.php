@@ -43,12 +43,6 @@ if (!is_user_logged_in()) {
                     'order' => 'ASC'
                 ]);
 
-                if (!$is_admin && in_array('subscriber', $current_user->roles)) {
-                    $users = array_filter($users, function($user) use ($current_user) {
-                        return $user->ID === $current_user->ID;
-                    });
-                }
-
                 foreach ($users as $user) {
                     $user_data = get_userdata($user->ID);
                     $department = get_user_meta($user->ID, 'department', true);
