@@ -1,8 +1,8 @@
 <?php
 /**
  * Plugin Name: Staff Calendar
- * Description: Calendario laboral para gestionar destinos y vehículos de trabajo
- * Version: 1.3.0
+ * Description: Calendario laboral para gestionar destinos de trabajo
+ * Version: 1.1.4
  * Author: Carlos Reyes
  */
 
@@ -26,6 +26,9 @@ class StaffCalendar {
         // Hooks de activación
         register_activation_hook(__FILE__, array($this, 'activate'));
         
+        // Forzar actualización de la base de datos
+        add_action('init', array($this, 'update_database'));
+        
         // Acciones para el frontend
         add_action('wp_enqueue_scripts', array($this, 'enqueueFrontendScripts'));
         add_shortcode('staff_calendar', array($this, 'calendarShortcode'));
@@ -41,21 +44,45 @@ class StaffCalendar {
         $charset_collate = $wpdb->get_charset_collate();
         $table_name = $wpdb->prefix . 'staff_calendar';
 
-        // Eliminamos la tabla si existe para recrearla con la nueva estructura
-        $wpdb->query("DROP TABLE IF EXISTS $table_name");
-
-        $sql = "CREATE TABLE $table_name (
+        $sql = "CREATE TABLE IF NOT EXISTS $table_name (
             id mediumint(9) NOT NULL AUTO_INCREMENT,
             user_id bigint(20) NOT NULL,
             work_date date NOT NULL,
-            destination varchar(255) DEFAULT NULL,
+            destination varchar(255) NOT NULL,
             vehicle varchar(255) DEFAULT NULL,
+            modification_count int DEFAULT 0,
             PRIMARY KEY  (id),
             UNIQUE KEY user_date (user_id, work_date)
         ) $charset_collate;";
 
         require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
         dbDelta($sql);
+    }
+
+    public function update_database() {
+        global $wpdb;
+        $table_name = $wpdb->prefix . 'staff_calendar';
+        
+        if($wpdb->get_var("SHOW TABLES LIKE '$table_name'") != $table_name) {
+            $this->activate();
+            return;
+        }
+        
+        $columns = $wpdb->get_col("SHOW COLUMNS FROM $table_name");
+        
+        if (!in_array('vehicle', $columns)) {
+            $wpdb->query("ALTER TABLE $table_name ADD COLUMN vehicle varchar(255) DEFAULT NULL");
+        }
+        
+        if (!in_array('modification_count', $columns)) {
+            if (in_array('has_modifications', $columns)) {
+                $wpdb->query("ALTER TABLE $table_name ADD COLUMN modification_count int DEFAULT 0");
+                $wpdb->query("UPDATE $table_name SET modification_count = CASE WHEN has_modifications = 1 THEN 1 ELSE 0 END");
+                $wpdb->query("ALTER TABLE $table_name DROP COLUMN has_modifications");
+            } else {
+                $wpdb->query("ALTER TABLE $table_name ADD COLUMN modification_count int DEFAULT 0");
+            }
+        }
     }
 
     public function enqueueFrontendScripts() {
@@ -88,9 +115,8 @@ class StaffCalendar {
         $start_date = sanitize_text_field($_POST['start_date']);
         $end_date = sanitize_text_field($_POST['end_date']);
         $destination = sanitize_text_field($_POST['destination']);
-        $vehicle = sanitize_text_field($_POST['vehicle']);
+        $vehicle = isset($_POST['vehicle']) ? sanitize_text_field($_POST['vehicle']) : '';
 
-        // Crear array de fechas entre start_date y end_date
         $current_date = new DateTime($start_date);
         $end = new DateTime($end_date);
         $end->modify('+1 day');
@@ -102,19 +128,56 @@ class StaffCalendar {
         foreach ($date_range as $date) {
             $formatted_date = $date->format('Y-m-d');
             
-            $result = $wpdb->replace(
-                $table_name,
-                array(
+            $existing_data = $wpdb->get_row($wpdb->prepare(
+                "SELECT destination, vehicle, modification_count FROM $table_name WHERE user_id = %d AND work_date = %s",
+                $user_id,
+                $formatted_date
+            ));
+
+            if ($existing_data) {
+                $modification_count = (int)$existing_data->modification_count;
+                
+                if ($existing_data->destination !== $destination || $existing_data->vehicle !== $vehicle) {
+                    $modification_count = $modification_count + 1;
+                }
+                
+                $data = array(
+                    'destination' => $destination,
+                    'vehicle' => $vehicle,
+                    'modification_count' => $modification_count
+                );
+                
+                $where = array(
+                    'user_id' => $user_id,
+                    'work_date' => $formatted_date
+                );
+                
+                $result = $wpdb->update(
+                    $table_name,
+                    $data,
+                    $where,
+                    array('%s', '%s', '%d'),
+                    array('%d', '%s')
+                );
+            } else {
+                $data = array(
                     'user_id' => $user_id,
                     'work_date' => $formatted_date,
                     'destination' => $destination,
-                    'vehicle' => $vehicle
-                ),
-                array('%d', '%s', '%s', '%s')
-            );
+                    'vehicle' => $vehicle,
+                    'modification_count' => 0
+                );
+                
+                $result = $wpdb->insert(
+                    $table_name,
+                    $data,
+                    array('%d', '%s', '%s', '%s', '%d')
+                );
+            }
 
             if ($result === false) {
                 $success = false;
+                error_log("Error in database operation: " . $wpdb->last_error);
                 break;
             }
         }
@@ -139,7 +202,7 @@ class StaffCalendar {
         $end_date = date('Y-m-t', strtotime($start_date));
         
         $data = $wpdb->get_results($wpdb->prepare(
-            "SELECT user_id, work_date, destination, vehicle 
+            "SELECT user_id, work_date, destination, vehicle, modification_count 
             FROM $table_name 
             WHERE work_date BETWEEN %s AND %s",
             $start_date,

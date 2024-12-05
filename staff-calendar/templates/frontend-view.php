@@ -61,29 +61,28 @@ if (!is_user_logged_in()) {
         </table>
     </div>
 
-    <!-- Modal para ver/editar destino y vehículo -->
+    <!-- Modal para ver/editar destino -->
     <div id="destination-modal" class="destination-modal" style="display: none;">
         <div class="modal-content">
             <div class="modal-header">
-                <h3 class="modal-title">Información Laboral</h3>
+                <h3 class="modal-title">Destino Laboral</h3>
                 <button class="modal-close">&times;</button>
             </div>
             <div class="modal-body">
                 <div class="modal-info">
                     <p><strong>Usuario:</strong> <span class="modal-user"></span></p>
                     <p><strong>Fecha:</strong> <span class="modal-date"></span></p>
+                    <div class="modification-indicator" style="display: none;">
+                        <span class="indicator-dot"></span> Este registro ha sido modificado
+                    </div>
                 </div>
                 <?php if ($is_admin): ?>
                     <div class="modal-input-group">
-                        <div class="input-row">
-                            <label for="modal-destination">Destino:</label>
-                            <input type="text" id="modal-destination" class="modal-destination-input">
-                        </div>
+                        <label for="modal-destination">Destino:</label>
+                        <input type="text" id="modal-destination" class="modal-destination-input">
                         
-                        <div class="input-row">
-                            <label for="modal-vehicle">Vehículo:</label>
-                            <input type="text" id="modal-vehicle" class="modal-vehicle-input">
-                        </div>
+                        <label for="modal-vehicle">Vehículo:</label>
+                        <input type="text" id="modal-vehicle" class="modal-vehicle-input">
                         
                         <div class="date-range-inputs">
                             <div class="date-input">
@@ -101,9 +100,11 @@ if (!is_user_logged_in()) {
                         <button class="button modal-cancel">Cancelar</button>
                     </div>
                 <?php else: ?>
-                    <div class="modal-info-display">
-                        <p><strong>Destino:</strong> <span class="modal-destination-text">Sin destino asignado</span></p>
-                        <p><strong>Vehículo:</strong> <span class="modal-vehicle-text">Sin vehículo asignado</span></p>
+                    <div class="modal-destination">
+                        <strong>Destino:</strong> <span class="modal-destination-text"></span>
+                    </div>
+                    <div class="modal-vehicle">
+                        <strong>Vehículo:</strong> <span class="modal-vehicle-text"></span>
                     </div>
                 <?php endif; ?>
             </div>

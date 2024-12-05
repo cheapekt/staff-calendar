@@ -8,11 +8,11 @@ jQuery(document).ready(function ($) {
     messageContainer
       .html(
         `
-            <div class="status-message message-${type}">
-                <span class="message-text">${message}</span>
-                <button class="close-message">&times;</button>
-            </div>
-        `
+                <div class="status-message message-${type}">
+                    <span class="message-text">${message}</span>
+                    <button class="close-message">&times;</button>
+                </div>
+            `
       )
       .show();
 
@@ -25,6 +25,7 @@ jQuery(document).ready(function ($) {
 
     const daysInMonth = new Date(currentYear, currentMonth, 0).getDate();
 
+    // Actualizar encabezado del mes
     $(".current-month").text(
       new Date(currentYear, currentMonth - 1).toLocaleDateString("es-ES", {
         month: "long",
@@ -32,6 +33,7 @@ jQuery(document).ready(function ($) {
       })
     );
 
+    // Actualizar encabezados de días
     const headerRow = $("thead tr");
     headerRow.find("th:not(:first)").remove();
 
@@ -41,14 +43,11 @@ jQuery(document).ready(function ($) {
       headerRow.append(`<th class="${isWeekend ? "weekend" : ""}">${day}</th>`);
     }
 
+    // Actualizar celdas de usuarios
     $("tbody tr").each(function () {
       $(this).find("td:not(:first)").remove();
       for (let day = 1; day <= daysInMonth; day++) {
-        $(this).append(`
-                    <td class="destination-cell" data-day="${day}">
-                        <div class="cell-content"></div>
-                    </td>
-                `);
+        $(this).append(`<td class="destination-cell" data-day="${day}"></td>`);
       }
     });
 
@@ -108,24 +107,33 @@ jQuery(document).ready(function ($) {
 
         const destination = dayData ? dayData.destination : "";
         const vehicle = dayData ? dayData.vehicle : "";
+        const modificationCount = dayData
+          ? parseInt(dayData.modification_count)
+          : 0;
         const cell = $(this).find(`td[data-day="${day}"]`);
-        const cellContent = cell.find(".cell-content");
+
+        // Creamos el contenido de la celda de forma más estructurada
+        let cellContent = "";
+        if (destination) {
+          cellContent += `<div class="cell-destination">${destination}</div>`;
+        }
+        if (vehicle) {
+          cellContent += `<div class="cell-vehicle">${vehicle}</div>`;
+        }
 
         cell
+          .empty()
           .addClass("destination-cell")
-          .toggleClass("weekend", isWeekend)
-          .toggleClass("has-data", !!(destination || vehicle))
           .attr({
-            "data-destination": destination || "",
-            "data-vehicle": vehicle || "",
-          });
-
-        // Actualizar el contenido de la celda
-        let content = "";
-        if (destination)
-          content += `<div class="cell-destination">${destination}</div>`;
-        if (vehicle) content += `<div class="cell-vehicle">${vehicle}</div>`;
-        cellContent.html(content || "");
+            "data-destination": destination,
+            "data-vehicle": vehicle,
+            "data-modification-count": modificationCount,
+            "data-user-id": userId,
+          })
+          .toggleClass("has-destination", !!(destination || vehicle))
+          .toggleClass("has-modifications", modificationCount > 0)
+          .toggleClass("weekend", isWeekend)
+          .html(cellContent);
       }
     });
   }
@@ -155,13 +163,11 @@ jQuery(document).ready(function ($) {
   });
 
   function openModal(cell) {
+    const userId = cell.data("user-id");
     const row = cell.closest("tr");
-    const userId = row.data("user-id");
     const userName = row.find(".user-name").text();
     const day = cell.data("day");
     const date = new Date(currentYear, currentMonth - 1, day);
-    const destination = cell.attr("data-destination");
-    const vehicle = cell.attr("data-vehicle");
 
     // Formato para mostrar
     const formattedDisplayDate = date.toLocaleDateString("es-ES", {
@@ -177,18 +183,26 @@ jQuery(document).ready(function ($) {
       "0"
     )}-${String(day).padStart(2, "0")}`;
 
+    const destination = cell.attr("data-destination") || "";
+    const vehicle = cell.attr("data-vehicle") || "";
+    const modificationCount =
+      parseInt(cell.attr("data-modification-count")) || 0;
+
     $("#destination-modal .modal-user").text(userName);
     $("#destination-modal .modal-date").text(formattedDisplayDate);
+    $(".modification-indicator").toggle(modificationCount > 1);
+    if (modificationCount > 1) {
+      $(".modification-indicator .message-text").text(
+        `Este registro ha sido modificado ${modificationCount} veces`
+      );
+    }
 
     if (staffCalendarConfig.isAdmin) {
-      $("#modal-destination").val(destination || "");
-      $("#modal-vehicle").val(vehicle || "");
+      $("#modal-destination").val(destination);
+      $("#modal-vehicle").val(vehicle);
       $("#modal-start-date").val(formattedInputDate);
       $("#modal-end-date").val(formattedInputDate);
-
-      $("#modal-destination")
-        .data("user-id", userId)
-        .data("date", formattedInputDate);
+      $("#modal-destination").data("user-id", userId);
     } else {
       $(".modal-destination-text").text(destination || "Sin destino asignado");
       $(".modal-vehicle-text").text(vehicle || "Sin vehículo asignado");
@@ -212,29 +226,36 @@ jQuery(document).ready(function ($) {
   });
 
   if (staffCalendarConfig.isAdmin) {
-    console.log("Admin mode");
     $(".modal-save").click(function () {
+      console.log("Guardando...");
       const userId = $("#modal-destination").data("user-id");
       const startDate = $("#modal-start-date").val();
       const endDate = $("#modal-end-date").val();
       const destination = $("#modal-destination").val();
       const vehicle = $("#modal-vehicle").val();
 
-      console.log({ userId, startDate, endDate, destination, vehicle });
+      console.log("Datos a enviar:", {
+        userId,
+        startDate,
+        endDate,
+        destination,
+        vehicle,
+      });
+
       $.ajax({
         url: staffCalendarConfig.ajax_url,
         type: "POST",
         data: {
           action: "update_staff_destination_range",
-          meLoInvento: "hola",
-          vehicle: vehicle,
           nonce: staffCalendarConfig.nonce,
           user_id: userId,
           start_date: startDate,
           end_date: endDate,
           destination: destination,
+          vehicle: vehicle,
         },
         success: function (response) {
+          console.log("Respuesta:", response);
           if (response.success) {
             loadCalendarData();
             $("#destination-modal").fadeOut(200);
