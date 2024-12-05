@@ -1,8 +1,8 @@
 <?php
 /**
  * Plugin Name: Staff Calendar
- * Description: Calendario laboral para gestionar destinos de trabajo
- * Version: 1.2.0
+ * Description: Calendario laboral para gestionar destinos y vehículos de trabajo
+ * Version: 1.3.0
  * Author: Carlos Reyes
  */
 
@@ -41,11 +41,15 @@ class StaffCalendar {
         $charset_collate = $wpdb->get_charset_collate();
         $table_name = $wpdb->prefix . 'staff_calendar';
 
-        $sql = "CREATE TABLE IF NOT EXISTS $table_name (
+        // Eliminamos la tabla si existe para recrearla con la nueva estructura
+        $wpdb->query("DROP TABLE IF EXISTS $table_name");
+
+        $sql = "CREATE TABLE $table_name (
             id mediumint(9) NOT NULL AUTO_INCREMENT,
             user_id bigint(20) NOT NULL,
             work_date date NOT NULL,
-            destination varchar(255) NOT NULL,
+            destination varchar(255) DEFAULT NULL,
+            vehicle varchar(255) DEFAULT NULL,
             PRIMARY KEY  (id),
             UNIQUE KEY user_date (user_id, work_date)
         ) $charset_collate;";
@@ -84,6 +88,7 @@ class StaffCalendar {
         $start_date = sanitize_text_field($_POST['start_date']);
         $end_date = sanitize_text_field($_POST['end_date']);
         $destination = sanitize_text_field($_POST['destination']);
+        $vehicle = sanitize_text_field($_POST['vehicle']);
 
         // Crear array de fechas entre start_date y end_date
         $current_date = new DateTime($start_date);
@@ -102,9 +107,10 @@ class StaffCalendar {
                 array(
                     'user_id' => $user_id,
                     'work_date' => $formatted_date,
-                    'destination' => $destination
+                    'destination' => $destination,
+                    'vehicle' => $vehicle
                 ),
-                array('%d', '%s', '%s')
+                array('%d', '%s', '%s', '%s')
             );
 
             if ($result === false) {
@@ -114,9 +120,9 @@ class StaffCalendar {
         }
 
         if ($success) {
-            wp_send_json_success('Destinos actualizados correctamente');
+            wp_send_json_success('Destinos y vehículos actualizados correctamente');
         } else {
-            wp_send_json_error('Error al actualizar los destinos: ' . $wpdb->last_error);
+            wp_send_json_error('Error al actualizar los datos: ' . $wpdb->last_error);
         }
     }
 
@@ -133,7 +139,7 @@ class StaffCalendar {
         $end_date = date('Y-m-t', strtotime($start_date));
         
         $data = $wpdb->get_results($wpdb->prepare(
-            "SELECT user_id, work_date, destination 
+            "SELECT user_id, work_date, destination, vehicle 
             FROM $table_name 
             WHERE work_date BETWEEN %s AND %s",
             $start_date,

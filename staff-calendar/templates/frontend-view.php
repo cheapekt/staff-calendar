@@ -61,11 +61,11 @@ if (!is_user_logged_in()) {
         </table>
     </div>
 
-    <!-- Modal para ver/editar destino -->
+    <!-- Modal para ver/editar destino y vehículo -->
     <div id="destination-modal" class="destination-modal" style="display: none;">
         <div class="modal-content">
             <div class="modal-header">
-                <h3 class="modal-title">Destino Laboral</h3>
+                <h3 class="modal-title">Información Laboral</h3>
                 <button class="modal-close">&times;</button>
             </div>
             <div class="modal-body">
@@ -75,8 +75,15 @@ if (!is_user_logged_in()) {
                 </div>
                 <?php if ($is_admin): ?>
                     <div class="modal-input-group">
-                        <label for="modal-destination">Destino:</label>
-                        <input type="text" id="modal-destination" class="modal-destination-input">
+                        <div class="input-row">
+                            <label for="modal-destination">Destino:</label>
+                            <input type="text" id="modal-destination" class="modal-destination-input">
+                        </div>
+                        
+                        <div class="input-row">
+                            <label for="modal-vehicle">Vehículo:</label>
+                            <input type="text" id="modal-vehicle" class="modal-vehicle-input">
+                        </div>
                         
                         <div class="date-range-inputs">
                             <div class="date-input">
@@ -94,8 +101,9 @@ if (!is_user_logged_in()) {
                         <button class="button modal-cancel">Cancelar</button>
                     </div>
                 <?php else: ?>
-                    <div class="modal-destination">
-                        <strong>Destino:</strong> <span class="modal-destination-text"></span>
+                    <div class="modal-info-display">
+                        <p><strong>Destino:</strong> <span class="modal-destination-text">Sin destino asignado</span></p>
+                        <p><strong>Vehículo:</strong> <span class="modal-vehicle-text">Sin vehículo asignado</span></p>
                     </div>
                 <?php endif; ?>
             </div>

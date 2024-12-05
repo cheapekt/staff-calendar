@@ -25,7 +25,6 @@ jQuery(document).ready(function ($) {
 
     const daysInMonth = new Date(currentYear, currentMonth, 0).getDate();
 
-    // Actualizar encabezado del mes
     $(".current-month").text(
       new Date(currentYear, currentMonth - 1).toLocaleDateString("es-ES", {
         month: "long",
@@ -33,7 +32,6 @@ jQuery(document).ready(function ($) {
       })
     );
 
-    // Actualizar encabezados de días
     const headerRow = $("thead tr");
     headerRow.find("th:not(:first)").remove();
 
@@ -43,11 +41,14 @@ jQuery(document).ready(function ($) {
       headerRow.append(`<th class="${isWeekend ? "weekend" : ""}">${day}</th>`);
     }
 
-    // Actualizar celdas de usuarios
     $("tbody tr").each(function () {
       $(this).find("td:not(:first)").remove();
       for (let day = 1; day <= daysInMonth; day++) {
-        $(this).append(`<td class="destination-cell" data-day="${day}"></td>`);
+        $(this).append(`
+                    <td class="destination-cell" data-day="${day}">
+                        <div class="cell-content"></div>
+                    </td>
+                `);
       }
     });
 
@@ -106,15 +107,25 @@ jQuery(document).ready(function ($) {
         );
 
         const destination = dayData ? dayData.destination : "";
+        const vehicle = dayData ? dayData.vehicle : "";
         const cell = $(this).find(`td[data-day="${day}"]`);
+        const cellContent = cell.find(".cell-content");
 
         cell
-          .empty()
           .addClass("destination-cell")
-          .attr("data-destination", destination)
-          .toggleClass("has-destination", !!destination)
           .toggleClass("weekend", isWeekend)
-          .text(destination || "");
+          .toggleClass("has-data", !!(destination || vehicle))
+          .attr({
+            "data-destination": destination || "",
+            "data-vehicle": vehicle || "",
+          });
+
+        // Actualizar el contenido de la celda
+        let content = "";
+        if (destination)
+          content += `<div class="cell-destination">${destination}</div>`;
+        if (vehicle) content += `<div class="cell-vehicle">${vehicle}</div>`;
+        cellContent.html(content || "");
       }
     });
   }
@@ -149,6 +160,8 @@ jQuery(document).ready(function ($) {
     const userName = row.find(".user-name").text();
     const day = cell.data("day");
     const date = new Date(currentYear, currentMonth - 1, day);
+    const destination = cell.attr("data-destination");
+    const vehicle = cell.attr("data-vehicle");
 
     // Formato para mostrar
     const formattedDisplayDate = date.toLocaleDateString("es-ES", {
@@ -164,13 +177,12 @@ jQuery(document).ready(function ($) {
       "0"
     )}-${String(day).padStart(2, "0")}`;
 
-    const destination = cell.attr("data-destination") || "";
-
     $("#destination-modal .modal-user").text(userName);
     $("#destination-modal .modal-date").text(formattedDisplayDate);
 
     if (staffCalendarConfig.isAdmin) {
-      $("#modal-destination").val(destination);
+      $("#modal-destination").val(destination || "");
+      $("#modal-vehicle").val(vehicle || "");
       $("#modal-start-date").val(formattedInputDate);
       $("#modal-end-date").val(formattedInputDate);
 
@@ -179,12 +191,12 @@ jQuery(document).ready(function ($) {
         .data("date", formattedInputDate);
     } else {
       $(".modal-destination-text").text(destination || "Sin destino asignado");
+      $(".modal-vehicle-text").text(vehicle || "Sin vehículo asignado");
     }
 
     $("#destination-modal").fadeIn(200);
   }
 
-  // Event handlers para el modal
   $(document).on("click", ".destination-cell", function () {
     openModal($(this));
   });
@@ -193,7 +205,6 @@ jQuery(document).ready(function ($) {
     $("#destination-modal").fadeOut(200);
   });
 
-  // Cerrar modal al hacer clic fuera
   $(window).click(function (e) {
     if ($(e.target).is(".destination-modal")) {
       $("#destination-modal").fadeOut(200);
@@ -201,18 +212,22 @@ jQuery(document).ready(function ($) {
   });
 
   if (staffCalendarConfig.isAdmin) {
+    console.log("Admin mode");
     $(".modal-save").click(function () {
-      const input = $("#modal-destination");
-      const userId = input.data("user-id");
+      const userId = $("#modal-destination").data("user-id");
       const startDate = $("#modal-start-date").val();
       const endDate = $("#modal-end-date").val();
-      const destination = input.val();
+      const destination = $("#modal-destination").val();
+      const vehicle = $("#modal-vehicle").val();
 
+      console.log({ userId, startDate, endDate, destination, vehicle });
       $.ajax({
         url: staffCalendarConfig.ajax_url,
         type: "POST",
         data: {
           action: "update_staff_destination_range",
+          meLoInvento: "hola",
+          vehicle: vehicle,
           nonce: staffCalendarConfig.nonce,
           user_id: userId,
           start_date: startDate,
@@ -223,9 +238,9 @@ jQuery(document).ready(function ($) {
           if (response.success) {
             loadCalendarData();
             $("#destination-modal").fadeOut(200);
-            showMessage("Destinos actualizados correctamente", "info");
+            showMessage("Datos actualizados correctamente", "info");
           } else {
-            showMessage("Error al guardar los destinos", "error");
+            showMessage("Error al guardar los datos", "error");
           }
         },
         error: function (xhr, status, error) {
