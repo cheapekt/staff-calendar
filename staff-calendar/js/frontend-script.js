@@ -115,7 +115,31 @@ jQuery(document).ready(function ($) {
           cellContent += `<div class="cell-destination">${destination}</div>`;
         }
         if (vehicle) {
-          cellContent += `<div class="cell-vehicle">${vehicle}</div>`;
+          // Primero cargar los datos del vehículo
+          $.ajax({
+            url: staffCalendarConfig.ajax_url,
+            type: "GET",
+            async: false, // Importante para mantener el orden
+            data: {
+              action: "get_vehicles",
+              nonce: staffCalendarConfig.nonce,
+            },
+            success: function (response) {
+              if (response.success) {
+                const vehicleData = response.data.find(
+                  (v) => v.name === vehicle
+                );
+                if (vehicleData) {
+                  const plate = vehicleData.plate
+                    ? ` (${vehicleData.plate})`
+                    : "";
+                  cellContent += `<div class="cell-vehicle">${vehicle}${plate}</div>`;
+                } else {
+                  cellContent += `<div class="cell-vehicle">${vehicle}</div>`;
+                }
+              }
+            },
+          });
         }
 
         cell
