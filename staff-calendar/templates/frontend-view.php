@@ -73,7 +73,8 @@ if (!is_user_logged_in()) {
                     <p><strong>Usuario:</strong> <span class="modal-user"></span></p>
                     <p><strong>Fecha:</strong> <span class="modal-date"></span></p>
                     <div class="modification-indicator" style="display: none;">
-                        <span class="indicator-dot"></span> Este registro ha sido modificado
+                        <span class="indicator-dot"></span>
+                        <span class="message-text"></span>
                     </div>
                 </div>
                 <?php if ($is_admin): ?>
@@ -82,7 +83,9 @@ if (!is_user_logged_in()) {
                         <input type="text" id="modal-destination" class="modal-destination-input">
                         
                         <label for="modal-vehicle">Vehículo:</label>
-                        <input type="text" id="modal-vehicle" class="modal-vehicle-input">
+                        <select id="modal-vehicle" class="modal-vehicle-select">
+                            <option value="">Seleccionar vehículo</option>
+                        </select>
                         
                         <div class="date-range-inputs">
                             <div class="date-input">

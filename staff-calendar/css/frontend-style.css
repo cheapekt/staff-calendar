@@ -1,4 +1,6 @@
-.staff-calendar-frontend {
+/* Estilos generales del plugin */
+.staff-calendar-frontend,
+.staff-vehicles-manager {
   margin: 20px 0;
   background: #fff;
   padding: 20px;
@@ -6,7 +8,9 @@
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
-.calendar-messages {
+/* Mensajes de estado */
+.calendar-messages,
+.vehicles-messages {
   margin-bottom: 20px;
 }
 
@@ -31,6 +35,12 @@
   color: #cc0000;
 }
 
+.message-success {
+  background-color: #d4edda;
+  border: 1px solid #c3e6cb;
+  color: #155724;
+}
+
 .close-message {
   background: none;
   border: none;
@@ -40,6 +50,7 @@
   font-size: 20px;
 }
 
+/* Controles del calendario */
 .calendar-controls {
   margin-bottom: 20px;
 }
@@ -75,6 +86,7 @@
   color: #333;
 }
 
+/* Contenedor del calendario */
 .calendar-container {
   overflow-x: auto;
   margin-top: 20px;
@@ -114,34 +126,35 @@
   }
 }
 
-.calendar-table {
+/* Estilos de tablas compartidos */
+.calendar-table,
+.vehicles-table {
   width: 100%;
-  min-width: 1200px;
   border-collapse: collapse;
   background: #fff;
+}
+
+/* Estilos específicos de la tabla del calendario */
+.calendar-table {
+  min-width: 1200px;
   border: 1px solid #e0e0e0;
 }
 
-.calendar-table th {
-  background: #f5f5f5;
-  border: 1px solid #e0e0e0;
-  padding: 12px 8px;
-  text-align: center;
-  font-weight: 600;
-  color: #333;
-  position: sticky;
-  top: 0;
-  z-index: 2;
-  min-width: 120px;
-  max-width: 150px;
-}
-
+.calendar-table th,
 .calendar-table td {
   border: 1px solid #e0e0e0;
   padding: 8px;
   text-align: center;
   color: #4a4a4a;
-  vertical-align: middle;
+}
+
+.calendar-table th {
+  background: #f5f5f5;
+  font-weight: 600;
+  color: #333;
+  position: sticky;
+  top: 0;
+  z-index: 2;
 }
 
 .calendar-table td.destination-cell {
@@ -150,17 +163,18 @@
   -webkit-tap-highlight-color: transparent;
   position: relative;
   min-width: 120px;
-  max-width: 150px;
   height: 60px;
   padding: 8px !important;
-}
-
-.destination-cell {
-  padding: 8px !important;
   min-height: 60px;
-  position: relative;
 }
 
+.calendar-table td.destination-cell:hover {
+  background-color: #f0f0f0;
+  transform: scale(1.02);
+  z-index: 1;
+}
+
+/* Contenido de las celdas */
 .cell-destination {
   font-size: 14px;
   font-weight: 500;
@@ -174,16 +188,6 @@
   font-style: italic;
 }
 
-.calendar-table td.destination-cell:hover {
-  background-color: #f0f0f0;
-  transform: scale(1.02);
-  z-index: 1;
-}
-
-.calendar-table td.destination-cell:active {
-  transform: scale(0.98);
-}
-
 .user-info {
   padding: 8px;
   background: #f9f9f9;
@@ -191,8 +195,6 @@
   left: 0;
   z-index: 3;
   min-width: 150px;
-  max-width: 200px;
-  background-color: #f9f9f9;
   border-right: 2px solid #ddd;
 }
 
@@ -225,9 +227,144 @@
   border-radius: 50%;
   z-index: 1;
 }
+/* Estilos específicos para la tabla de vehículos */
+.vehicles-list {
+  margin-top: 30px;
+}
 
-/* Estilos del Modal */
-.destination-modal {
+.vehicles-table thead th {
+  background: #f5f5f5;
+  padding: 12px;
+  text-align: left;
+  font-weight: 600;
+  color: #333;
+  border-bottom: 2px solid #ddd;
+}
+
+.vehicles-table .column-name {
+  width: 30%;
+}
+.vehicles-table .column-plate {
+  width: 20%;
+}
+.vehicles-table .column-status {
+  width: 20%;
+}
+.vehicles-table .column-actions {
+  width: 30%;
+}
+
+.vehicles-table tbody td {
+  padding: 12px;
+  border-bottom: 1px solid #eee;
+  text-align: left;
+}
+
+/* Estilos de los estados de vehículos */
+.status-badge {
+  display: inline-block;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.status-active {
+  background-color: #d4edda;
+  color: #155724;
+}
+
+.status-maintenance {
+  background-color: #fff3cd;
+  color: #856404;
+}
+
+.status-inactive {
+  background-color: #f8d7da;
+  color: #721c24;
+}
+
+/* Formulario de gestión de vehículos */
+.add-vehicle-form {
+  max-width: 600px;
+  margin-bottom: 30px;
+  background: #f9f9f9;
+  padding: 20px;
+  border-radius: 6px;
+}
+
+/* Estilos compartidos de formularios */
+.form-group,
+.modal-input-group {
+  margin-bottom: 15px;
+}
+
+.form-group label,
+.modal-input-group label {
+  display: block;
+  margin-bottom: 5px;
+  font-weight: 500;
+  color: #333;
+}
+
+.form-group input,
+.form-group select,
+.modal-destination-input,
+.modal-vehicle-select,
+.modal-date-input {
+  width: 100%;
+  padding: 12px;
+  border: 2px solid #ddd;
+  border-radius: 6px;
+  font-size: 14px;
+  margin-bottom: 15px;
+  transition: all 0.3s ease;
+}
+
+.modal-destination-input:focus,
+.modal-vehicle-select:focus,
+.modal-date-input:focus,
+.form-group input:focus,
+.form-group select:focus {
+  border-color: #2271b1;
+  box-shadow: 0 0 0 2px rgba(34, 113, 177, 0.1);
+  outline: none;
+}
+
+/* Botones de acción */
+.vehicles-table .edit-vehicle,
+.vehicles-table .delete-vehicle {
+  padding: 8px 16px;
+  border-radius: 4px;
+  margin-right: 8px;
+  border: none;
+  cursor: pointer;
+  font-size: 13px;
+  transition: background-color 0.2s;
+  color: white;
+}
+
+.vehicles-table .edit-vehicle,
+.modal-save {
+  background: #2271b1;
+}
+
+.vehicles-table .edit-vehicle:hover,
+.modal-save:hover {
+  background: #135e96;
+}
+
+.vehicles-table .delete-vehicle {
+  background: #dc3545;
+}
+
+.vehicles-table .delete-vehicle:hover {
+  background: #c82333;
+}
+
+/* Estilos compartidos de modales */
+.destination-modal,
+.vehicle-modal {
   display: none;
   position: fixed;
   top: 0;
@@ -235,11 +372,15 @@
   right: 0;
   bottom: 0;
   background-color: rgba(0, 0, 0, 0.5);
-  z-index: 1000;
-  animation: fadeIn 0.2s ease-out;
+  z-index: 9999;
+  padding: 20px;
+  overflow-y: auto;
+  justify-content: center;
+  align-items: flex-start;
 }
 
-.modal-content {
+.destination-modal .modal-content,
+.vehicle-modal .modal-content {
   position: relative;
   background-color: #fff;
   margin: 5vh auto;
@@ -251,7 +392,8 @@
   animation: slideIn 0.3s ease-out;
 }
 
-.modal-header {
+.destination-modal .modal-header,
+.vehicle-modal .modal-header {
   background-color: #f8f9fa;
   border-radius: 12px 12px 0 0;
   padding: 20px;
@@ -282,8 +424,7 @@
 }
 
 .modal-body {
-  padding: 12px;
-  width: inherit;
+  padding: 20px;
 }
 
 .modal-info {
@@ -295,50 +436,6 @@
   color: #666;
 }
 
-.modal-input-group {
-  margin-bottom: 20px;
-}
-
-.modal-input-group label {
-  display: block;
-  margin-bottom: 8px;
-  font-weight: 500;
-  color: #333;
-}
-
-.date-range-inputs {
-  margin-top: 15px;
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 15px;
-}
-
-.date-input {
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-}
-
-.modal-destination-input,
-.modal-vehicle-input,
-.modal-date-input {
-  width: 100%;
-  padding: 12px;
-  border: 2px solid #ddd;
-  border-radius: 6px;
-  font-size: 15px;
-  margin-bottom: 15px;
-  transition: all 0.3s ease;
-}
-
-.modal-destination-input:focus,
-.modal-vehicle-input:focus,
-.modal-date-input:focus {
-  border-color: #2271b1;
-  box-shadow: 0 0 0 2px rgba(34, 113, 177, 0.1);
-  outline: none;
-}
-
 .modal-actions {
   display: flex;
   justify-content: flex-end;
@@ -346,60 +443,16 @@
   margin-top: 20px;
 }
 
-.modal-save {
-  background: #2271b1 !important;
-  color: white !important;
-  padding: 10px 20px !important;
-  border-radius: 6px !important;
-  transition: background-color 0.3s !important;
-}
-
-.modal-save:hover {
-  background: #135e96 !important;
-}
-
+.modal-save,
 .modal-cancel {
   padding: 10px 20px !important;
   border-radius: 6px !important;
-}
-
-.modal-destination,
-.modal-vehicle {
-  padding: 12px;
-  background: #f8f9fa;
-  border-radius: 4px;
-  margin-bottom: 10px;
-}
-
-.modification-indicator {
-  display: flex;
-  align-items: center;
-  margin-top: 10px;
-  color: #666;
-}
-
-.indicator-dot {
-  width: 10px;
-  height: 10px;
-  background-color: #ff4444;
-  border-radius: 50%;
-  display: inline-block;
-  margin-right: 8px;
-}
-
-/* Animaciones */
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
+  transition: background-color 0.3s;
 }
 
 @keyframes slideIn {
   from {
-    transform: translateY(-50px);
+    transform: translateY(-20px);
     opacity: 0;
   }
   to {
@@ -410,11 +463,6 @@
 
 /* Responsive */
 @media screen and (max-width: 768px) {
-  .staff-calendar-frontend {
-    padding: 10px;
-    margin: 10px 0;
-  }
-
   .calendar-navigation {
     flex-direction: column;
     align-items: stretch;
@@ -425,65 +473,63 @@
     text-align: center;
   }
 
-  .calendar-container {
-    margin: 0 -10px;
+  .vehicles-table {
+    display: block;
+    overflow-x: auto;
   }
 
-  .calendar-table {
-    min-width: 800px;
+  .vehicles-table td,
+  .vehicles-table th {
+    min-width: 120px;
   }
 
-  .calendar-table td.destination-cell,
-  .calendar-table th {
-    min-width: 80px;
-    padding: 6px 4px;
-    font-size: 13px;
+  .destination-modal,
+  .vehicle-modal {
+    padding: 10px;
   }
 
-  .user-info {
-    min-width: 150px;
-  }
-
-  .modal-content {
+  .destination-modal .modal-content,
+  .vehicle-modal .modal-content {
     margin: 0;
     width: 100%;
-    height: 100%;
+    min-height: 100vh;
     border-radius: 0;
-    max-height: 100vh;
-    overflow-y: auto;
   }
 
-  .modal-header {
+  .destination-modal .modal-header,
+  .vehicle-modal .modal-header {
     border-radius: 0;
     position: sticky;
     top: 0;
     z-index: 1;
     background: #fff;
   }
-
-  .date-range-inputs {
-    grid-template-columns: 1fr;
-  }
 }
 
 /* Estilos de impresión */
 @media print {
-  .staff-calendar-frontend {
+  .staff-calendar-frontend,
+  .staff-vehicles-manager {
     box-shadow: none;
     padding: 0;
   }
 
   .calendar-navigation,
-  .calendar-controls {
+  .calendar-controls,
+  .add-vehicle-form,
+  .vehicles-list button {
     display: none;
   }
 
-  .calendar-table {
+  .calendar-table,
+  .vehicles-table {
     border: 1px solid #000;
   }
 
   .calendar-table th,
-  .calendar-table td {
+  .calendar-table td,
+  .vehicles-table th,
+  .vehicles-table td {
     border: 1px solid #000;
   }
 }
