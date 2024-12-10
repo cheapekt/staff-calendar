@@ -1,7 +1,14 @@
 /* Estilos generales del plugin */
-.staff-calendar-frontend,
+.staff-calendar-frontend {
+  /* margin: 20px;
+  padding: 20px;*/
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
 .staff-vehicles-manager {
-  margin: 20px 0;
+  margin: 20px;
   background: #fff;
   padding: 20px;
   border-radius: 8px;
@@ -88,11 +95,10 @@
 
 /* Contenedor del calendario */
 .calendar-container {
-  overflow-x: auto;
-  margin-top: 20px;
-  padding-bottom: 20px;
   position: relative;
   width: 100%;
+  overflow: auto;
+  max-height: 72vh;
 }
 
 .calendar-loading {
@@ -125,22 +131,35 @@
     transform: rotate(360deg);
   }
 }
-
-/* Estilos de tablas compartidos */
-.calendar-table,
-.vehicles-table {
+/* Estilos de tablas */
+.calendar-table {
   width: 100%;
+  min-width: 1200px;
   border-collapse: collapse;
   background: #fff;
 }
 
-/* Estilos específicos de la tabla del calendario */
-.calendar-table {
-  min-width: 1200px;
+/* Estilos del encabezado */
+.calendar-table thead th {
+  position: sticky;
+  top: 0;
+  background: #f5f5f5;
+  z-index: 2;
+  min-width: 80px;
+  height: 60px;
+  padding: 8px;
+  text-align: center;
+  font-weight: 600;
+  color: #333;
   border: 1px solid #e0e0e0;
+  box-shadow: 0 2px 2px rgba(0, 0, 0, 0.05);
 }
 
-.calendar-table th,
+.calendar-table thead th:first-child {
+  left: 0;
+  z-index: 3;
+}
+
 .calendar-table td {
   border: 1px solid #e0e0e0;
   padding: 8px;
@@ -148,13 +167,18 @@
   color: #4a4a4a;
 }
 
-.calendar-table th {
-  background: #f5f5f5;
-  font-weight: 600;
-  color: #333;
-  position: sticky;
-  top: 0;
-  z-index: 2;
+/* Estilo para el día de la semana en el encabezado */
+.weekday-header {
+  display: block;
+  font-size: 0.85em;
+  color: #666;
+  text-transform: capitalize;
+}
+
+.day-number {
+  display: block;
+  font-weight: bold;
+  margin-top: 2px;
 }
 
 .calendar-table td.destination-cell {
@@ -165,13 +189,23 @@
   min-width: 120px;
   height: 60px;
   padding: 8px !important;
-  min-height: 60px;
 }
 
 .calendar-table td.destination-cell:hover {
   background-color: #f0f0f0;
   transform: scale(1.02);
   z-index: 1;
+}
+
+/* Columna de usuarios */
+.user-info {
+  padding: 8px;
+  background: #f9f9f9;
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  min-width: 150px;
+  border-right: 2px solid #ddd;
 }
 
 /* Contenido de las celdas */
@@ -190,16 +224,6 @@
   word-wrap: break-word;
   overflow: hidden;
   text-overflow: ellipsis;
-}
-
-.user-info {
-  padding: 8px;
-  background: #f9f9f9;
-  position: sticky;
-  left: 0;
-  z-index: 3;
-  min-width: 150px;
-  border-right: 2px solid #ddd;
 }
 
 .user-name {
@@ -229,8 +253,9 @@
   height: 8px;
   background-color: #ff4444;
   border-radius: 50%;
-  z-index: 1;
+  z-index: 0;
 }
+
 /* Estilos específicos para la tabla de vehículos */
 .vehicles-list {
   margin-top: 30px;
@@ -263,7 +288,6 @@
   border-bottom: 1px solid #eee;
   text-align: left;
 }
-
 /* Estilos de los estados de vehículos */
 .status-badge {
   display: inline-block;
@@ -333,37 +357,6 @@
   border-color: #2271b1;
   box-shadow: 0 0 0 2px rgba(34, 113, 177, 0.1);
   outline: none;
-}
-
-/* Botones de acción */
-.vehicles-table .edit-vehicle,
-.vehicles-table .delete-vehicle {
-  padding: 8px 16px;
-  border-radius: 4px;
-  margin-right: 8px;
-  border: none;
-  cursor: pointer;
-  font-size: 13px;
-  transition: background-color 0.2s;
-  color: white;
-}
-
-.vehicles-table .edit-vehicle,
-.modal-save {
-  background: #2271b1;
-}
-
-.vehicles-table .edit-vehicle:hover,
-.modal-save:hover {
-  background: #135e96;
-}
-
-.vehicles-table .delete-vehicle {
-  background: #dc3545;
-}
-
-.vehicles-table .delete-vehicle:hover {
-  background: #c82333;
 }
 
 /* Estilos compartidos de modales */
@@ -454,6 +447,37 @@
   transition: background-color 0.3s;
 }
 
+/* Botones de acción */
+.vehicles-table .edit-vehicle,
+.vehicles-table .delete-vehicle {
+  padding: 8px 16px;
+  border-radius: 4px;
+  margin-right: 8px;
+  border: none;
+  cursor: pointer;
+  font-size: 13px;
+  transition: background-color 0.2s;
+  color: white;
+}
+
+.vehicles-table .edit-vehicle,
+.modal-save {
+  background: #2271b1;
+}
+
+.vehicles-table .edit-vehicle:hover,
+.modal-save:hover {
+  background: #135e96;
+}
+
+.vehicles-table .delete-vehicle {
+  background: #dc3545;
+}
+
+.vehicles-table .delete-vehicle:hover {
+  background: #c82333;
+}
+
 @keyframes slideIn {
   from {
     transform: translateY(-20px);
@@ -464,49 +488,171 @@
     opacity: 1;
   }
 }
+/* Estilos para el tooltip de usuario */
+.user-tooltip {
+  display: none;
+  position: absolute;
+  background: rgba(0, 0, 0, 0.8);
+  color: white;
+  padding: 8px 12px;
+  border-radius: 4px;
+  font-size: 12px;
+  z-index: 1000;
+  max-width: 200px;
+  white-space: normal;
+  word-wrap: break-word;
+  left: 50%;
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
+.user-tooltip.show {
+  display: block;
+}
+
+.user-tooltip-name {
+  font-weight: bold;
+  margin-bottom: 4px;
+}
+
+.user-tooltip-department {
+  font-size: 11px;
+  opacity: 0.9;
+}
 
 /* Responsive */
 @media screen and (max-width: 768px) {
+  /* .staff-calendar-frontend {
+    margin: 10px;
+    padding: 10px;
+  }*/
+
+  .calendar-container {
+    overflow: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Reducción de tamaño de celdas */
+  .calendar-table th,
+  .calendar-table td.destination-cell {
+    min-width: 40px; /* Reducido de 45px */
+    max-width: 40px; /* Reducido de 45px */
+    height: 40px; /* Reducido de 45px */
+    padding: 1px !important; /* Reducido de 2px */
+  }
+
+  /* Ajuste columna usuarios */
+  .calendar-table .user-info {
+    min-width: 35px; /* Reducido de 45px */
+    max-width: 35px; /* Reducido de 45px */
+    padding: 2px;
+    white-space: nowrap;
+    overflow: hidden;
+  }
+
+  /* Ajuste nombre usuario */
+  .user-name {
+    font-size: 10px; /* Reducido de 8px */
+    line-height: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+  }
+
+  .user-department {
+    font-size: 6px; /* Reducido de 7px */
+    line-height: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+  }
+
+  /* Ajuste días y contenido */
+  .weekday-header {
+    font-size: 10px;
+    display: block;
+    text-transform: uppercase;
+  }
+
+  .day-number {
+    font-size: 10px;
+    font-weight: bold;
+  }
+
+  /* Contenido de las celdas */
+  .cell-destination {
+    font-size: 10px;
+    margin-bottom: 1px;
+    line-height: 1.1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .cell-vehicle {
+    font-size: 8px;
+    line-height: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* Tooltip mejorado para móvil */
+  .user-tooltip {
+    position: fixed;
+    bottom: 10px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0, 0, 0, 0.85);
+    padding: 6px 10px; /* Reducido de 10px 15px */
+    border-radius: 4px;
+    font-size: 11px; /* Reducido de 13px */
+    z-index: 1000;
+    max-width: 150px; /* Añadido límite de ancho */
+    text-align: center;
+    max-height: 30px;
+  }
+
+  .user-tooltip-name {
+    font-size: 11px; /* Reducido de 13px */
+    margin-bottom: 2px; /* Reducido de 3px */
+    font-weight: 600;
+  }
+
+  .user-tooltip-department {
+    font-size: 9px; /* Reducido de 11px */
+    opacity: 0.8;
+  }
+
+  /* Ajustes de navegación */
   .calendar-navigation {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 10px;
+    max-width: 100%;
+    margin: 10px 0;
+  }
+
+  .calendar-navigation button {
+    padding: 6px 10px;
+    font-size: 12px;
   }
 
   .current-month {
-    text-align: center;
+    font-size: 14px;
   }
 
-  .vehicles-table {
-    display: block;
-    overflow-x: auto;
-  }
-
-  .vehicles-table td,
-  .vehicles-table th {
-    min-width: 120px;
-  }
-
+  /* Ajustes del modal */
   .destination-modal,
   .vehicle-modal {
     padding: 10px;
   }
 
-  .destination-modal .modal-content,
-  .vehicle-modal .modal-content {
-    margin: 0;
-    width: 100%;
-    min-height: 100vh;
-    border-radius: 0;
+  .modal-title {
+    font-size: 16px;
   }
 
-  .destination-modal .modal-header,
-  .vehicle-modal .modal-header {
-    border-radius: 0;
-    position: sticky;
-    top: 0;
-    z-index: 1;
-    background: #fff;
+  .modal-body {
+    padding: 15px;
   }
 }
 
@@ -514,8 +660,9 @@
 @media print {
   .staff-calendar-frontend,
   .staff-vehicles-manager {
-    box-shadow: none;
+    margin: 0;
     padding: 0;
+    box-shadow: none;
   }
 
   .calendar-navigation,
@@ -525,8 +672,15 @@
     display: none;
   }
 
+  .calendar-container {
+    height: auto;
+    overflow: visible;
+    max-height: none;
+  }
+
   .calendar-table,
   .vehicles-table {
+    width: 100%;
     border: 1px solid #000;
   }
 
@@ -535,5 +689,10 @@
   .vehicles-table th,
   .vehicles-table td {
     border: 1px solid #000;
+  }
+
+  .calendar-table thead th,
+  .user-info {
+    position: static;
   }
 }

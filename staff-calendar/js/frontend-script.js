@@ -2,15 +2,21 @@ jQuery(document).ready(function ($) {
   let currentMonth = new Date().getMonth() + 1;
   let currentYear = new Date().getFullYear();
   let isLoading = false;
+  const isMobile = window.innerWidth <= 768;
+
+  // Crear el tooltip si estamos en móvil
+  if (isMobile && !$(".user-tooltip").length) {
+    $("body").append('<div class="user-tooltip"></div>');
+  }
 
   function showMessage(message, type = "info") {
     const messageContainer = $("#calendar-messages");
     messageContainer
       .html(
         `<div class="status-message message-${type}">
-                    <span class="message-text">${message}</span>
-                    <button class="close-message">&times;</button>
-                </div>`
+          <span class="message-text">${message}</span>
+          <button class="close-message">&times;</button>
+        </div>`
       )
       .show();
 
@@ -22,6 +28,7 @@ jQuery(document).ready(function ($) {
     isLoading = true;
 
     const daysInMonth = new Date(currentYear, currentMonth, 0).getDate();
+    const isMobile = window.innerWidth <= 768;
 
     // Actualizar encabezado del mes
     $(".current-month").text(
@@ -38,14 +45,31 @@ jQuery(document).ready(function ($) {
     for (let day = 1; day <= daysInMonth; day++) {
       const date = new Date(currentYear, currentMonth - 1, day);
       const isWeekend = date.getDay() === 0 || date.getDay() === 6;
-      headerRow.append(`<th class="${isWeekend ? "weekend" : ""}">${day}</th>`);
+      const weekday = date
+        .toLocaleDateString("es-ES", {
+          weekday: isMobile ? "short" : "short",
+        })
+        .replace(/\.$/, ""); // Eliminar punto final si existe
+
+      headerRow.append(`
+        <th class="${isWeekend ? "weekend" : ""}" data-day="${day}">
+          <span class="weekday-header">${weekday}</span>
+          <span class="day-number">${day}</span>
+        </th>
+      `);
     }
 
     // Actualizar celdas de usuarios
     $(".calendar-table tbody tr").each(function () {
       $(this).find("td:not(:first)").remove();
       for (let day = 1; day <= daysInMonth; day++) {
-        $(this).append(`<td class="destination-cell" data-day="${day}"></td>`);
+        const date = new Date(currentYear, currentMonth - 1, day);
+        const isWeekend = date.getDay() === 0 || date.getDay() === 6;
+        $(this).append(`
+          <td class="destination-cell ${isWeekend ? "weekend" : ""}" 
+              data-day="${day}">
+          </td>
+        `);
       }
     });
 
@@ -81,7 +105,6 @@ jQuery(document).ready(function ($) {
       },
     });
   }
-
   function updateCalendarCells(data) {
     $(".calendar-table tbody tr").each(function () {
       const userId = $(this).data("user-id");
@@ -91,24 +114,21 @@ jQuery(document).ready(function ($) {
         day <= new Date(currentYear, currentMonth, 0).getDate();
         day++
       ) {
-        const date = new Date(currentYear, currentMonth - 1, day);
-        const isWeekend = date.getDay() === 0 || date.getDay() === 6;
         const formattedDate = `${currentYear}-${String(currentMonth).padStart(
           2,
           "0"
         )}-${String(day).padStart(2, "0")}`;
-
         const dayData = data.find(
           (entry) =>
             entry.user_id == userId && entry.work_date === formattedDate
         );
 
+        const cell = $(this).find(`td[data-day="${day}"]`);
         const destination = dayData ? dayData.destination : "";
         const vehicle = dayData ? dayData.vehicle : "";
         const modificationCount = dayData
           ? parseInt(dayData.modification_count)
           : 0;
-        const cell = $(this).find(`td[data-day="${day}"]`);
 
         let cellContent = "";
         if (destination) {
@@ -119,7 +139,7 @@ jQuery(document).ready(function ($) {
           $.ajax({
             url: staffCalendarConfig.ajax_url,
             type: "GET",
-            async: false, // Importante para mantener el orden
+            async: false,
             data: {
               action: "get_vehicles",
               nonce: staffCalendarConfig.nonce,
@@ -153,37 +173,8 @@ jQuery(document).ready(function ($) {
           })
           .toggleClass("has-destination", !!(destination || vehicle))
           .toggleClass("has-modifications", modificationCount > 0)
-          .toggleClass("weekend", isWeekend)
           .html(cellContent);
       }
-    });
-  }
-
-  function loadVehiclesForSelect() {
-    $.ajax({
-      url: staffCalendarConfig.ajax_url,
-      type: "GET",
-      data: {
-        action: "get_vehicles",
-        nonce: staffCalendarConfig.nonce,
-      },
-      success: function (response) {
-        if (response.success) {
-          const select = $("#modal-vehicle");
-          select.empty();
-          select.append('<option value="">Seleccionar vehículo</option>');
-
-          response.data.forEach(function (vehicle) {
-            if (vehicle.status === "active") {
-              select.append(
-                `<option value="${vehicle.name}">${vehicle.name} (${
-                  vehicle.plate || "Sin matrícula"
-                })</option>`
-              );
-            }
-          });
-        }
-      },
     });
   }
 
@@ -242,42 +233,6 @@ jQuery(document).ready(function ($) {
     $("#destination-modal").fadeIn(200);
   }
 
-  // Manejadores de eventos del calendario
-  $(".prev-month").click(function () {
-    if (currentMonth === 1) {
-      currentMonth = 12;
-      currentYear--;
-    } else {
-      currentMonth--;
-    }
-    updateCalendar();
-  });
-
-  $(".next-month").click(function () {
-    if (currentMonth === 12) {
-      currentMonth = 1;
-      currentYear++;
-    } else {
-      currentMonth++;
-    }
-    updateCalendar();
-  });
-
-  $(document).on("click", ".calendar-table .destination-cell", function () {
-    openModal($(this));
-  });
-
-  $(".modal-close, .modal-cancel").click(function () {
-    $(this).closest(".destination-modal, .vehicle-modal").fadeOut(200);
-  });
-
-  $(window).click(function (e) {
-    if ($(e.target).is(".destination-modal, .vehicle-modal")) {
-      $(e.target).fadeOut(200);
-    }
-  });
-
-  // Gestión de vehículos
   function loadVehicles() {
     $.ajax({
       url: staffCalendarConfig.ajax_url,
@@ -289,6 +244,34 @@ jQuery(document).ready(function ($) {
       success: function (response) {
         if (response.success) {
           updateVehiclesList(response.data);
+        }
+      },
+    });
+  }
+
+  function loadVehiclesForSelect() {
+    $.ajax({
+      url: staffCalendarConfig.ajax_url,
+      type: "GET",
+      data: {
+        action: "get_vehicles",
+        nonce: staffCalendarConfig.nonce,
+      },
+      success: function (response) {
+        if (response.success) {
+          const select = $("#modal-vehicle");
+          select.empty();
+          select.append('<option value="">Seleccionar vehículo</option>');
+
+          response.data.forEach(function (vehicle) {
+            if (vehicle.status === "active") {
+              select.append(
+                `<option value="${vehicle.name}">${vehicle.name} (${
+                  vehicle.plate || "Sin matrícula"
+                })</option>`
+              );
+            }
+          });
         }
       },
     });
@@ -312,32 +295,95 @@ jQuery(document).ready(function ($) {
       }[vehicle.status];
 
       const row = `
-                <tr>
-                    <td>${vehicle.name}</td>
-                    <td>${vehicle.plate || "-"}</td>
-                    <td><span class="status-badge ${statusClass}">${statusText}</span></td>
-                    <td>
-                        <button class="button edit-vehicle" data-id="${
-                          vehicle.id
-                        }" 
-                            data-name="${vehicle.name}" 
-                            data-plate="${vehicle.plate || ""}" 
-                            data-status="${vehicle.status}">
-                            Editar
-                        </button>
-                        <button class="button delete-vehicle" data-id="${
-                          vehicle.id
-                        }">
-                            Eliminar
-                        </button>
-                    </td>
-                </tr>
-            `;
+        <tr>
+          <td>${vehicle.name}</td>
+          <td>${vehicle.plate || "-"}</td>
+          <td><span class="status-badge ${statusClass}">${statusText}</span></td>
+          <td>
+            <button class="button edit-vehicle" data-id="${vehicle.id}" 
+              data-name="${vehicle.name}" 
+              data-plate="${vehicle.plate || ""}" 
+              data-status="${vehicle.status}">
+              Editar
+            </button>
+            <button class="button delete-vehicle" data-id="${vehicle.id}">
+              Eliminar
+            </button>
+          </td>
+        </tr>
+      `;
       tbody.append(row);
     });
   }
+  // Manejo de nombres en móvil
+  if (window.innerWidth <= 768) {
+    // Manejar el toque en móviles para los nombres
+    $(document).on("click touchstart", ".user-info", function (e) {
+      e.stopPropagation();
+      const $tooltip = $(".user-tooltip");
+      const $this = $(this);
+      const userName = $this.find(".user-name").text();
+      const userDepartment = $this.find(".user-department").text();
 
-  // Manejo del formulario de nuevo vehículo
+      // Construir contenido del tooltip
+      const tooltipContent = `
+        <div class="user-tooltip-name">${userName}</div>
+        ${
+          userDepartment
+            ? `<div class="user-tooltip-department">${userDepartment}</div>`
+            : ""
+        }
+      `;
+
+      // Posicionar y mostrar tooltip
+      $tooltip.html(tooltipContent);
+
+      const rect = this.getBoundingClientRect();
+      const tooltipHeight = $tooltip.outerHeight();
+
+      $tooltip
+        .css({
+          top: rect.bottom + window.scrollY + 5 + "px",
+          left: rect.left + rect.width / 2 + "px",
+        })
+        .addClass("show");
+    });
+
+    // Ocultar tooltip al tocar en cualquier otro lugar
+    $(document).on("click touchstart", function (e) {
+      if (!$(e.target).closest(".user-info").length) {
+        $(".user-tooltip").removeClass("show");
+      }
+    });
+
+    // Ocultar tooltip al hacer scroll
+    $(window).on("scroll", function () {
+      $(".user-tooltip").removeClass("show");
+    });
+  }
+
+  // Manejadores de eventos del calendario
+  $(".prev-month").click(function () {
+    if (currentMonth === 1) {
+      currentMonth = 12;
+      currentYear--;
+    } else {
+      currentMonth--;
+    }
+    updateCalendar();
+  });
+
+  $(".next-month").click(function () {
+    if (currentMonth === 12) {
+      currentMonth = 1;
+      currentYear++;
+    } else {
+      currentMonth++;
+    }
+    updateCalendar();
+  });
+
+  // Event handlers para vehículos
   $("#new-vehicle-form").on("submit", function (e) {
     e.preventDefault();
 
@@ -367,7 +413,6 @@ jQuery(document).ready(function ($) {
     });
   });
 
-  // Manejo de la edición de vehículo
   $(document).on("click", ".edit-vehicle", function () {
     const button = $(this);
     const id = button.data("id");
@@ -414,7 +459,6 @@ jQuery(document).ready(function ($) {
     });
   });
 
-  // Manejo de la eliminación de vehículo
   $(document).on("click", ".delete-vehicle", function () {
     if (!confirm("¿Estás seguro de que quieres eliminar este vehículo?")) {
       return;
@@ -439,6 +483,15 @@ jQuery(document).ready(function ($) {
         }
       },
     });
+  });
+
+  // Manejadores de eventos compartidos
+  $(document).on("click", ".calendar-table .destination-cell", function () {
+    openModal($(this));
+  });
+
+  $(".modal-close, .modal-cancel").click(function () {
+    $(this).closest(".destination-modal, .vehicle-modal").fadeOut(200);
   });
 
   if (staffCalendarConfig.isAdmin) {
@@ -478,21 +531,27 @@ jQuery(document).ready(function ($) {
     });
   }
 
-  $(document).on("click", ".close-message", function () {
-    $(this).closest(".status-message").parent().fadeOut();
+  // Manejador de redimensionamiento de ventana
+  let resizeTimer;
+  $(window).on("resize", function () {
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(function () {
+      if (!isLoading) {
+        updateCalendar();
+      }
+    }, 250);
   });
 
-  // Inicializar el calendario si está presente
+  // Inicializaciones
   if ($(".staff-calendar-frontend").length) {
     updateCalendar();
   }
 
-  // Inicializar la lista de vehículos si está presente
   if ($(".staff-vehicles-manager").length) {
     loadVehicles();
   }
 
-  // Manejadores de eventos compartidos
+  // Manejadores modales y mensajes
   $(document).on("click", ".close-message", function () {
     $(this).closest(".status-message").parent().fadeOut();
   });
