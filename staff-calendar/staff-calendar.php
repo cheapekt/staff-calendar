@@ -214,28 +214,29 @@ class StaffCalendar {
         }
     }
 
-    public function getCalendarData() {
-        check_ajax_referer('staff_calendar_nonce', 'nonce');
-        
-        $month = isset($_GET['month']) ? intval($_GET['month']) : date('n');
-        $year = isset($_GET['year']) ? intval($_GET['year']) : date('Y');
-        
-        global $wpdb;
-        $table_name = $wpdb->prefix . 'staff_calendar';
-        
-        $start_date = "$year-$month-01";
-        $end_date = date('Y-m-t', strtotime($start_date));
-        
-        $data = $wpdb->get_results($wpdb->prepare(
-            "SELECT user_id, work_date, destination, vehicle, modification_count 
-            FROM $table_name 
-            WHERE work_date BETWEEN %s AND %s",
-            $start_date,
-            $end_date
-        ));
-        
-        wp_send_json_success($data);
-    }
+public function getCalendarData() {
+    check_ajax_referer('staff_calendar_nonce', 'nonce');
+    
+    $month = isset($_GET['month']) ? intval($_GET['month']) : date('n');
+    $year = isset($_GET['year']) ? intval($_GET['year']) : date('Y');
+    
+    global $wpdb;
+    $table_name = $wpdb->prefix . 'staff_calendar';
+    
+    $start_date = "$year-$month-01";
+    $end_date = date('Y-m-t', strtotime($start_date));
+    
+    $data = $wpdb->get_results($wpdb->prepare(
+        "SELECT sc.user_id, sc.work_date, sc.destination, sc.vehicle, sc.modification_count 
+        FROM $table_name sc
+        INNER JOIN {$wpdb->users} u ON sc.user_id = u.ID 
+        WHERE sc.work_date BETWEEN %s AND %s",
+        $start_date,
+        $end_date
+    ));
+    
+    wp_send_json_success($data);
+}
 
     public function calendarShortcode($atts) {
         ob_start();
