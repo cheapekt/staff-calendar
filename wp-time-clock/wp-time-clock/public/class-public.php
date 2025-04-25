@@ -56,50 +56,49 @@ class WP_Time_Clock_Public {
      *
      * @since    1.0.0
      */
-    public function enqueue_scripts() {
-        // Intentar cargar solo cuando sea necesario (cuando esté presente el shortcode)
-        global $post;
-        
-        if (is_a($post, 'WP_Post') && 
-            (has_shortcode($post->post_content, 'wp_time_clock') || 
-             has_shortcode($post->post_content, 'wp_time_clock_history'))) {
-            
-            wp_enqueue_script(
-                $this->plugin_name,
-                WP_TIME_CLOCK_URL . 'public/js/public-script.js',
-                array('jquery'),
-                $this->version,
-                true
-            );
-            
-            // Comprobar si se debe habilitar la geolocalización
-            $clock_manager = new WP_Time_Clock_Manager();
-            $geolocation_enabled = $clock_manager->get_setting('geolocation_enabled', 'yes');
-            
-            // Pasar variables a JavaScript
-            wp_localize_script(
-                $this->plugin_name,
-                'wpTimeClock',
-                array(
-                    'ajax_url' => admin_url('admin-ajax.php'),
-                    'rest_url' => rest_url($this->plugin_name . '/v1'),
-                    'nonce' => wp_create_nonce('wp_rest'),
-                    'user_id' => get_current_user_id(),
-                    'geolocation_enabled' => ($geolocation_enabled === 'yes'),
-                    'i18n' => array(
-                        'error' => __('Error', 'wp-time-clock'),
-                        'success' => __('Éxito', 'wp-time-clock'),
-                        'confirm_clockout' => __('¿Estás seguro de que deseas registrar la salida?', 'wp-time-clock'),
-                        'location_error' => __('No se pudo obtener tu ubicación. Por favor, verifica los permisos de ubicación en tu navegador.', 'wp-time-clock'),
-                        'location_wait' => __('Obteniendo ubicación...', 'wp-time-clock'),
-                        'loading' => __('Cargando...', 'wp-time-clock'),
-                        'save' => __('Guardar', 'wp-time-clock'),
-                        'cancel' => __('Cancelar', 'wp-time-clock')
-                    )
-                )
-            );
-        }
-    }
+public function enqueue_scripts() {
+    // Get the absolute URL to the script file
+    $script_url = plugins_url('public/js/public-script.js', dirname(__FILE__));
+    
+    // Debug the URL
+    error_log('WP Time Clock script URL: ' . $script_url);
+    
+    // Enqueue the script
+    wp_enqueue_script(
+        $this->plugin_name,
+        $script_url,
+        array('jquery'),
+        $this->version . '.' . time(), // Add timestamp to prevent caching
+        true
+    );
+    
+    // Rest of your code...
+    $clock_manager = new WP_Time_Clock_Manager();
+    $geolocation_enabled = $clock_manager->get_setting('geolocation_enabled', 'yes');
+    
+    // Pasar variables a JavaScript
+    wp_localize_script(
+        $this->plugin_name,
+        'wpTimeClock',
+        array(
+            'ajax_url' => admin_url('admin-ajax.php'),
+            'rest_url' => rest_url($this->plugin_name . '/v1'),
+            'nonce' => wp_create_nonce('wp_rest'),
+            'user_id' => get_current_user_id(),
+            'geolocation_enabled' => ($geolocation_enabled === 'yes'),
+            'i18n' => array(
+                'error' => __('Error', 'wp-time-clock'),
+                'success' => __('Éxito', 'wp-time-clock'),
+                'confirm_clockout' => __('¿Estás seguro de que deseas registrar la salida?', 'wp-time-clock'),
+                'location_error' => __('No se pudo obtener tu ubicación. Por favor, verifica los permisos de ubicación en tu navegador.', 'wp-time-clock'),
+                'location_wait' => __('Obteniendo ubicación...', 'wp-time-clock'),
+                'loading' => __('Cargando...', 'wp-time-clock'),
+                'save' => __('Guardar', 'wp-time-clock'),
+                'cancel' => __('Cancelar', 'wp-time-clock')
+            )
+        )
+    );
+}
 
     /**
      * Registra los shortcodes adicionales

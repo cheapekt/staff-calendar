@@ -52,6 +52,18 @@ function run_wp_time_clock() {
 }
 run_wp_time_clock();
 
+
+// Add the test REST endpoint here
+add_action('rest_api_init', function() {
+    register_rest_route('wp-time-clock/v1', '/test', array(
+        'methods' => 'GET',
+        'callback' => function() {
+            return array('success' => true, 'message' => 'REST API is working');
+        },
+        'permission_callback' => '__return_true'
+    ));
+});
+
 /**
  * Funciones de utilidad para integración con otros plugins
  */
@@ -109,3 +121,79 @@ function wp_time_clock_shortcode($atts) {
     return wp_time_clock_render_button($atts);
 }
 add_shortcode('wp_time_clock', 'wp_time_clock_shortcode');
+
+
+
+// Add a temporary inline script for basic functionality
+add_action('wp_footer', function() {
+    if (!is_user_logged_in()) return;
+    
+    ?>
+    <script>
+    console.log('Inline script loaded');
+    jQuery(document).ready(function($) {
+        console.log('Inline script jQuery ready');
+        
+        // Setup basic click handler
+        $('.wp-time-clock-button').on('click', function(e) {
+            e.preventDefault();
+            console.log('Button click from inline script');
+            
+            var $button = $(this);
+            var action = $button.data('action');
+            var $container = $button.closest('.wp-time-clock-container');
+            
+            console.log('Action:', action);
+            
+            // Simple clock-in/out via standard AJAX
+            var endpoint = (action === 'clock_in') ? 'clock-in' : 'clock-out';
+            var url = '<?php echo esc_js(rest_url("wp-time-clock/v1")); ?>/' + endpoint;
+            
+            // Show loading message
+            $container.find('.wp-time-clock-message')
+                .html('Processing...')
+                .show();
+            
+            // Send request
+            $.ajax({
+                url: url,
+                method: 'POST',
+                beforeSend: function(xhr) {
+                    xhr.setRequestHeader('X-WP-Nonce', '<?php echo wp_create_nonce("wp_rest"); ?>');
+                },
+                data: {
+                    note: ''
+                },
+                success: function(response) {
+                    console.log('Success:', response);
+                    $container.find('.wp-time-clock-message')
+                        .html(response.message || 'Success!')
+                        .show();
+                        
+                    // Update button text and data
+                    if (action === 'clock_in') {
+                        $button.text('Fichar Salida');
+                        $button.data('action', 'clock_out');
+                    } else {
+                        $button.text('Fichar Entrada');
+                        $button.data('action', 'clock_in');
+                    }
+                },
+                error: function(xhr, status, error) {
+                    console.error('Error:', {status, error});
+                    var message = 'Error processing request';
+                    
+                    if (xhr.responseJSON && xhr.responseJSON.message) {
+                        message = xhr.responseJSON.message;
+                    }
+                    
+                    $container.find('.wp-time-clock-message')
+                        .html(message)
+                        .show();
+                }
+            });
+        });
+    });
+    </script>
+    <?php
+});
