@@ -325,6 +325,7 @@
 .form-group,
 .modal-input-group {
   margin-bottom: 15px;
+  width: 90%;
 }
 
 .form-group label,
@@ -393,7 +394,7 @@
 .vehicle-modal .modal-header {
   background-color: #f8f9fa;
   border-radius: 12px 12px 0 0;
-  padding: 20px;
+  padding-left: 20px;
   border-bottom: 1px solid #eee;
   display: flex;
   justify-content: space-between;
@@ -421,7 +422,7 @@
 }
 
 .modal-body {
-  padding: 20px;
+  padding: 10px;
 }
 
 .modal-info {
