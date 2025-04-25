@@ -1,0 +1,485 @@
+/**
+ * Estilos para el panel de administración del plugin
+ */
+
+/* Estilos generales del admin */
+.wp-time-clock-admin {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px 0;
+}
+
+.wp-time-clock-admin * {
+    box-sizing: border-box;
+}
+
+/* Header del panel */
+.wp-time-clock-admin-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid #ddd;
+}
+
+.wp-time-clock-current-time {
+    display: flex;
+    align-items: center;
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: #333;
+}
+
+.wp-time-clock-current-time .dashicons {
+    margin-right: 8px;
+    color: #2271b1;
+}
+
+.wp-time-clock-admin-actions {
+    display: flex;
+    gap: 10px;
+}
+
+.wp-time-clock-admin-actions .button {
+    display: flex;
+    align-items: center;
+}
+
+.wp-time-clock-admin-actions .button .dashicons {
+    margin-right: 5px;
+}
+
+/* Cuadrícula del dashboard */
+.wp-time-clock-dashboard-grid {
+    display: grid;
+    grid-template-columns: repeat(12, 1fr);
+    gap: 20px;
+    margin-top: 30px;
+}
+
+.wp-time-clock-card {
+    background: #fff;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
+    overflow: hidden;
+}
+
+.wp-time-clock-stats-card {
+    grid-column: span 4;
+}
+
+.wp-time-clock-chart-card {
+    grid-column: span 8;
+}
+
+.wp-time-clock-active-users-card {
+    grid-column: span 12;
+}
+
+/* Header de tarjetas */
+.wp-time-clock-card-header {
+    padding: 15px 20px;
+    background-color: #f8f9fa;
+    border-bottom: 1px solid #eee;
+}
+
+.wp-time-clock-card-header h2 {
+    margin: 0;
+    font-size: 1.1rem;
+    color: #333;
+}
+
+/* Contenido de tarjetas */
+.wp-time-clock-card-content {
+    padding: 20px;
+}
+
+/* Estadísticas */
+.wp-time-clock-stat-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: 20px;
+}
+
+.wp-time-clock-stat {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    padding: 15px 10px;
+    background-color: #f8f9fa;
+    border-radius: 6px;
+    transition: transform 0.2s ease;
+}
+
+.wp-time-clock-stat:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+}
+
+.wp-time-clock-stat-value {
+    font-size: 2rem;
+    font-weight: 700;
+    color: #2271b1;
+    margin-bottom: 8px;
+}
+
+.wp-time-clock-stat-label {
+    font-size: 0.85rem;
+    color: #666;
+}
+
+/* Tabla de usuarios activos */
+.wp-time-clock-active-users-card table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.wp-time-clock-active-users-card th {
+    background-color: #f8f9fa;
+    border-bottom: 2px solid #ddd;
+    padding: 12px;
+    text-align: left;
+    color: #444;
+    font-weight: 600;
+}
+
+.wp-time-clock-active-users-card td {
+    padding: 12px;
+    border-bottom: 1px solid #eee;
+}
+
+.wp-time-clock-active-users-card tr:hover {
+    background-color: #f9f9f9;
+}
+
+.wp-time-clock-elapsed-cell {
+    font-family: monospace;
+    font-size: 1rem;
+    font-weight: 500;
+    color: #333;
+}
+
+/* Estado de no datos */
+.wp-time-clock-no-data {
+    padding: 30px;
+    text-align: center;
+    color: #777;
+    font-style: italic;
+    background-color: #f9f9f9;
+    border-radius: 6px;
+    border: 1px dashed #ddd;
+}
+
+/* Modal */
+.wp-time-clock-modal {
+    display: none;
+    position: fixed;
+    z-index: 9999;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    background-color: rgba(0, 0, 0, 0.4);
+}
+
+.wp-time-clock-modal-content {
+    position: relative;
+    background-color: #fff;
+    margin: 50px auto;
+    padding: 0;
+    width: 90%;
+    max-width: 600px;
+    border-radius: 8px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+    animation: modalFadeIn 0.3s ease-out;
+}
+
+@keyframes modalFadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.wp-time-clock-modal-header {
+    padding: 15px 20px;
+    background-color: #f8f9fa;
+    border-bottom: 1px solid #eee;
+    border-radius: 8px 8px 0 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.wp-time-clock-modal-header h3 {
+    margin: 0;
+    color: #333;
+    font-size: 1.2rem;
+}
+
+.wp-time-clock-modal-close {
+    background: none;
+    border: none;
+    font-size: 24px;
+    line-height: 1;
+    cursor: pointer;
+    color: #666;
+    transition: color 0.2s;
+}
+
+.wp-time-clock-modal-close:hover {
+    color: #dc3232;
+}
+
+.wp-time-clock-modal-body {
+    padding: 20px;
+}
+
+/* Formulario dentro del modal */
+.wp-time-clock-form-row {
+    margin-bottom: 15px;
+}
+
+.wp-time-clock-form-row label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: 600;
+    color: #333;
+}
+
+.wp-time-clock-form-row input,
+.wp-time-clock-form-row select,
+.wp-time-clock-form-row textarea {
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.07);
+    font-size: 14px;
+}
+
+.wp-time-clock-form-row textarea {
+    min-height: 100px;
+    resize: vertical;
+}
+
+.wp-time-clock-form-actions {
+    margin-top: 20px;
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+}
+
+/* Páginas de informes */
+.wp-time-clock-report-filters {
+    margin-bottom: 20px;
+    padding: 15px;
+    background-color: #f8f9fa;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 15px;
+    align-items: flex-end;
+}
+
+.wp-time-clock-filter-group {
+    flex: 1;
+    min-width: 200px;
+}
+
+.wp-time-clock-filter-group label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: 600;
+    color: #333;
+}
+
+.wp-time-clock-export-button {
+    margin-left: auto;
+}
+
+/* Pestañas de configuración */
+.wp-time-clock-settings-tabs {
+    margin-bottom: 20px;
+    border-bottom: 1px solid #ddd;
+}
+
+.wp-time-clock-tab {
+    display: inline-block;
+    padding: 12px 20px;
+    margin-right: 5px;
+    border: 1px solid #ddd;
+    border-bottom: none;
+    border-radius: 5px 5px 0 0;
+    background-color: #f8f9fa;
+    color: #555;
+    font-weight: 500;
+    cursor: pointer;
+    position: relative;
+    top: 1px;
+}
+
+.wp-time-clock-tab.active {
+    background-color: #fff;
+    color: #2271b1;
+    border-bottom: 1px solid #fff;
+}
+
+.wp-time-clock-tab-content {
+    display: none;
+    padding: 20px;
+    background-color: #fff;
+    border: 1px solid #ddd;
+    border-top: none;
+    border-radius: 0 0 5px 5px;
+}
+
+.wp-time-clock-tab-content.active {
+    display: block;
+}
+
+/* Campos de formulario de configuración */
+.wp-time-clock-settings-form {
+    max-width: 600px;
+}
+
+.wp-time-clock-settings-section {
+    margin-bottom: 30px;
+}
+
+.wp-time-clock-settings-section h3 {
+    padding-bottom: 10px;
+    border-bottom: 1px solid #eee;
+    color: #333;
+}
+
+.wp-time-clock-field {
+    margin-bottom: 15px;
+}
+
+.wp-time-clock-field label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: 600;
+}
+
+.wp-time-clock-field input[type="text"],
+.wp-time-clock-field input[type="email"],
+.wp-time-clock-field input[type="number"],
+.wp-time-clock-field select,
+.wp-time-clock-field textarea {
+    width: 100%;
+    max-width: 400px;
+}
+
+.wp-time-clock-field .description {
+    font-size: 12px;
+    color: #777;
+    margin-top: 5px;
+    display: block;
+}
+
+/* Botones de acción */
+.wp-time-clock-edit-entry,
+.wp-time-clock-register-exit {
+    margin-right: 5px;
+}
+
+/* Mensajes */
+.wp-time-clock-message {
+    padding: 12px 15px;
+    margin: 20px 0;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+}
+
+.wp-time-clock-message::before {
+    margin-right: 10px;
+    font-family: dashicons;
+    font-size: 20px;
+}
+
+.wp-time-clock-message-success {
+    background-color: #e7f9ec;
+    border-left: 4px solid #46b450;
+    color: #155724;
+}
+
+.wp-time-clock-message-success::before {
+    content: "\f147";
+    color: #46b450;
+}
+
+.wp-time-clock-message-error {
+    background-color: #fbeaea;
+    border-left: 4px solid #dc3232;
+    color: #721c24;
+}
+
+.wp-time-clock-message-error::before {
+    content: "\f534";
+    color: #dc3232;
+}
+
+.wp-time-clock-message-warning {
+    background-color: #fff8e5;
+    border-left: 4px solid #ffb900;
+    color: #856404;
+}
+
+.wp-time-clock-message-warning::before {
+    content: "\f348";
+    color: #ffb900;
+}
+
+.wp-time-clock-message-info {
+    background-color: #e6f6ff;
+    border-left: 4px solid #00a0d2;
+    color: #004085;
+}
+
+.wp-time-clock-message-info::before {
+    content: "\f348";
+    color: #00a0d2;
+}
+
+/* Media queries para responsividad */
+@media screen and (max-width: 782px) {
+    .wp-time-clock-dashboard-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .wp-time-clock-stats-card,
+    .wp-time-clock-chart-card,
+    .wp-time-clock-active-users-card {
+        grid-column: span 1;
+    }
+    
+    .wp-time-clock-admin-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    
+    .wp-time-clock-admin-actions {
+        margin-top: 15px;
+        flex-wrap: wrap;
+    }
+    
+    .wp-time-clock-modal-content {
+        width: 95%;
+        margin: 20px auto;
+    }
+    
+    .wp-time-clock-stat-grid {
+        grid-template-columns: 1fr 1fr;
+    }
+}
