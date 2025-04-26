@@ -500,104 +500,104 @@ class WP_Time_Clock_Manager {
         }
     }
 
-    /**
-     * Renderiza el botón de fichaje
-     *
-     * @since    1.0.0
-     * @param    array     $atts     Atributos para personalizar el botón
-     * @return   string              HTML del botón
-     */
-    public function render_button($atts = []) {
-        // Si el usuario no está logueado
-        if (!is_user_logged_in()) {
-            return sprintf(
-                '<div class="wp-time-clock-message">%s</div>',
-                __('Debes iniciar sesión para usar el sistema de fichajes', 'wp-time-clock')
-            );
-        }
-        
-        // Obtener el estado del usuario
-        $user_status = $this->get_user_status();
-        $is_clocked_in = ($user_status['status'] === 'clocked_in');
-        
-        // Asignar clases CSS según el tema
-        $theme = isset($atts['theme']) ? $atts['theme'] : 'default';
-        $button_class = 'wp-time-clock-button';
-        $container_class = 'wp-time-clock-container';
-        
-        if ($theme === 'modern') {
-            $button_class .= ' wp-time-clock-button-modern';
-            $container_class .= ' wp-time-clock-container-modern';
-        } elseif ($theme === 'minimal') {
-            $button_class .= ' wp-time-clock-button-minimal';
-            $container_class .= ' wp-time-clock-container-minimal';
-        }
-        
-        $button_class .= $is_clocked_in ? ' wp-time-clock-button-out' : ' wp-time-clock-button-in';
-        
-        // Textos del botón
-        $text_in = isset($atts['text_in']) ? $atts['text_in'] : __('Fichar Entrada', 'wp-time-clock');
-        $text_out = isset($atts['text_out']) ? $atts['text_out'] : __('Fichar Salida', 'wp-time-clock');
-        $button_text = $is_clocked_in ? $text_out : $text_in;
-        
-        // Opción de mostrar reloj
-        $show_time = isset($atts['show_time']) && $atts['show_time'] === 'yes';
-        
-        // Opción de mostrar estado
-        $show_status = isset($atts['show_status']) && $atts['show_status'] === 'yes';
-        
-        // Iniciar buffer de salida
-        ob_start();
-        
-        // HTML del componente
-        ?>
-        <div class="<?php echo esc_attr($container_class); ?>" data-status="<?php echo esc_attr($user_status['status']); ?>">
-            
-            <?php if ($show_time): ?>
-            <div class="wp-time-clock-time" id="wp-time-clock-current-time">
-                <?php echo esc_html(current_time('H:i:s')); ?>
-            </div>
-            <?php endif; ?>
-            
-            <?php if ($show_status): ?>
-            <div class="wp-time-clock-status">
-                <span class="wp-time-clock-status-label"><?php _e('Estado:', 'wp-time-clock'); ?></span>
-                <span class="wp-time-clock-status-value"><?php echo esc_html($user_status['message']); ?></span>
-                
-                <?php if ($is_clocked_in): ?>
-                <div class="wp-time-clock-elapsed">
-                    <span class="wp-time-clock-elapsed-label"><?php _e('Tiempo transcurrido:', 'wp-time-clock'); ?></span>
-                    <span class="wp-time-clock-elapsed-value" 
-                          data-since="<?php echo esc_attr($user_status['since']); ?>"
-                          data-seconds="<?php echo esc_attr($user_status['elapsed_seconds']); ?>">
-                        <?php echo esc_html($user_status['elapsed']); ?>
-                    </span>
-                </div>
-                <?php endif; ?>
-            </div>
-            <?php endif; ?>
-            
-            <button class="<?php echo esc_attr($button_class); ?>"
-                    data-action="<?php echo $is_clocked_in ? 'clock_out' : 'clock_in'; ?>"
-                    data-nonce="<?php echo wp_create_nonce('wp_time_clock_nonce'); ?>">
-                <?php echo esc_html($button_text); ?>
-            </button>
-            
-            <div class="wp-time-clock-note-container" style="display: none;">
-                <textarea class="wp-time-clock-note" 
-                          placeholder="<?php echo $is_clocked_in ? 
-                                          esc_attr__('Nota de salida (opcional)', 'wp-time-clock') : 
-                                          esc_attr__('Nota de entrada (opcional)', 'wp-time-clock'); ?>"></textarea>
-                <div class="wp-time-clock-note-actions">
-                    <button class="wp-time-clock-submit"><?php _e('Guardar', 'wp-time-clock'); ?></button>
-                    <button class="wp-time-clock-cancel"><?php _e('Cancelar', 'wp-time-clock'); ?></button>
-                </div>
-            </div>
-            
-            <div class="wp-time-clock-message"></div>
-        </div>
-        <?php
-        
-        return ob_get_clean();
+
+/**
+ * Renderiza el botón de fichaje
+ *
+ * @since    1.0.0
+ * @param    array     $atts     Atributos para personalizar el botón
+ * @return   string              HTML del botón
+ */
+public function render_button($atts = []) {
+    // Si el usuario no está logueado
+    if (!is_user_logged_in()) {
+        return sprintf(
+            '<div class="wp-time-clock-message">%s</div>',
+            __('Debes iniciar sesión para usar el sistema de fichajes', 'wp-time-clock')
+        );
     }
+    
+    // Obtener el estado del usuario
+    $user_status = $this->get_user_status();
+    $is_clocked_in = ($user_status['status'] === 'clocked_in');
+    
+    // Asignar clases CSS según el tema
+    $theme = isset($atts['theme']) ? $atts['theme'] : 'default';
+    $button_class = 'wp-time-clock-button';
+    $container_class = 'wp-time-clock-container';
+    
+    if ($theme === 'modern') {
+        $button_class .= ' wp-time-clock-button-modern';
+        $container_class .= ' wp-time-clock-container-modern';
+    } elseif ($theme === 'minimal') {
+        $button_class .= ' wp-time-clock-button-minimal';
+        $container_class .= ' wp-time-clock-container-minimal';
+    }
+    
+    $button_class .= $is_clocked_in ? ' wp-time-clock-button-out' : ' wp-time-clock-button-in';
+    
+    // Textos del botón
+    $text_in = isset($atts['text_in']) ? $atts['text_in'] : __('Fichar Entrada', 'wp-time-clock');
+    $text_out = isset($atts['text_out']) ? $atts['text_out'] : __('Fichar Salida', 'wp-time-clock');
+    $button_text = $is_clocked_in ? $text_out : $text_in;
+    
+    // Opción de mostrar reloj
+    $show_time = isset($atts['show_time']) && $atts['show_time'] === 'yes';
+    
+    // Opción de mostrar estado
+    $show_status = isset($atts['show_status']) && $atts['show_status'] === 'yes';
+    
+    // Iniciar buffer de salida
+    ob_start();
+    
+    // HTML del componente
+    ?>
+    <div class="<?php echo esc_attr($container_class); ?>" data-status="<?php echo esc_attr($user_status['status']); ?>">
+        
+        <?php if ($show_time): ?>
+        <div class="wp-time-clock-time" id="wp-time-clock-current-time">
+            <?php echo esc_html(current_time('H:i:s')); ?>
+        </div>
+        <?php endif; ?>
+        
+        <?php if ($show_status): ?>
+        <div class="wp-time-clock-status">
+            <span class="wp-time-clock-status-label"><?php _e('Estado:', 'wp-time-clock'); ?></span>
+            <span class="wp-time-clock-status-value"><?php echo esc_html($user_status['message']); ?></span>
+            
+            <?php if ($is_clocked_in): ?>
+            <div class="wp-time-clock-elapsed">
+                <span class="wp-time-clock-elapsed-label"><?php _e('Tiempo transcurrido:', 'wp-time-clock'); ?></span>
+                <span class="wp-time-clock-elapsed-value" 
+                     data-since="<?php echo esc_attr($user_status['since']); ?>"
+                     data-seconds="<?php echo esc_attr($user_status['elapsed_seconds']); ?>">
+                    <?php echo esc_html($user_status['elapsed']); ?>
+                </span>
+            </div>
+            <?php endif; ?>
+        </div>
+        <?php endif; ?>
+        
+        <!-- Campo de nota siempre visible -->
+        <div class="wp-time-clock-note-container">
+            <textarea class="wp-time-clock-note" 
+                     placeholder="<?php echo $is_clocked_in ? 
+                                     esc_attr__('Nota de salida (opcional)', 'wp-time-clock') : 
+                                     esc_attr__('Nota de entrada (opcional)', 'wp-time-clock'); ?>"></textarea>
+        </div>
+        
+        <button class="<?php echo esc_attr($button_class); ?>"
+                data-action="<?php echo $is_clocked_in ? 'clock_out' : 'clock_in'; ?>"
+                data-nonce="<?php echo wp_create_nonce('wp_time_clock_nonce'); ?>">
+            <?php echo esc_html($button_text); ?>
+        </button>
+        
+        <div class="wp-time-clock-message"></div>
+    </div>
+    <?php
+    
+    return ob_get_clean();
+}
+    
+
 }

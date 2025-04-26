@@ -1,8 +1,5 @@
 /**
- * JavaScript para la funcionalidad frontend del plugin
- *
- * Maneja las interacciones del usuario con el botón de fichaje,
- * la geolocalización y actualización en tiempo real.
+ * JavaScript para la funcionalidad frontend del plugin - Versión con nota siempre visible
  */
 (function ($) {
   "use strict";
@@ -17,6 +14,17 @@
     initClockButton();
     updateCurrentTime();
     updateElapsedTime();
+
+    // Evento para Enter en la nota
+    $(".wp-time-clock-note").keypress(function (e) {
+      if (e.which === 13 && !e.shiftKey) {
+        e.preventDefault();
+        $(this)
+          .closest(".wp-time-clock-container")
+          .find(".wp-time-clock-button")
+          .click();
+      }
+    });
   });
 
   /**
@@ -25,10 +33,8 @@
   function initClockButton() {
     // Click en el botón principal de fichaje
     $(".wp-time-clock-button").on("click", function (e) {
-      console.log("Time clock button clicked!");
       e.preventDefault();
 
-      console.log("Time clock button clicked yes!");
       // Evitar doble clic
       if (isProcessing) return;
 
@@ -36,45 +42,11 @@
       const action = $button.data("action");
       const $container = $button.closest(".wp-time-clock-container");
 
-      // Verificar si se requiere nota
-      const allowNote = true; // Esto podría venir de las configuraciones
-
-      if (allowNote) {
-        // Mostrar el contenedor de nota
-        $container.find(".wp-time-clock-button").hide();
-        $container.find(".wp-time-clock-note-container").show();
-
-        // Enfocar el textarea
-        $container.find(".wp-time-clock-note").focus();
-      } else {
-        // Procesar directamente sin nota
-        processClockAction(action, "", $container);
-      }
-    });
-
-    // Click en "Guardar" de la nota
-    $(".wp-time-clock-submit").on("click", function (e) {
-      e.preventDefault();
-
-      const $container = $(this).closest(".wp-time-clock-container");
-      const action = $container.find(".wp-time-clock-button").data("action");
+      // Recoger la nota (si existe)
       const note = $container.find(".wp-time-clock-note").val();
 
+      // Procesar el fichaje con la nota (si hay)
       processClockAction(action, note, $container);
-    });
-
-    // Click en "Cancelar" de la nota
-    $(".wp-time-clock-cancel").on("click", function (e) {
-      e.preventDefault();
-
-      const $container = $(this).closest(".wp-time-clock-container");
-
-      // Ocultar el contenedor de nota y mostrar el botón
-      $container.find(".wp-time-clock-note-container").hide();
-      $container.find(".wp-time-clock-button").show();
-
-      // Limpiar el textarea
-      $container.find(".wp-time-clock-note").val("");
     });
   }
 
@@ -82,19 +54,20 @@
    * Procesa la acción de fichaje (entrada o salida)
    */
   function processClockAction(action, note, $container) {
-    console.log("processClockAction called", { action, note });
     if (isProcessing) {
-      console.log("Already processing, skipping");
       return;
     }
     isProcessing = true;
-    console.log("isProcessing set to true");
+
+    // Deshabilitar botón durante el proceso
+    const $button = $container.find(".wp-time-clock-button");
+    $button.prop("disabled", true).css("opacity", "0.7");
+
     // Mensaje de carga
     showMessage($container, wpTimeClock.i18n.loading, "info");
 
     // Si la geolocalización está activada
     if (wpTimeClock.geolocation_enabled && navigator.geolocation) {
-      console.log("Getting geolocation...");
       showMessage($container, wpTimeClock.i18n.location_wait, "info");
 
       navigator.geolocation.getCurrentPosition(
@@ -126,8 +99,7 @@
             sendClockRequest(action, note, "", $container);
           } else {
             isProcessing = false;
-            $container.find(".wp-time-clock-note-container").hide();
-            $container.find(".wp-time-clock-button").show();
+            $button.prop("disabled", false).css("opacity", "1");
             showMessage($container, "", "");
           }
         },
@@ -149,6 +121,7 @@
    */
   function sendClockRequest(action, note, location, $container) {
     const endpoint = action === "clock_in" ? "clock-in" : "clock-out";
+    const $button = $container.find(".wp-time-clock-button");
 
     $.ajax({
       url: wpTimeClock.rest_url + "/" + endpoint,
@@ -164,22 +137,24 @@
         isProcessing = false;
 
         if (response.success) {
-          // Actualizar UI
-          updateUIAfterClock(action, response, $container);
+          // Limpiar el área de nota
+          $container.find(".wp-time-clock-note").val("");
+
+          // Mostrar mensaje de éxito antes de recargar
           showMessage($container, response.message, "success");
 
-          // Limpiar el textarea y ocultar el contenedor de notas
-          $container.find(".wp-time-clock-note").val("");
-          $container.find(".wp-time-clock-note-container").hide();
-          $container.find(".wp-time-clock-button").show();
+          // Esperar un poco para mostrar el mensaje y luego recargar
+          setTimeout(function () {
+            // Recargar la página para actualizar el estado del botón
+            window.location.reload();
+          }, 1500);
         } else {
           showMessage(
             $container,
             response.message || wpTimeClock.i18n.error,
             "error"
           );
-          $container.find(".wp-time-clock-note-container").hide();
-          $container.find(".wp-time-clock-button").show();
+          $button.prop("disabled", false).css("opacity", "1");
         }
       },
       error: function (xhr, status, error) {
@@ -193,82 +168,9 @@
         }
 
         showMessage($container, errorMessage, "error");
-        $container.find(".wp-time-clock-note-container").hide();
-        $container.find(".wp-time-clock-button").show();
+        $button.prop("disabled", false).css("opacity", "1");
       },
     });
-  }
-
-  /**
-   * Actualiza la interfaz después de un fichaje exitoso
-   */
-  function updateUIAfterClock(action, response, $container) {
-    const $button = $container.find(".wp-time-clock-button");
-    const $status = $container.find(".wp-time-clock-status-value");
-    const $elapsed = $container.find(".wp-time-clock-elapsed");
-
-    if (action === "clock_in") {
-      // Cambiar botón a "Fichar Salida"
-      $button.text($button.text().replace(/Entrada/i, "Salida"));
-      $button.data("action", "clock_out");
-      $button
-        .removeClass("wp-time-clock-button-in")
-        .addClass("wp-time-clock-button-out");
-
-      // Actualizar estado
-      if ($status.length) {
-        $status.text(wpTimeClock.i18n.working);
-      }
-
-      // Mostrar tiempo transcurrido
-      if ($elapsed.length) {
-        $elapsed.show();
-        $elapsed
-          .find(".wp-time-clock-elapsed-value")
-          .data("since", response.clock_time)
-          .data("seconds", 0)
-          .text("00:00:00");
-
-        // Iniciar temporizador
-        startElapsedTimer();
-      }
-
-      // Actualizar el atributo data-status del contenedor
-      $container.attr("data-status", "clocked_in");
-    } else {
-      // Cambiar botón a "Fichar Entrada"
-      $button.text($button.text().replace(/Salida/i, "Entrada"));
-      $button.data("action", "clock_in");
-      $button
-        .removeClass("wp-time-clock-button-out")
-        .addClass("wp-time-clock-button-in");
-
-      // Actualizar estado
-      if ($status.length) {
-        $status.text(wpTimeClock.i18n.not_working);
-      }
-
-      // Ocultar tiempo transcurrido
-      if ($elapsed.length) {
-        $elapsed.hide();
-
-        // Detener temporizador
-        stopElapsedTimer();
-      }
-
-      // Actualizar el atributo data-status del contenedor
-      $container.attr("data-status", "clocked_out");
-
-      // Si hay un mensaje de tiempo trabajado, mostrarlo
-      if (response.time_worked && response.time_worked.formatted) {
-        showMessage(
-          $container,
-          "Has trabajado " + response.time_worked.formatted,
-          "info",
-          5000
-        );
-      }
-    }
   }
 
   /**
@@ -294,7 +196,7 @@
     $message.html(message).fadeIn();
 
     // Auto-ocultar después de la duración (si no es 0)
-    if (duration > 0) {
+    if (duration > 0 && type !== "success") {
       setTimeout(function () {
         $message.fadeOut();
       }, duration);

@@ -134,6 +134,14 @@ add_action('wp_footer', function() {
     jQuery(document).ready(function($) {
         console.log('Inline script jQuery ready');
         
+        // Evento para Enter en la nota
+        $('.wp-time-clock-note').keypress(function(e) {
+            if (e.which === 13 && !e.shiftKey) {
+                e.preventDefault();
+                $(this).closest('.wp-time-clock-container').find('.wp-time-clock-button').click();
+            }
+        });
+        
         // Setup basic click handler
         $('.wp-time-clock-button').on('click', function(e) {
             e.preventDefault();
@@ -143,16 +151,22 @@ add_action('wp_footer', function() {
             var action = $button.data('action');
             var $container = $button.closest('.wp-time-clock-container');
             
-            console.log('Action:', action);
+            // Recoger la nota del campo (si existe)
+            var note = $container.find('.wp-time-clock-note').val();
+            
+            console.log('Action:', action, 'Note:', note);
+            
+            // Deshabilitar botón durante procesamiento
+            $button.prop('disabled', true).css('opacity', '0.7');
+            
+            // Show loading message
+            $container.find('.wp-time-clock-message')
+                .html('Procesando...')
+                .show();
             
             // Simple clock-in/out via standard AJAX
             var endpoint = (action === 'clock_in') ? 'clock-in' : 'clock-out';
             var url = '<?php echo esc_js(rest_url("wp-time-clock/v1")); ?>/' + endpoint;
-            
-            // Show loading message
-            $container.find('.wp-time-clock-message')
-                .html('Processing...')
-                .show();
             
             // Send request
             $.ajax({
@@ -162,22 +176,22 @@ add_action('wp_footer', function() {
                     xhr.setRequestHeader('X-WP-Nonce', '<?php echo wp_create_nonce("wp_rest"); ?>');
                 },
                 data: {
-                    note: ''
+                    note: note
                 },
                 success: function(response) {
                     console.log('Success:', response);
+                    
+                    // Limpiar el área de nota
+                    $container.find('.wp-time-clock-note').val('');
+                    
                     $container.find('.wp-time-clock-message')
                         .html(response.message || 'Success!')
                         .show();
-                        
-                    // Update button text and data
-                    if (action === 'clock_in') {
-                        $button.text('Fichar Salida');
-                        $button.data('action', 'clock_out');
-                    } else {
-                        $button.text('Fichar Entrada');
-                        $button.data('action', 'clock_in');
-                    }
+                    
+                    // Recargar la página después de un breve retraso
+                    setTimeout(function() {
+                        window.location.reload();
+                    }, 1500);
                 },
                 error: function(xhr, status, error) {
                     console.error('Error:', {status, error});
@@ -190,6 +204,9 @@ add_action('wp_footer', function() {
                     $container.find('.wp-time-clock-message')
                         .html(message)
                         .show();
+                    
+                    // Reactivar botón en caso de error
+                    $button.prop('disabled', false).css('opacity', '1');
                 }
             });
         });

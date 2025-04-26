@@ -5,7 +5,8 @@
 
 /* Contenedor principal */
 .wp-time-clock-container {
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+    Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
   max-width: 500px;
   margin: 1.5rem auto;
   padding: 1.5rem;
@@ -17,11 +18,11 @@
 
 /* Contenedor - Variantes según estado */
 .wp-time-clock-container[data-status="clocked_in"] {
-  border-left: 4px solid #34D399;
+  border-left: 4px solid #34d399;
 }
 
 .wp-time-clock-container[data-status="clocked_out"] {
-  border-left: 4px solid #F87171;
+  border-left: 4px solid #f87171;
 }
 
 /* Reloj de tiempo actual */
@@ -30,7 +31,7 @@
   font-weight: 700;
   text-align: center;
   margin-bottom: 1rem;
-  color: #1F2937;
+  color: #1f2937;
   font-variant-numeric: tabular-nums;
   letter-spacing: -0.5px;
 }
@@ -39,13 +40,13 @@
 .wp-time-clock-status {
   margin-bottom: 1.5rem;
   padding: 0.75rem;
-  background-color: #F3F4F6;
+  background-color: #f3f4f6;
   border-radius: 0.375rem;
 }
 
 .wp-time-clock-status-label {
   font-weight: 600;
-  color: #4B5563;
+  color: #4b5563;
   margin-right: 0.5rem;
 }
 
@@ -60,18 +61,18 @@
   justify-content: space-between;
   align-items: center;
   padding-top: 0.5rem;
-  border-top: 1px dashed #E5E7EB;
+  border-top: 1px dashed #e5e7eb;
 }
 
 .wp-time-clock-elapsed-label {
   font-size: 0.875rem;
-  color: #6B7280;
+  color: #6b7280;
 }
 
 .wp-time-clock-elapsed-value {
   font-size: 1rem;
   font-weight: 600;
-  color: #1F2937;
+  color: #1f2937;
   font-variant-numeric: tabular-nums;
 }
 
@@ -103,7 +104,7 @@
 
 /* Variantes de botón */
 .wp-time-clock-button-in {
-  background-color: #10B981;
+  background-color: #10b981;
 }
 
 .wp-time-clock-button-in:hover {
@@ -111,11 +112,11 @@
 }
 
 .wp-time-clock-button-out {
-  background-color: #EF4444;
+  background-color: #ef4444;
 }
 
 .wp-time-clock-button-out:hover {
-  background-color: #DC2626;
+  background-color: #dc2626;
 }
 
 /* Contenedor de nota */
@@ -127,7 +128,7 @@
   width: 100%;
   min-height: 80px;
   padding: 0.75rem;
-  border: 1px solid #D1D5DB;
+  border: 1px solid #d1d5db;
   border-radius: 0.375rem;
   font-size: 0.875rem;
   resize: vertical;
@@ -136,7 +137,7 @@
 
 .wp-time-clock-note:focus {
   outline: none;
-  border-color: #60A5FA;
+  border-color: #60a5fa;
   box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.2);
 }
 
@@ -147,7 +148,7 @@
   gap: 0.5rem;
 }
 
-.wp-time-clock-submit, 
+.wp-time-clock-submit,
 .wp-time-clock-cancel {
   padding: 0.5rem 1rem;
   border-radius: 0.375rem;
@@ -158,23 +159,23 @@
 }
 
 .wp-time-clock-submit {
-  background-color: #3B82F6;
+  background-color: #3b82f6;
   color: #ffffff;
   border: none;
 }
 
 .wp-time-clock-submit:hover {
-  background-color: #2563EB;
+  background-color: #2563eb;
 }
 
 .wp-time-clock-cancel {
-  background-color: #F3F4F6;
-  color: #4B5563;
-  border: 1px solid #D1D5DB;
+  background-color: #f3f4f6;
+  color: #4b5563;
+  border: 1px solid #d1d5db;
 }
 
 .wp-time-clock-cancel:hover {
-  background-color: #E5E7EB;
+  background-color: #e5e7eb;
 }
 
 /* Mensajes */
@@ -189,18 +190,18 @@
 }
 
 .wp-time-clock-message-success {
-  background-color: #D1FAE5;
-  color: #065F46;
+  background-color: #d1fae5;
+  color: #065f46;
 }
 
 .wp-time-clock-message-error {
-  background-color: #FEE2E2;
-  color: #991B1B;
+  background-color: #fee2e2;
+  color: #991b1b;
 }
 
 .wp-time-clock-message-info {
-  background-color: #E0F2FE;
-  color: #0369A1;
+  background-color: #e0f2fe;
+  color: #0369a1;
 }
 
 /* Tabla de historial */
@@ -213,24 +214,24 @@
 .wp-time-clock-history th {
   text-align: left;
   padding: 0.75rem;
-  background-color: #F3F4F6;
+  background-color: #f3f4f6;
   font-weight: 600;
   color: #374151;
-  border-bottom: 2px solid #D1D5DB;
+  border-bottom: 2px solid #d1d5db;
 }
 
 .wp-time-clock-history td {
   padding: 0.75rem;
-  border-bottom: 1px solid #E5E7EB;
-  color: #4B5563;
+  border-bottom: 1px solid #e5e7eb;
+  color: #4b5563;
 }
 
 .wp-time-clock-history tr:nth-child(even) {
-  background-color: #F9FAFB;
+  background-color: #f9fafb;
 }
 
 .wp-time-clock-history tr:hover {
-  background-color: #F3F4F6;
+  background-color: #f3f4f6;
 }
 
 /* Temas alternativos */
@@ -238,7 +239,8 @@
 /* Tema Moderno */
 .wp-time-clock-container-modern {
   border-radius: 1rem;
-  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1),
+    0 4px 6px -2px rgba(0, 0, 0, 0.05);
   background: linear-gradient(145deg, #ffffff, #f3f4f6);
   border: none;
   position: relative;
@@ -246,7 +248,7 @@
 }
 
 .wp-time-clock-container-modern::before {
-  content: '';
+  content: "";
   position: absolute;
   top: 0;
   left: 0;
@@ -256,11 +258,11 @@
 }
 
 .wp-time-clock-container-modern[data-status="clocked_in"]::before {
-  background-color: #34D399;
+  background-color: #34d399;
 }
 
 .wp-time-clock-container-modern[data-status="clocked_out"]::before {
-  background-color: #F87171;
+  background-color: #f87171;
 }
 
 .wp-time-clock-button-modern {
@@ -276,7 +278,7 @@
 .wp-time-clock-container-minimal {
   box-shadow: none;
   background-color: transparent;
-  border: 1px solid #E5E7EB;
+  border: 1px solid #e5e7eb;
   padding: 1rem;
 }
 
@@ -288,8 +290,8 @@
 }
 
 .wp-time-clock-button-minimal.wp-time-clock-button-in {
-  color: #10B981;
-  border-color: #10B981;
+  color: #10b981;
+  border-color: #10b981;
 }
 
 .wp-time-clock-button-minimal.wp-time-clock-button-in:hover {
@@ -297,8 +299,8 @@
 }
 
 .wp-time-clock-button-minimal.wp-time-clock-button-out {
-  color: #EF4444;
-  border-color: #EF4444;
+  color: #ef4444;
+  border-color: #ef4444;
 }
 
 .wp-time-clock-button-minimal.wp-time-clock-button-out:hover {
@@ -311,16 +313,16 @@
     padding: 1rem;
     margin: 1rem auto;
   }
-  
+
   .wp-time-clock-time {
     font-size: 1.5rem;
   }
-  
+
   .wp-time-clock-button {
     padding: 0.625rem 1.25rem;
   }
-  
-  .wp-time-clock-history th, 
+
+  .wp-time-clock-history th,
   .wp-time-clock-history td {
     padding: 0.5rem;
     font-size: 0.875rem;
@@ -329,7 +331,8 @@
 
 /* Animaciones */
 @keyframes pulse {
-  0%, 100% {
+  0%,
+  100% {
     opacity: 1;
   }
   50% {
@@ -339,4 +342,63 @@
 
 .wp-time-clock-elapsed-value {
   animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* Estilos para el nuevo diseño con nota siempre visible */
+.wp-time-clock-note-container {
+  margin: 10px 0 15px 0;
+  display: block; /* Siempre visible */
+}
+
+.wp-time-clock-note {
+  width: 100%;
+  min-height: 60px; /* Reducir altura para que quede más compacto */
+  padding: 10px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  resize: vertical;
+  transition: border-color 0.2s ease;
+  background-color: #fafafa;
+}
+
+.wp-time-clock-note:focus {
+  outline: none;
+  border-color: #10b981; /* Color verde para coincidir con el botón */
+  box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.2);
+  background-color: #ffffff;
+}
+
+/* Estilos para el botón principal */
+.wp-time-clock-button {
+  display: block;
+  width: 100%;
+  padding: 0.75rem 1.5rem;
+  border: none;
+  border-radius: 0.375rem;
+  font-size: 1rem;
+  font-weight: 600;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin: 0; /* Quitar margen superior */
+  color: #ffffff;
+}
+
+/* Asegurar que el contenedor está bien espaciado */
+.wp-time-clock-container {
+  max-width: 500px;
+  margin: 1.5rem auto;
+  padding: 1.5rem;
+  border-radius: 0.5rem;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  background-color: #ffffff;
+}
+
+/* Mejorar espaciado de status */
+.wp-time-clock-status {
+  margin-bottom: 1rem;
+  padding: 0.75rem;
+  background-color: #f3f4f6;
+  border-radius: 0.375rem;
 }
