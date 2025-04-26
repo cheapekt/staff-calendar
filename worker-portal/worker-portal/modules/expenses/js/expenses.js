@@ -13,6 +13,9 @@
       this.setupCameraModal();
       this.setupFormSubmission();
       this.setupExpenseActions();
+      this.setupFilters();
+      this.setupPagination();
+      this.setupExport();
     },
 
     // Configurar el toggle del formulario
@@ -326,48 +329,152 @@
 
         const receiptUrl = $(this).attr("href");
 
-        // Crear un modal para mostrar el recibo
-        const modal = $(`
-                    <div class="worker-portal-modal">
-                        <div class="worker-portal-modal-content" style="max-width: 80%; margin: 5% auto;">
-                            <div class="worker-portal-modal-header">
-                                <h3>Justificante</h3>
-                                <button type="button" class="worker-portal-modal-close">&times;</button>
-                            </div>
-                            <div class="worker-portal-modal-body" style="text-align: center;">
-                                <img src="${receiptUrl}" style="max-width: 100%; max-height: 80vh;">
-                            </div>
-                        </div>
-                    </div>
-                `);
+        // Determinar el tipo de contenido por la extensión
+        let contentHtml = "";
+        if (receiptUrl.toLowerCase().endsWith(".pdf")) {
+          contentHtml = `<iframe src="${receiptUrl}" style="width:100%; height:80vh; border:none;"></iframe>`;
+        } else {
+          contentHtml = `<img src="${receiptUrl}" style="max-width:100%; max-height:80vh;">`;
+        }
 
-        // Añadir el modal al body y mostrarlo
-        $("body").append(modal);
-        modal.fadeIn();
+        // Mostrar el recibo en el modal
+        $("#receipt-modal-content").html(contentHtml);
+        $("#receipt-modal").fadeIn();
+      });
 
-        // Evento para cerrar el modal
-        modal.find(".worker-portal-modal-close").on("click", function () {
-          modal.fadeOut(function () {
-            modal.remove();
-          });
-        });
+      // Cerrar modal de recibo
+      $(document).on(
+        "click",
+        "#receipt-modal .worker-portal-modal-close",
+        function () {
+          $("#receipt-modal").fadeOut();
+        }
+      );
 
-        // Cerrar haciendo clic fuera o con ESC
-        modal.on("click", function (e) {
-          if ($(e.target).is(modal)) {
-            modal.fadeOut(function () {
-              modal.remove();
-            });
+      // Cerrar modal haciendo clic fuera
+      $(document).on("click", "#receipt-modal", function (e) {
+        if ($(e.target).is("#receipt-modal")) {
+          $("#receipt-modal").fadeOut();
+        }
+      });
+    },
+
+    // Configurar filtros de búsqueda
+    setupFilters: function () {
+      // Enviar formulario de filtros
+      $("#expenses-filter-form").on("submit", function (e) {
+        e.preventDefault();
+        WorkerPortalExpenses.loadFilteredExpenses(1);
+      });
+
+      // Limpiar filtros
+      $("#clear-filters").on("click", function () {
+        $("#expenses-filter-form")[0].reset();
+        WorkerPortalExpenses.loadFilteredExpenses(1);
+      });
+    },
+
+    // Cargar gastos filtrados mediante AJAX
+    loadFilteredExpenses: function (page) {
+      // Mostrar indicador de carga
+      $("#expenses-list-content").html(
+        '<div class="worker-portal-loader"><div class="worker-portal-loader-spinner"></div></div>'
+      );
+
+      // Obtener datos del formulario
+      const formData = new FormData($("#expenses-filter-form")[0]);
+      formData.append("action", "filter_expenses");
+      formData.append("nonce", workerPortalExpenses.nonce);
+      formData.append("page", page);
+
+      // Realizar petición AJAX
+      $.ajax({
+        url: workerPortalExpenses.ajax_url,
+        type: "POST",
+        data: formData,
+        processData: false,
+        contentType: false,
+        success: function (response) {
+          if (response.success) {
+            $("#expenses-list-content").html(response.data);
+          } else {
+            $("#expenses-list-content").html(
+              '<p class="worker-portal-no-data">' + response.data + "</p>"
+            );
           }
-        });
+        },
+        error: function () {
+          $("#expenses-list-content").html(
+            '<p class="worker-portal-no-data">' +
+              workerPortalExpenses.i18n.error +
+              "</p>"
+          );
+        },
+      });
+    },
 
-        $(document).on("keydown.receipt-modal", function (e) {
-          if (e.key === "Escape") {
-            modal.fadeOut(function () {
-              modal.remove();
-              $(document).off("keydown.receipt-modal");
-            });
-          }
+    // Configurar paginación
+    setupPagination: function () {
+      // Delegación de eventos para los botones de paginación
+      $(document).on(
+        "click",
+        ".worker-portal-pagination-links a",
+        function (e) {
+          e.preventDefault();
+          const page = $(this).data("page");
+          WorkerPortalExpenses.loadFilteredExpenses(page);
+        }
+      );
+    },
+
+    // Configurar exportación de gastos
+    setupExport: function () {
+      $("#export-expenses-button").on("click", function () {
+        // Obtener datos del formulario de filtros
+        const formData = new FormData($("#expenses-filter-form")[0]);
+        formData.append("action", "export_expenses");
+        formData.append("nonce", workerPortalExpenses.nonce);
+
+        // Deshabilitar botón y mostrar indicador de carga
+        const $button = $(this);
+        $button
+          .prop("disabled", true)
+          .html(
+            '<i class="dashicons dashicons-update-alt spinning"></i> Exportando...'
+          );
+
+        // Realizar petición AJAX
+        $.ajax({
+          url: workerPortalExpenses.ajax_url,
+          type: "POST",
+          data: formData,
+          processData: false,
+          contentType: false,
+          success: function (response) {
+            if (response.success) {
+              // Crear enlace para descargar
+              const link = document.createElement("a");
+              link.href = response.data.file_url;
+              link.download = response.data.filename;
+              link.style.display = "none";
+              document.body.appendChild(link);
+              link.click();
+              document.body.removeChild(link);
+            } else {
+              alert(response.data);
+            }
+          },
+          error: function () {
+            alert(workerPortalExpenses.i18n.error);
+          },
+          complete: function () {
+            // Restaurar botón
+            $button
+              .prop("disabled", false)
+              .html(
+                '<i class="dashicons dashicons-download"></i> Exportar a Excel'
+              );
+          },
         });
       });
     },

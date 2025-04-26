@@ -6,31 +6,38 @@
  */
 class Worker_Portal_Module_Expenses {
 
-    /**
-     * Inicializa el módulo
-     *
-     * @since    1.0.0
-     */
-    public function init() {
-        // Registrar hooks para admin
-        add_action('admin_menu', array($this, 'register_admin_menu'), 20);
-        add_action('admin_init', array($this, 'register_settings'));
-        
-        // Registrar hooks para frontend
-        add_action('wp_enqueue_scripts', array($this, 'enqueue_scripts'));
-        
-        // Registrar shortcodes
-        add_shortcode('worker_expenses', array($this, 'render_expenses_shortcode'));
-        
-        // Registrar endpoints de REST API
-        add_action('rest_api_init', array($this, 'register_rest_routes'));
-        
-        // Registrar AJAX actions
-        add_action('wp_ajax_submit_expense', array($this, 'ajax_submit_expense'));
-        add_action('wp_ajax_delete_expense', array($this, 'ajax_delete_expense'));
-        add_action('wp_ajax_approve_expense', array($this, 'ajax_approve_expense'));
-        add_action('wp_ajax_reject_expense', array($this, 'ajax_reject_expense'));
-    }
+/**
+ * Inicializa el módulo
+ *
+ * @since    1.0.0
+ */
+public function init() {
+    // Registrar hooks para admin
+    add_action('admin_menu', array($this, 'register_admin_menu'), 20);
+    add_action('admin_init', array($this, 'register_settings'));
+    
+    // Registrar hooks para frontend
+    add_action('wp_enqueue_scripts', array($this, 'enqueue_scripts'));
+    
+    // Registrar shortcodes
+    add_shortcode('worker_expenses', array($this, 'render_expenses_shortcode'));
+    
+    // Registrar endpoints de REST API
+    add_action('rest_api_init', array($this, 'register_rest_routes'));
+    
+    // Registrar AJAX actions para frontend
+    add_action('wp_ajax_submit_expense', array($this, 'ajax_submit_expense'));
+    add_action('wp_ajax_delete_expense', array($this, 'ajax_delete_expense'));
+    add_action('wp_ajax_approve_expense', array($this, 'ajax_approve_expense'));
+    add_action('wp_ajax_reject_expense', array($this, 'ajax_reject_expense'));
+    add_action('wp_ajax_filter_expenses', array($this, 'ajax_filter_expenses'));
+    add_action('wp_ajax_export_expenses', array($this, 'ajax_export_expenses'));
+    
+    // Registrar AJAX actions para admin
+    add_action('wp_ajax_bulk_expense_action', array($this, 'ajax_bulk_expense_action'));
+    add_action('wp_ajax_admin_export_expenses', array($this, 'ajax_admin_export_expenses'));
+    add_action('wp_ajax_get_expense_details', array($this, 'ajax_get_expense_details'));
+}
 
     /**
      * Registra las páginas de menú en el área de administración
@@ -911,14 +918,12 @@ class Worker_Portal_Module_Expenses {
         
         $message = sprintf(
             __('Se ha registrado un nuevo gasto:
-
 Usuario: %s
 Fecha del gasto: %s
 Tipo: %s
 Descripción: %s
 Importe: %.2f
 Ticket: %s
-
 Para aprobar o rechazar este gasto, accede al panel de administración: %s', 'worker-portal'),
             $user->display_name,
             $expense['expense_date'],
@@ -962,9 +967,7 @@ Para aprobar o rechazar este gasto, accede al panel de administración: %s', 'wo
         
         $message = sprintf(
             __('Hola %s,
-
 Tu gasto ha sido %s por %s:
-
 Fecha del gasto: %s
 Tipo: %s
 Descripción: %s
@@ -1196,4 +1199,926 @@ Para ver todos tus gastos, accede al portal del trabajador: %s', 'worker-portal'
         
         wp_send_json_success(__('Gasto rechazado correctamente.', 'worker-portal'));
     }
+
+    /**
+ * Estas funciones deben agregarse a la clase Worker_Portal_Module_Expenses 
+ * en el archivo modules/expenses/class-expenses.php
+ */
+
+    /**
+     * Maneja la petición AJAX para filtrar gastos
+     *
+     * @since    1.0.0
+     */
+    public function ajax_filter_expenses() {
+        // Verificar nonce
+        if (!isset($_POST['nonce']) || !wp_verify_nonce($_POST['nonce'], 'worker_portal_expenses_nonce')) {
+            wp_send_json_error(__('Error de seguridad. Por favor, recarga la página.', 'worker-portal'));
+        }
+        
+        // Verificar que el usuario está logueado
+        if (!is_user_logged_in()) {
+            wp_send_json_error(__('Debes iniciar sesión para ver tus gastos.', 'worker-portal'));
+        }
+        
+        $user_id = get_current_user_id();
+        
+        // Obtener parámetros de filtrado
+        $date_from = isset($_POST['date_from']) ? sanitize_text_field($_POST['date_from']) : '';
+        $date_to = isset($_POST['date_to']) ? sanitize_text_field($_POST['date_to']) : '';
+        $expense_type = isset($_POST['expense_type']) ? sanitize_text_field($_POST['expense_type']) : '';
+        $status = isset($_POST['status']) ? sanitize_text_field($_POST['status']) : '';
+        $search = isset($_POST['search']) ? sanitize_text_field($_POST['search']) : '';
+        
+        // Página actual y elementos por página
+        $current_page = isset($_POST['page']) ? intval($_POST['page']) : 1;
+        $per_page = 10;
+        $offset = ($current_page - 1) * $per_page;
+        
+        // Obtener los gastos filtrados
+        $expenses = $this->get_filtered_expenses(
+            $user_id,
+            $date_from,
+            $date_to,
+            $expense_type,
+            $status,
+            $search,
+            $per_page,
+            $offset
+        );
+        
+        // Obtener el total de gastos para la paginación
+        $total_items = $this->get_total_filtered_expenses(
+            $user_id,
+            $date_from,
+            $date_to,
+            $expense_type,
+            $status,
+            $search
+        );
+        
+        $total_pages = ceil($total_items / $per_page);
+        
+        // Obtener los tipos de gastos disponibles
+        $expense_types = get_option('worker_portal_expense_types', array(
+            'km' => __('Kilometraje', 'worker-portal'),
+            'hours' => __('Horas de desplazamiento', 'worker-portal'),
+            'meal' => __('Dietas', 'worker-portal'),
+            'other' => __('Otros', 'worker-portal')
+        ));
+        
+        // Si no hay gastos
+        if (empty($expenses)) {
+            wp_send_json_success('<p class="worker-portal-no-data">' . __('No se encontraron gastos con los filtros seleccionados.', 'worker-portal') . '</p>');
+            return;
+        }
+        
+        // Generar HTML de la tabla
+        ob_start();
+        ?>
+        <div class="worker-portal-table-responsive">
+            <table class="worker-portal-table worker-portal-expenses-table">
+                <thead>
+                    <tr>
+                        <th><?php _e('FECHA', 'worker-portal'); ?></th>
+                        <th><?php _e('TIPO', 'worker-portal'); ?></th>
+                        <th><?php _e('GASTO (motivo del gasto)', 'worker-portal'); ?></th>
+                        <th><?php _e('Fecha del gasto', 'worker-portal'); ?></th>
+                        <th><?php _e('Km / Horas / Euros', 'worker-portal'); ?></th>
+                        <th><?php _e('TICKET', 'worker-portal'); ?></th>
+                        <th><?php _e('VALIDACIÓN', 'worker-portal'); ?></th>
+                        <th><?php _e('ACCIONES', 'worker-portal'); ?></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php foreach ($expenses as $expense): ?>
+                        <tr data-expense-id="<?php echo esc_attr($expense['id']); ?>">
+                            <td><?php echo date_i18n(get_option('date_format'), strtotime($expense['report_date'])); ?></td>
+                            <td>
+                                <?php 
+                                echo isset($expense_types[$expense['expense_type']]) 
+                                    ? esc_html($expense_types[$expense['expense_type']]) 
+                                    : esc_html($expense['expense_type']); 
+                                ?>
+                            </td>
+                            <td><?php echo esc_html($expense['description']); ?></td>
+                            <td><?php echo date_i18n(get_option('date_format'), strtotime($expense['expense_date'])); ?></td>
+                            <td>
+                                <?php 
+                                // Mostrar unidad según tipo de gasto
+                                switch ($expense['expense_type']) {
+                                    case 'km':
+                                        echo esc_html($expense['amount']) . ' Km';
+                                        break;
+                                    case 'hours':
+                                        echo esc_html($expense['amount']) . ' Horas';
+                                        break;
+                                    default:
+                                        echo esc_html(number_format($expense['amount'], 2, ',', '.')) . ' Euros';
+                                        break;
+                                }
+                                ?>
+                            </td>
+                            <td>
+                                <?php if ($expense['has_receipt']): ?>
+                                    <span class="worker-portal-badge worker-portal-badge-success"><?php _e('SI', 'worker-portal'); ?></span>
+                                    <?php if (!empty($expense['receipt_path'])): ?>
+                                        <a href="<?php echo esc_url(wp_upload_dir()['baseurl'] . '/' . $expense['receipt_path']); ?>" target="_blank" class="worker-portal-view-receipt">
+                                            <i class="dashicons dashicons-visibility"></i>
+                                        </a>
+                                    <?php endif; ?>
+                                <?php else: ?>
+                                    <span class="worker-portal-badge worker-portal-badge-secondary"><?php _e('NO', 'worker-portal'); ?></span>
+                                <?php endif; ?>
+                            </td>
+                            <td>
+                                <?php
+                                switch ($expense['status']) {
+                                    case 'pending':
+                                        echo '<span class="worker-portal-badge worker-portal-badge-warning">' . __('PENDIENTE', 'worker-portal') . '</span>';
+                                        break;
+                                    case 'approved':
+                                        echo '<span class="worker-portal-badge worker-portal-badge-success">' . __('APROBADO', 'worker-portal') . '</span>';
+                                        break;
+                                    case 'rejected':
+                                        echo '<span class="worker-portal-badge worker-portal-badge-danger">' . __('DENEGADO', 'worker-portal') . '</span>';
+                                        break;
+                                }
+                                ?>
+                            </td>
+                            <td>
+                                <?php if ($expense['status'] === 'pending'): ?>
+                                    <button type="button" class="worker-portal-button worker-portal-button-small worker-portal-button-outline worker-portal-delete-expense" data-expense-id="<?php echo esc_attr($expense['id']); ?>">
+                                        <i class="dashicons dashicons-trash"></i>
+                                    </button>
+                                <?php endif; ?>
+                                
+                                <?php if (!empty($expense['receipt_path'])): ?>
+                                    <a href="<?php echo esc_url(wp_upload_dir()['baseurl'] . '/' . $expense['receipt_path']); ?>" class="worker-portal-button worker-portal-button-small worker-portal-button-outline worker-portal-view-receipt">
+                                        <i class="dashicons dashicons-visibility"></i>
+                                    </a>
+                                <?php endif; ?>
+                            </td>
+                        </tr>
+                    <?php endforeach; ?>
+                </tbody>
+            </table>
+        </div>
+        
+        <div class="worker-portal-pagination">
+            <?php if ($total_pages > 1): ?>
+                <div class="worker-portal-pagination-info">
+                    <?php
+                    printf(
+                        __('Mostrando %1$s - %2$s de %3$s gastos', 'worker-portal'),
+                        (($current_page - 1) * $per_page) + 1,
+                        min($current_page * $per_page, $total_items),
+                        $total_items
+                    );
+                    ?>
+                </div>
+                
+                <div class="worker-portal-pagination-links">
+                    <?php 
+                    // Botón anterior
+                    if ($current_page > 1): ?>
+                        <a href="#" class="worker-portal-pagination-prev" data-page="<?php echo $current_page - 1; ?>">&laquo; <?php _e('Anterior', 'worker-portal'); ?></a>
+                    <?php endif; ?>
+                    
+                    <?php 
+                    // Números de página
+                    for ($i = 1; $i <= $total_pages; $i++):
+                        $class = ($i === $current_page) ? 'worker-portal-pagination-current' : '';
+                    ?>
+                        <a href="#" class="worker-portal-pagination-number <?php echo $class; ?>" data-page="<?php echo $i; ?>"><?php echo $i; ?></a>
+                    <?php endfor; ?>
+                    
+                    <?php 
+                    // Botón siguiente
+                    if ($current_page < $total_pages): ?>
+                        <a href="#" class="worker-portal-pagination-next" data-page="<?php echo $current_page + 1; ?>"><?php _e('Siguiente', 'worker-portal'); ?> &raquo;</a>
+                    <?php endif; ?>
+                </div>
+            <?php endif; ?>
+        </div>
+        <?php
+        
+        $html = ob_get_clean();
+        wp_send_json_success($html);
+    }
+
+    /**
+     * Obtiene gastos filtrados de un usuario
+     *
+     * @since    1.0.0
+     * @param    int       $user_id      ID del usuario
+     * @param    string    $date_from    Fecha inicial
+     * @param    string    $date_to      Fecha final
+     * @param    string    $expense_type Tipo de gasto
+     * @param    string    $status       Estado del gasto
+     * @param    string    $search       Término de búsqueda
+     * @param    int       $limit        Límite de resultados
+     * @param    int       $offset       Offset para paginación
+     * @return   array                   Lista de gastos
+     */
+    private function get_filtered_expenses($user_id, $date_from = '', $date_to = '', $expense_type = '', $status = '', $search = '', $limit = 10, $offset = 0) {
+        global $wpdb;
+        
+        $table_name = $wpdb->prefix . 'worker_expenses';
+        
+        $query = "SELECT * FROM $table_name WHERE user_id = %d";
+        $params = array($user_id);
+        
+        // Filtro por fecha desde
+        if (!empty($date_from)) {
+            $query .= " AND expense_date >= %s";
+            $params[] = $date_from;
+        }
+        
+        // Filtro por fecha hasta
+        if (!empty($date_to)) {
+            $query .= " AND expense_date <= %s";
+            $params[] = $date_to;
+        }
+        
+        // Filtro por tipo de gasto
+        if (!empty($expense_type)) {
+            $query .= " AND expense_type = %s";
+            $params[] = $expense_type;
+        }
+        
+        // Filtro por estado
+        if (!empty($status)) {
+            $query .= " AND status = %s";
+            $params[] = $status;
+        }
+        
+        // Filtro por término de búsqueda
+        if (!empty($search)) {
+            $query .= " AND (description LIKE %s OR amount LIKE %s)";
+            $search_term = '%' . $wpdb->esc_like($search) . '%';
+            $params[] = $search_term;
+            $params[] = $search_term;
+        }
+        
+        $query .= " ORDER BY report_date DESC LIMIT %d OFFSET %d";
+        $params[] = $limit;
+        $params[] = $offset;
+        
+        return $wpdb->get_results(
+            $wpdb->prepare($query, $params),
+            ARRAY_A
+        );
+    }
+
+    /**
+     * Obtiene el total de gastos filtrados
+     *
+     * @since    1.0.0
+     * @param    int       $user_id      ID del usuario
+     * @param    string    $date_from    Fecha inicial
+     * @param    string    $date_to      Fecha final
+     * @param    string    $expense_type Tipo de gasto
+     * @param    string    $status       Estado del gasto
+     * @param    string    $search       Término de búsqueda
+     * @return   int                     Total de gastos
+     */
+    private function get_total_filtered_expenses($user_id, $date_from = '', $date_to = '', $expense_type = '', $status = '', $search = '') {
+        global $wpdb;
+        
+        $table_name = $wpdb->prefix . 'worker_expenses';
+        
+        $query = "SELECT COUNT(*) FROM $table_name WHERE user_id = %d";
+        $params = array($user_id);
+        
+        // Filtro por fecha desde
+        if (!empty($date_from)) {
+            $query .= " AND expense_date >= %s";
+            $params[] = $date_from;
+        }
+        
+        // Filtro por fecha hasta
+        if (!empty($date_to)) {
+            $query .= " AND expense_date <= %s";
+            $params[] = $date_to;
+        }
+        
+        // Filtro por tipo de gasto
+        if (!empty($expense_type)) {
+            $query .= " AND expense_type = %s";
+            $params[] = $expense_type;
+        }
+        
+        // Filtro por estado
+        if (!empty($status)) {
+            $query .= " AND status = %s";
+            $params[] = $status;
+        }
+        
+        // Filtro por término de búsqueda
+        if (!empty($search)) {
+            $query .= " AND (description LIKE %s OR amount LIKE %s)";
+            $search_term = '%' . $wpdb->esc_like($search) . '%';
+            $params[] = $search_term;
+            $params[] = $search_term;
+        }
+        
+        return $wpdb->get_var($wpdb->prepare($query, $params));
+    }
+
+    /**
+     * Maneja la petición AJAX para exportar gastos
+     *
+     * @since    1.0.0
+     */
+    public function ajax_export_expenses() {
+        // Verificar nonce
+        if (!isset($_POST['nonce']) || !wp_verify_nonce($_POST['nonce'], 'worker_portal_expenses_nonce')) {
+            wp_send_json_error(__('Error de seguridad. Por favor, recarga la página.', 'worker-portal'));
+        }
+        
+        // Verificar que el usuario está logueado
+        if (!is_user_logged_in()) {
+            wp_send_json_error(__('Debes iniciar sesión para exportar tus gastos.', 'worker-portal'));
+        }
+        
+        $user_id = get_current_user_id();
+        
+        // Obtener parámetros de filtrado
+        $date_from = isset($_POST['date_from']) ? sanitize_text_field($_POST['date_from']) : '';
+        $date_to = isset($_POST['date_to']) ? sanitize_text_field($_POST['date_to']) : '';
+        $expense_type = isset($_POST['expense_type']) ? sanitize_text_field($_POST['expense_type']) : '';
+        $status = isset($_POST['status']) ? sanitize_text_field($_POST['status']) : '';
+        $search = isset($_POST['search']) ? sanitize_text_field($_POST['search']) : '';
+        
+        // Obtener todos los gastos filtrados (sin límite)
+        $expenses = $this->get_filtered_expenses(
+            $user_id,
+            $date_from,
+            $date_to,
+            $expense_type,
+            $status,
+            $search,
+            1000, // Límite más alto para exportación
+            0
+        );
+        
+        if (empty($expenses)) {
+            wp_send_json_error(__('No hay gastos para exportar con los filtros seleccionados.', 'worker-portal'));
+            return;
+        }
+        
+        // Obtener los tipos de gastos disponibles
+        $expense_types = get_option('worker_portal_expense_types', array(
+            'km' => __('Kilometraje', 'worker-portal'),
+            'hours' => __('Horas de desplazamiento', 'worker-portal'),
+            'meal' => __('Dietas', 'worker-portal'),
+            'other' => __('Otros', 'worker-portal')
+        ));
+        
+        // Generar archivo CSV
+        $filename = 'gastos_' . date('Y-m-d') . '.csv';
+        $upload_dir = wp_upload_dir();
+        $file_path = $upload_dir['basedir'] . '/worker-portal/exports/' . $filename;
+        
+        // Crear directorio si no existe
+        if (!file_exists($upload_dir['basedir'] . '/worker-portal/exports/')) {
+            wp_mkdir_p($upload_dir['basedir'] . '/worker-portal/exports/');
+            
+            // Añadir archivo index.php para proteger el directorio
+            file_put_contents($upload_dir['basedir'] . '/worker-portal/exports/index.php', '<?php // Silence is golden');
+        }
+        
+        // Abrir archivo para escritura
+        $file = fopen($file_path, 'w');
+        
+        // Escribir BOM para UTF-8
+        fputs($file, "\xEF\xBB\xBF");
+        
+        // Escribir cabecera
+        fputcsv($file, array(
+            __('Fecha de reporte', 'worker-portal'),
+            __('Fecha del gasto', 'worker-portal'),
+            __('Tipo', 'worker-portal'),
+            __('Descripción', 'worker-portal'),
+            __('Importe', 'worker-portal'),
+            __('Unidad', 'worker-portal'),
+            __('Ticket', 'worker-portal'),
+            __('Estado', 'worker-portal')
+        ));
+        
+        // Escribir datos
+        foreach ($expenses as $expense) {
+            // Determinar unidad según tipo de gasto
+            $unit = '';
+            switch ($expense['expense_type']) {
+                case 'km':
+                    $unit = 'Km';
+                    break;
+                case 'hours':
+                    $unit = __('Horas', 'worker-portal');
+                    break;
+                default:
+                    $unit = __('Euros', 'worker-portal');
+                    break;
+            }
+            
+            // Estado del gasto
+            $status_text = '';
+            switch ($expense['status']) {
+                case 'pending':
+                    $status_text = __('Pendiente', 'worker-portal');
+                    break;
+                case 'approved':
+                    $status_text = __('Aprobado', 'worker-portal');
+                    break;
+                case 'rejected':
+                    $status_text = __('Denegado', 'worker-portal');
+                    break;
+            }
+            
+            // Escribir fila
+            fputcsv($file, array(
+                date_i18n(get_option('date_format'), strtotime($expense['report_date'])),
+                date_i18n(get_option('date_format'), strtotime($expense['expense_date'])),
+                isset($expense_types[$expense['expense_type']]) ? $expense_types[$expense['expense_type']] : $expense['expense_type'],
+                $expense['description'],
+                $expense['amount'],
+                $unit,
+                $expense['has_receipt'] ? __('Sí', 'worker-portal') : __('No', 'worker-portal'),
+                $status_text
+            ));
+        }
+        
+        // Cerrar archivo
+        fclose($file);
+        
+        // Devolver la URL del archivo generado
+        wp_send_json_success(array(
+            'file_url' => $upload_dir['baseurl'] . '/worker-portal/exports/' . $filename,
+            'filename' => $filename,
+            'count' => count($expenses)
+        ));
+    }
+
+    /**
+ * Estas funciones deben agregarse a la clase Worker_Portal_Module_Expenses 
+ * en el archivo modules/expenses/class-expenses.php
+ */
+
+    /**
+     * Maneja la petición AJAX para acciones masivas sobre gastos
+     *
+     * @since    1.0.0
+     */
+    public function ajax_bulk_expense_action() {
+        // Verificar nonce
+        if (!isset($_POST['nonce']) || !wp_verify_nonce($_POST['nonce'], 'worker_portal_expenses_bulk_action')) {
+            wp_send_json_error(__('Error de seguridad. Por favor, recarga la página.', 'worker-portal'));
+        }
+        
+        // Verificar permisos
+        if (!current_user_can('manage_options') && !$this->is_expense_approver()) {
+            wp_send_json_error(__('No tienes permisos para realizar esta acción.', 'worker-portal'));
+        }
+        
+        // Obtener acción y IDs
+        $bulk_action = isset($_POST['bulk_action']) ? sanitize_text_field($_POST['bulk_action']) : '';
+        $expense_ids = isset($_POST['expense_ids']) ? array_map('intval', $_POST['expense_ids']) : array();
+        
+        // Validar datos
+        if (empty($bulk_action) || !in_array($bulk_action, array('approve', 'reject'))) {
+            wp_send_json_error(__('Acción no válida.', 'worker-portal'));
+        }
+        
+        if (empty($expense_ids)) {
+            wp_send_json_error(__('No se han seleccionado gastos.', 'worker-portal'));
+        }
+        
+        // Procesar gastos
+        $processed = 0;
+        $user_id = get_current_user_id();
+        
+        foreach ($expense_ids as $expense_id) {
+            // Verificar que el gasto existe y está pendiente
+            $expense = $this->get_expense($expense_id);
+            
+            if (!$expense || $expense['status'] !== 'pending') {
+                continue;
+            }
+            
+            // Actualizar estado
+            $status = $bulk_action === 'approve' ? 'approved' : 'rejected';
+            $result = $this->update_expense_status($expense_id, $status, $user_id);
+            
+            if (!is_wp_error($result)) {
+                $processed++;
+                
+                // Enviar notificación
+                $this->send_approval_notification($expense_id, $status);
+            }
+        }
+        
+        // Devolver resultado
+        if ($processed > 0) {
+            $message = $bulk_action === 'approve' 
+                ? sprintf(_n('%d gasto aprobado correctamente.', '%d gastos aprobados correctamente.', $processed, 'worker-portal'), $processed)
+                : sprintf(_n('%d gasto rechazado correctamente.', '%d gastos rechazados correctamente.', $processed, 'worker-portal'), $processed);
+            
+            wp_send_json_success(array(
+                'message' => $message,
+                'processed' => $processed
+            ));
+        } else {
+            wp_send_json_error(__('No se ha podido procesar ningún gasto.', 'worker-portal'));
+        }
+    }
+
+    /**
+     * Comprueba si el usuario actual es un aprobador de gastos
+     *
+     * @since    1.0.0
+     * @return   bool    Si el usuario es aprobador
+     */
+    private function is_expense_approver() {
+        $user_id = get_current_user_id();
+        $approvers = get_option('worker_portal_expense_approvers', array());
+        
+        return in_array($user_id, $approvers);
+    }
+
+    /**
+     * Maneja la petición AJAX para exportar gastos desde el admin
+     *
+     * @since    1.0.0
+     */
+    public function ajax_admin_export_expenses() {
+        // Verificar nonce
+        if (!isset($_POST['nonce']) || !wp_verify_nonce($_POST['nonce'], 'worker_portal_expenses_nonce')) {
+            wp_send_json_error(__('Error de seguridad. Por favor, recarga la página.', 'worker-portal'));
+        }
+        
+        // Verificar permisos
+        if (!current_user_can('manage_options') && !$this->is_expense_approver()) {
+            wp_send_json_error(__('No tienes permisos para exportar gastos.', 'worker-portal'));
+        }
+        
+        // Obtener parámetros de filtrado
+        $user_id = isset($_POST['user_id']) ? intval($_POST['user_id']) : 0;
+        $expense_type = isset($_POST['expense_type']) ? sanitize_text_field($_POST['expense_type']) : '';
+        $status = isset($_POST['status']) ? sanitize_text_field($_POST['status']) : '';
+        $date_from = isset($_POST['date_from']) ? sanitize_text_field($_POST['date_from']) : '';
+        $date_to = isset($_POST['date_to']) ? sanitize_text_field($_POST['date_to']) : '';
+        
+        // Obtener gastos filtrados para exportación
+        $expenses = $this->get_admin_filtered_expenses(
+            $user_id,
+            $date_from,
+            $date_to,
+            $expense_type,
+            $status,
+            1000 // Límite alto para la exportación
+        );
+        
+        if (empty($expenses)) {
+            wp_send_json_error(__('No hay gastos para exportar con los filtros seleccionados.', 'worker-portal'));
+            return;
+        }
+        
+        // Obtener los tipos de gastos disponibles
+        $expense_types = get_option('worker_portal_expense_types', array(
+            'km' => __('Kilometraje', 'worker-portal'),
+            'hours' => __('Horas de desplazamiento', 'worker-portal'),
+            'meal' => __('Dietas', 'worker-portal'),
+            'other' => __('Otros', 'worker-portal')
+        ));
+        
+        // Generar archivo CSV
+        $filename = 'gastos_' . date('Y-m-d') . '.csv';
+        $upload_dir = wp_upload_dir();
+        $file_path = $upload_dir['basedir'] . '/worker-portal/exports/' . $filename;
+        
+        // Crear directorio si no existe
+        if (!file_exists($upload_dir['basedir'] . '/worker-portal/exports/')) {
+            wp_mkdir_p($upload_dir['basedir'] . '/worker-portal/exports/');
+            
+            // Añadir archivo index.php para proteger el directorio
+            file_put_contents($upload_dir['basedir'] . '/worker-portal/exports/index.php', '<?php // Silence is golden');
+        }
+        
+        // Abrir archivo para escritura
+        $file = fopen($file_path, 'w');
+        
+        // Escribir BOM para UTF-8
+        fputs($file, "\xEF\xBB\xBF");
+        
+        // Escribir cabecera
+        fputcsv($file, array(
+            __('ID', 'worker-portal'),
+            __('Usuario', 'worker-portal'),
+            __('Fecha de reporte', 'worker-portal'),
+            __('Fecha del gasto', 'worker-portal'),
+            __('Tipo', 'worker-portal'),
+            __('Descripción', 'worker-portal'),
+            __('Importe', 'worker-portal'),
+            __('Unidad', 'worker-portal'),
+            __('Ticket', 'worker-portal'),
+            __('Estado', 'worker-portal'),
+            __('Aprobado por', 'worker-portal'),
+            __('Fecha de aprobación', 'worker-portal')
+        ));
+        
+        // Escribir datos
+        foreach ($expenses as $expense) {
+            // Determinar unidad según tipo de gasto
+            $unit = '';
+            switch ($expense['expense_type']) {
+                case 'km':
+                    $unit = 'Km';
+                    break;
+                case 'hours':
+                    $unit = __('Horas', 'worker-portal');
+                    break;
+                default:
+                    $unit = __('Euros', 'worker-portal');
+                    break;
+            }
+            
+            // Estado del gasto
+            $status_text = '';
+            switch ($expense['status']) {
+                case 'pending':
+                    $status_text = __('Pendiente', 'worker-portal');
+                    break;
+                case 'approved':
+                    $status_text = __('Aprobado', 'worker-portal');
+                    break;
+                case 'rejected':
+                    $status_text = __('Denegado', 'worker-portal');
+                    break;
+            }
+            
+            // Obtener nombre del usuario
+            $user_info = get_userdata($expense['user_id']);
+            $user_name = $user_info ? $user_info->display_name : __('Usuario desconocido', 'worker-portal');
+            
+            // Obtener nombre del aprobador
+            $approver_name = '';
+            if (!empty($expense['approved_by'])) {
+                $approver_info = get_userdata($expense['approved_by']);
+                $approver_name = $approver_info ? $approver_info->display_name : __('Usuario desconocido', 'worker-portal');
+            }
+            
+            // Escribir fila
+            fputcsv($file, array(
+                $expense['id'],
+                $user_name,
+                date_i18n(get_option('date_format'), strtotime($expense['report_date'])),
+                date_i18n(get_option('date_format'), strtotime($expense['expense_date'])),
+                isset($expense_types[$expense['expense_type']]) ? $expense_types[$expense['expense_type']] : $expense['expense_type'],
+                $expense['description'],
+                $expense['amount'],
+                $unit,
+                $expense['has_receipt'] ? __('Sí', 'worker-portal') : __('No', 'worker-portal'),
+                $status_text,
+                $approver_name,
+                !empty($expense['approved_date']) ? date_i18n(get_option('date_format'), strtotime($expense['approved_date'])) : ''
+            ));
+        }
+        
+        // Cerrar archivo
+        fclose($file);
+        
+        // Devolver la URL del archivo generado
+        wp_send_json_success(array(
+            'file_url' => $upload_dir['baseurl'] . '/worker-portal/exports/' . $filename,
+            'filename' => $filename,
+            'count' => count($expenses)
+        ));
+    }
+
+    /**
+     * Obtiene los detalles de un gasto para mostrar en modal
+     *
+     * @since    1.0.0
+     */
+    public function ajax_get_expense_details() {
+        // Verificar nonce
+        if (!isset($_POST['nonce']) || !wp_verify_nonce($_POST['nonce'], 'worker_portal_expenses_nonce')) {
+            wp_send_json_error(__('Error de seguridad. Por favor, recarga la página.', 'worker-portal'));
+        }
+        
+        // Verificar permisos
+        if (!current_user_can('manage_options') && !$this->is_expense_approver()) {
+            wp_send_json_error(__('No tienes permisos para ver estos detalles.', 'worker-portal'));
+        }
+        
+        // Obtener ID del gasto
+        $expense_id = isset($_POST['expense_id']) ? intval($_POST['expense_id']) : 0;
+        
+        if (empty($expense_id)) {
+            wp_send_json_error(__('ID de gasto no válido.', 'worker-portal'));
+        }
+        
+        // Obtener detalles del gasto
+        $expense = $this->get_expense($expense_id);
+        
+        if (!$expense) {
+            wp_send_json_error(__('Gasto no encontrado.', 'worker-portal'));
+        }
+        
+        // Obtener información adicional
+        $user_info = get_userdata($expense['user_id']);
+        $user_name = $user_info ? $user_info->display_name : __('Usuario desconocido', 'worker-portal');
+        
+        $approver_name = '';
+        if (!empty($expense['approved_by'])) {
+            $approver_info = get_userdata($expense['approved_by']);
+            $approver_name = $approver_info ? $approver_info->display_name : __('Usuario desconocido', 'worker-portal');
+        }
+        
+        // Obtener tipo de gasto
+        $expense_types = get_option('worker_portal_expense_types', array());
+        $expense_type_name = isset($expense_types[$expense['expense_type']]) 
+            ? $expense_types[$expense['expense_type']] 
+            : $expense['expense_type'];
+        
+        // Generar HTML para los detalles
+        ob_start();
+        ?>
+        <div class="worker-portal-expense-details">
+            <table class="widefat fixed" style="margin-bottom: 20px;">
+                <tbody>
+                    <tr>
+                        <th style="width: 200px;"><?php _e('ID del gasto:', 'worker-portal'); ?></th>
+                        <td><?php echo esc_html($expense['id']); ?></td>
+                    </tr>
+                    <tr>
+                        <th><?php _e('Usuario:', 'worker-portal'); ?></th>
+                        <td><?php echo esc_html($user_name); ?></td>
+                    </tr>
+                    <tr>
+                        <th><?php _e('Fecha de comunicación:', 'worker-portal'); ?></th>
+                        <td><?php echo date_i18n(get_option('date_format') . ' ' . get_option('time_format'), strtotime($expense['report_date'])); ?></td>
+                    </tr>
+                    <tr>
+                        <th><?php _e('Fecha del gasto:', 'worker-portal'); ?></th>
+                        <td><?php echo date_i18n(get_option('date_format'), strtotime($expense['expense_date'])); ?></td>
+                    </tr>
+                    <tr>
+                        <th><?php _e('Tipo de gasto:', 'worker-portal'); ?></th>
+                        <td><?php echo esc_html($expense_type_name); ?></td>
+                    </tr>
+                    <tr>
+                        <th><?php _e('Descripción:', 'worker-portal'); ?></th>
+                        <td><?php echo esc_html($expense['description']); ?></td>
+                    </tr>
+                    <tr>
+                        <th><?php _e('Importe:', 'worker-portal'); ?></th>
+                        <td>
+                            <?php 
+                            // Mostrar unidad según tipo de gasto
+                            switch ($expense['expense_type']) {
+                                case 'km':
+                                    echo esc_html($expense['amount']) . ' Km';
+                                    break;
+                                case 'hours':
+                                    echo esc_html($expense['amount']) . ' ' . __('Horas', 'worker-portal');
+                                    break;
+                                default:
+                                    echo esc_html(number_format($expense['amount'], 2, ',', '.')) . ' €';
+                                    break;
+                            }
+                            ?>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th><?php _e('Justificante:', 'worker-portal'); ?></th>
+                        <td>
+                            <?php if ($expense['has_receipt']): ?>
+                                <span class="worker-portal-status-yes"><?php _e('Sí', 'worker-portal'); ?></span>
+                                <?php if (!empty($expense['receipt_path'])): ?>
+                                    <a href="<?php echo esc_url(wp_upload_dir()['baseurl'] . '/' . $expense['receipt_path']); ?>" target="_blank" class="button view-receipt">
+                                        <span class="dashicons dashicons-visibility"></span> <?php _e('Ver justificante', 'worker-portal'); ?>
+                                    </a>
+                                <?php endif; ?>
+                            <?php else: ?>
+                                <span class="worker-portal-status-no"><?php _e('No', 'worker-portal'); ?></span>
+                            <?php endif; ?>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th><?php _e('Estado:', 'worker-portal'); ?></th>
+                        <td>
+                            <?php
+                            switch ($expense['status']) {
+                                case 'pending':
+                                    echo '<span class="worker-portal-status-pending">' . __('Pendiente', 'worker-portal') . '</span>';
+                                    break;
+                                case 'approved':
+                                    echo '<span class="worker-portal-status-approved">' . __('Aprobado', 'worker-portal') . '</span>';
+                                    break;
+                                case 'rejected':
+                                    echo '<span class="worker-portal-status-rejected">' . __('Denegado', 'worker-portal') . '</span>';
+                                    break;
+                            }
+                            ?>
+                        </td>
+                    </tr>
+                    <?php if (!empty($approver_name)): ?>
+                        <tr>
+                            <th><?php _e('Aprobado/Denegado por:', 'worker-portal'); ?></th>
+                            <td><?php echo esc_html($approver_name); ?></td>
+                        </tr>
+                    <?php endif; ?>
+                    <?php if (!empty($expense['approved_date'])): ?>
+                        <tr>
+                            <th><?php _e('Fecha de aprobación:', 'worker-portal'); ?></th>
+                            <td><?php echo date_i18n(get_option('date_format') . ' ' . get_option('time_format'), strtotime($expense['approved_date'])); ?></td>
+                        </tr>
+                    <?php endif; ?>
+                </tbody>
+            </table>
+            
+            <?php if ($expense['status'] === 'pending'): ?>
+                <div class="worker-portal-expense-actions">
+                    <button type="button" class="button button-primary approve-expense" data-expense-id="<?php echo esc_attr($expense['id']); ?>">
+                        <span class="dashicons dashicons-yes"></span> <?php _e('Aprobar este gasto', 'worker-portal'); ?>
+                    </button>
+                    <button type="button" class="button button-secondary reject-expense" data-expense-id="<?php echo esc_attr($expense['id']); ?>">
+                        <span class="dashicons dashicons-no"></span> <?php _e('Denegar este gasto', 'worker-portal'); ?>
+                    </button>
+                </div>
+            <?php endif; ?>
+        </div>
+        <?php
+        
+        $html = ob_get_clean();
+        wp_send_json_success($html);
+    }
+
+    /**
+     * Obtiene gastos filtrados para administración
+     *
+     * @since    1.0.0
+     * @param    int       $user_id      ID del usuario (0 para todos)
+     * @param    string    $date_from    Fecha inicial
+     * @param    string    $date_to      Fecha final
+     * @param    string    $expense_type Tipo de gasto
+     * @param    string    $status       Estado del gasto
+     * @param    int       $limit        Límite de resultados
+     * @param    int       $offset       Offset para paginación
+     * @return   array                   Lista de gastos
+     */
+    private function get_admin_filtered_expenses($user_id = 0, $date_from = '', $date_to = '', $expense_type = '', $status = '', $limit = 20, $offset = 0) {
+        global $wpdb;
+        
+        $table_name = $wpdb->prefix . 'worker_expenses';
+        
+        $query = "SELECT e.*, u.display_name AS user_name 
+                  FROM $table_name e
+                  LEFT JOIN {$wpdb->users} u ON e.user_id = u.ID
+                  WHERE 1=1";
+        $params = array();
+        
+        // Filtro por usuario
+        if (!empty($user_id)) {
+            $query .= " AND e.user_id = %d";
+            $params[] = $user_id;
+        }
+        
+        // Filtro por fecha desde
+        if (!empty($date_from)) {
+            $query .= " AND e.expense_date >= %s";
+            $params[] = $date_from;
+        }
+        
+        // Filtro por fecha hasta
+        if (!empty($date_to)) {
+            $query .= " AND e.expense_date <= %s";
+            $params[] = $date_to;
+        }
+        
+        // Filtro por tipo de gasto
+        if (!empty($expense_type)) {
+            $query .= " AND e.expense_type = %s";
+            $params[] = $expense_type;
+        }
+        
+        // Filtro por estado
+        if (!empty($status)) {
+            $query .= " AND e.status = %s";
+            $params[] = $status;
+        }
+        
+        $query .= " ORDER BY e.report_date DESC LIMIT %d OFFSET %d";
+        $params[] = $limit;
+        $params[] = $offset;
+        
+        return $wpdb->get_results(
+            $wpdb->prepare($query, $params),
+            ARRAY_A
+        );
+    }
+
 }

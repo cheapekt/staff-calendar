@@ -232,6 +232,96 @@
   justify-content: flex-end;
 }
 
+/* Filtros de gastos */
+.worker-portal-filters {
+  background-color: #f9f9f9;
+  border: 1px solid #e2e4e7;
+  border-radius: 5px;
+  padding: 15px;
+  margin-bottom: 20px;
+}
+
+.worker-portal-filter-form {
+  width: 100%;
+}
+
+.worker-portal-filter-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 15px;
+  margin-bottom: 15px;
+}
+
+.worker-portal-filter-group {
+  flex: 1;
+  min-width: 150px;
+}
+
+.worker-portal-filter-group label {
+  display: block;
+  margin-bottom: 5px;
+  font-weight: 500;
+  font-size: 13px;
+  color: #1d2327;
+}
+
+.worker-portal-filter-group input,
+.worker-portal-filter-group select {
+  width: 100%;
+  padding: 8px;
+  border: 1px solid #ccd0d4;
+  border-radius: 4px;
+  font-size: 13px;
+}
+
+.worker-portal-filter-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+/* Paginación */
+.worker-portal-pagination {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 20px;
+}
+
+.worker-portal-pagination-info {
+  margin-bottom: 10px;
+  color: #666;
+  font-size: 13px;
+}
+
+.worker-portal-pagination-links {
+  display: flex;
+  gap: 5px;
+}
+
+.worker-portal-pagination-links a {
+  display: inline-block;
+  padding: 5px 10px;
+  background-color: #f6f7f7;
+  border: 1px solid #ccd0d4;
+  border-radius: 3px;
+  text-decoration: none;
+  color: #2271b1;
+  font-size: 13px;
+}
+
+.worker-portal-pagination-links a:hover {
+  background-color: #f0f0f1;
+  border-color: #999;
+}
+
+.worker-portal-pagination-links a.worker-portal-pagination-current {
+  background-color: #2271b1;
+  border-color: #2271b1;
+  color: #fff;
+}
+
 /* Animación de carga */
 .spinning {
   animation: spin 1.5s linear infinite;
@@ -334,11 +424,13 @@
 /* Acciones de la tabla de gastos */
 .worker-portal-expenses-actions {
   display: flex;
-  justify-content: flex-end;
+  justify-content: space-between;
   margin-top: 20px;
+  gap: 10px;
+  flex-wrap: wrap;
 }
 
-/* Modal de cámara */
+/* Modal genérico */
 .worker-portal-modal {
   display: none;
   position: fixed;
@@ -360,6 +452,11 @@
   border-radius: 5px;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
   position: relative;
+}
+
+.worker-portal-modal-large {
+  max-width: 80%;
+  height: 80%;
 }
 
 .worker-portal-modal-header {
@@ -389,6 +486,8 @@
 
 .worker-portal-modal-body {
   padding: 20px;
+  overflow-y: auto;
+  max-height: calc(100% - 60px);
 }
 
 #camera-preview {
@@ -406,10 +505,42 @@
   margin-top: 15px;
 }
 
+/* Loader para operaciones AJAX */
+.worker-portal-loader {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 20px;
+  height: 100px;
+}
+
+.worker-portal-loader-spinner {
+  border: 4px solid #f3f3f3;
+  border-top: 4px solid #2271b1;
+  border-radius: 50%;
+  width: 30px;
+  height: 30px;
+  animation: spin 1s linear infinite;
+}
+
 /* Estilos para pantallas pequeñas */
 @media screen and (max-width: 782px) {
   .worker-portal-form {
     grid-template-columns: 1fr;
+  }
+
+  .worker-portal-filter-row {
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .worker-portal-filter-group {
+    width: 100%;
+  }
+
+  .worker-portal-filter-actions {
+    flex-direction: column;
+    gap: 10px;
   }
 
   .worker-portal-table th,
@@ -429,5 +560,14 @@
 
   .worker-portal-button {
     padding: 10px;
+  }
+
+  .worker-portal-expenses-actions {
+    flex-direction: column;
+  }
+
+  .worker-portal-pagination {
+    flex-direction: column;
+    align-items: flex-start;
   }
 }

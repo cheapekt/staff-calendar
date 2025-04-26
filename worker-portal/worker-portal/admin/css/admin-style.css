@@ -1,0 +1,398 @@
+/**
+ * Estilos para el área de administración del Portal del Trabajador
+ */
+
+/* Contenedor general de admin */
+.worker-portal-admin {
+  max-width: 100%;
+  margin: 0 auto;
+}
+
+/* Estilos para pestañas de navegación */
+.worker-portal-admin .nav-tab-wrapper {
+  margin-bottom: 20px;
+}
+
+.worker-portal-admin .nav-tab {
+  position: relative;
+}
+
+.worker-portal-admin .pending-count {
+  display: inline-block;
+  background-color: #d63638;
+  color: white;
+  font-size: 11px;
+  line-height: 1.4;
+  padding: 1px 7px;
+  border-radius: 10px;
+  margin-left: 5px;
+  vertical-align: top;
+}
+
+/* Dashboard */
+.worker-portal-dashboard-widgets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
+  margin-bottom: 20px;
+}
+
+.worker-portal-widget {
+  flex: 1 1 350px;
+  background-color: white;
+  border: 1px solid #ccd0d4;
+  border-radius: 4px;
+  box-shadow: 0 1px 1px rgba(0, 0, 0, 0.04);
+  margin-bottom: 20px;
+}
+
+.worker-portal-widget h2 {
+  padding: 10px 15px;
+  margin: 0;
+  border-bottom: 1px solid #ccd0d4;
+  font-size: 14px;
+  background-color: #f6f7f7;
+}
+
+/* Widget de estadísticas */
+.worker-portal-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 15px;
+  padding: 15px;
+}
+
+.worker-portal-stat-box {
+  padding: 15px;
+  text-align: center;
+  border-radius: 4px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-height: 100px;
+}
+
+.worker-portal-stat-value {
+  font-size: 32px;
+  font-weight: 700;
+  margin-bottom: 5px;
+}
+
+.worker-portal-stat-label {
+  font-size: 13px;
+  color: #50575e;
+}
+
+.worker-portal-stat-action {
+  margin-top: 8px;
+  font-size: 12px;
+  display: inline-block;
+}
+
+.worker-portal-stat-total {
+  background-color: #f0f6fc;
+  color: #2271b1;
+}
+
+.worker-portal-stat-pending {
+  background-color: #fcf9e8;
+  color: #996800;
+}
+
+.worker-portal-stat-approved {
+  background-color: #edfaef;
+  color: #00701a;
+}
+
+.worker-portal-stat-rejected {
+  background-color: #fcebe9;
+  color: #b32d2e;
+}
+
+/* Widget de gastos recientes */
+.worker-portal-recent-widget {
+  flex: 1 1 100%;
+}
+
+.worker-portal-recent-widget .inside {
+  padding: 0;
+  margin: 0;
+}
+
+.worker-portal-view-all {
+  padding: 10px 15px;
+  text-align: right;
+  border-top: 1px solid #ccd0d4;
+  margin: 0;
+  background-color: #f6f7f7;
+}
+
+/* Indicadores de estado */
+.worker-portal-status-pending,
+.worker-portal-status-approved,
+.worker-portal-status-rejected,
+.worker-portal-status-yes,
+.worker-portal-status-no {
+  display: inline-block;
+  padding: 3px 8px;
+  border-radius: 10px;
+  font-size: 12px;
+  line-height: 14px;
+}
+
+.worker-portal-status-pending {
+  background-color: #fcf9e8;
+  color: #996800;
+}
+
+.worker-portal-status-approved {
+  background-color: #edfaef;
+  color: #00701a;
+}
+
+.worker-portal-status-rejected {
+  background-color: #fcebe9;
+  color: #b32d2e;
+}
+
+.worker-portal-status-yes {
+  background-color: #edfaef;
+  color: #00701a;
+}
+
+.worker-portal-status-no {
+  background-color: #f6f7f7;
+  color: #72777c;
+}
+
+/* Filtros de administración */
+.worker-portal-admin-filters {
+  background-color: #fff;
+  border: 1px solid #c3c4c7;
+  padding: 15px;
+  margin-bottom: 20px;
+  border-radius: 4px;
+}
+
+.worker-portal-admin-filters-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 15px;
+  align-items: flex-end;
+}
+
+.worker-portal-admin-filter {
+  flex: 1 1 200px;
+  margin-bottom: 10px;
+}
+
+.worker-portal-admin-filter label {
+  display: block;
+  margin-bottom: 5px;
+  font-weight: 600;
+}
+
+.worker-portal-admin-filter-actions {
+  flex: 0 0 auto;
+  display: flex;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+/* Acciones masivas */
+.worker-portal-bulk-actions {
+  background-color: #fff;
+  border: 1px solid #c3c4c7;
+  padding: 15px;
+  margin-bottom: 20px;
+  border-radius: 4px;
+}
+
+.worker-portal-bulk-actions-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 15px;
+  align-items: flex-end;
+}
+
+.worker-portal-bulk-action-select {
+  flex: 1 1 300px;
+}
+
+.worker-portal-bulk-action-select label {
+  display: block;
+  margin-bottom: 5px;
+  font-weight: 600;
+}
+
+.worker-portal-bulk-action-apply {
+  flex: 0 0 auto;
+}
+
+/* Mensaje de no items */
+.worker-portal-no-items-message {
+  padding: 20px;
+  text-align: center;
+  background-color: #f6f7f7;
+  border: 1px solid #c3c4c7;
+  border-radius: 4px;
+}
+
+/* Tabla de gastos */
+.expenses-table {
+  margin-top: 10px;
+}
+
+.expenses-table .check-column {
+  padding: 11px 0 0 3px !important;
+  width: 2.2em;
+}
+
+.expense-actions {
+  display: flex;
+  gap: 5px;
+  flex-wrap: wrap;
+}
+
+/* Modales */
+.worker-portal-modal {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  z-index: 99999;
+  overflow: auto;
+}
+
+.worker-portal-modal-content {
+  background-color: #fff;
+  margin: 10% auto;
+  max-width: 600px;
+  border-radius: 4px;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+  position: relative;
+}
+
+.worker-portal-modal-header {
+  padding: 15px 20px;
+  border-bottom: 1px solid #ddd;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.worker-portal-modal-header h3 {
+  margin: 0;
+  font-size: 16px;
+  line-height: 1.4;
+}
+
+.worker-portal-modal-close {
+  background: none;
+  border: none;
+  color: #666;
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0;
+}
+
+.worker-portal-modal-body {
+  padding: 20px;
+  max-height: 70vh;
+  overflow-y: auto;
+}
+
+/* Configuración de tipos de gastos */
+.expense-types-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.expense-types-table th,
+.expense-types-table td {
+  padding: 8px 10px;
+  border: 1px solid #ddd;
+}
+
+.expense-types-table thead th {
+  background-color: #f6f7f7;
+  font-weight: 600;
+}
+
+.expense-types-table tfoot td {
+  text-align: right;
+  border: none;
+  padding-top: 15px;
+}
+
+/* Animación de giro */
+.spinning {
+  animation: spin 1.5s linear infinite;
+}
+
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+/* Loader */
+.worker-portal-loader {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 30px;
+}
+
+.worker-portal-loader-spinner {
+  border: 4px solid #f3f3f3;
+  border-top: 4px solid #2271b1;
+  border-radius: 50%;
+  width: 30px;
+  height: 30px;
+  animation: spin 1s linear infinite;
+}
+
+/* Acciones de administración */
+.worker-portal-admin-actions {
+  margin-top: 20px;
+  padding: 10px 0;
+  border-top: 1px solid #ddd;
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+/* Responsive */
+@media screen and (max-width: 782px) {
+  .worker-portal-stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .worker-portal-admin-filters-row,
+  .worker-portal-bulk-actions-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .worker-portal-admin-filter,
+  .worker-portal-bulk-action-select,
+  .worker-portal-bulk-action-apply {
+    flex: 1 1 100%;
+  }
+
+  .worker-portal-admin-filter-actions {
+    justify-content: flex-end;
+  }
+
+  .expense-actions {
+    flex-direction: column;
+  }
+}
