@@ -1,0 +1,204 @@
+/* Estilos generales para el Portal del Trabajador */
+
+/* Contenedor principal */
+.worker-portal-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica,
+    Arial, sans-serif;
+}
+
+/* Mensaje de inicio de sesión requerido */
+.worker-portal-login-required {
+  background-color: #f8d7da;
+  color: #721c24;
+  padding: 15px;
+  border-radius: 4px;
+  margin-bottom: 20px;
+  border: 1px solid #f5c6cb;
+}
+
+.worker-portal-login-required a {
+  color: #0056b3;
+  text-decoration: underline;
+}
+
+/* Botones generales */
+.worker-portal-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 15px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-decoration: none;
+}
+
+.worker-portal-button-primary {
+  background-color: #2271b1;
+  color: white;
+  border: 1px solid #2271b1;
+}
+
+.worker-portal-button-primary:hover {
+  background-color: #135e96;
+}
+
+.worker-portal-button-secondary {
+  background-color: #f6f7f7;
+  color: #1d2327;
+  border: 1px solid #ccd0d4;
+}
+
+.worker-portal-button-secondary:hover {
+  background-color: #f0f0f1;
+}
+
+/* Tablas responsivas */
+.worker-portal-table-responsive {
+  overflow-x: auto;
+  width: 100%;
+}
+
+.worker-portal-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 20px;
+}
+
+.worker-portal-table th {
+  background-color: #f0f0f1;
+  padding: 10px;
+  text-align: left;
+  border-bottom: 1px solid #ccc;
+}
+
+.worker-portal-table td {
+  padding: 10px;
+  border-bottom: 1px solid #e2e4e7;
+}
+
+.worker-portal-table tr:nth-child(even) {
+  background-color: #f9f9f9;
+}
+
+/* Badges de estado */
+.worker-portal-badge {
+  display: inline-block;
+  padding: 3px 8px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.worker-portal-badge-success {
+  background-color: #edfaef;
+  color: #00701a;
+}
+
+.worker-portal-badge-warning {
+  background-color: #fcf9e8;
+  color: #926d00;
+}
+
+.worker-portal-badge-danger {
+  background-color: #fcebe9;
+  color: #ab0000;
+}
+
+.worker-portal-badge-secondary {
+  background-color: #f0f0f1;
+  color: #666;
+}
+
+/* Formularios */
+.worker-portal-form {
+  background-color: #f9f9f9;
+  border: 1px solid #e2e4e7;
+  border-radius: 5px;
+  padding: 20px;
+  margin-bottom: 20px;
+}
+
+.worker-portal-form-group {
+  margin-bottom: 15px;
+}
+
+.worker-portal-form-group label {
+  display: block;
+  margin-bottom: 5px;
+  font-weight: 500;
+}
+
+.worker-portal-form-group input[type="text"],
+.worker-portal-form-group input[type="date"],
+.worker-portal-form-group input[type="number"],
+.worker-portal-form-group select,
+.worker-portal-form-group textarea {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
+
+.worker-portal-form-group input:focus,
+.worker-portal-form-group select:focus,
+.worker-portal-form-group textarea:focus {
+  border-color: #2271b1;
+  outline: none;
+  box-shadow: 0 0 0 1px #2271b1;
+}
+
+/* Previsualización de recibos */
+.worker-portal-receipt-preview {
+  margin-top: 10px;
+  max-width: 100%;
+}
+
+.worker-portal-receipt-image {
+  max-width: 200px;
+  max-height: 200px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+.worker-portal-receipt-file {
+  padding: 10px;
+  background-color: #f1f1f1;
+  border-radius: 4px;
+}
+
+/* Mensajes */
+.worker-portal-error {
+  background-color: #f8d7da;
+  color: #721c24;
+  padding: 15px;
+  border-radius: 4px;
+  margin-bottom: 20px;
+  border: 1px solid #f5c6cb;
+}
+
+.worker-portal-success {
+  background-color: #d4edda;
+  color: #155724;
+  padding: 15px;
+  border-radius: 4px;
+  margin-bottom: 20px;
+  border: 1px solid #c3e6cb;
+}
+
+/* Animaciones */
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+.spinning {
+  animation: spin 1s linear infinite;
+}

@@ -121,6 +121,12 @@ class Worker_Portal {
         // Registrar estilos y scripts públicos
         $this->loader->add_action('wp_enqueue_scripts', $plugin_public, 'enqueue_styles');
         $this->loader->add_action('wp_enqueue_scripts', $plugin_public, 'enqueue_scripts');
+        
+        // Registrar shortcodes
+        $this->loader->add_action('init', $plugin_public, 'register_shortcodes');
+        
+        // Registrar hooks de AJAX
+        $this->loader->add_action('init', $plugin_public, 'add_ajax_hooks');
     }
 
     /**
