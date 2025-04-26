@@ -1,0 +1,433 @@
+/**
+ * Estilos para el módulo de gastos del Portal del Trabajador
+ */
+
+/* Contenedor principal */
+.worker-portal-expenses {
+  margin: 20px 0;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+    Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
+}
+
+/* Encabezados */
+.worker-portal-expenses h2 {
+  font-size: 24px;
+  font-weight: 600;
+  margin-bottom: 20px;
+  color: #2271b1;
+}
+
+.worker-portal-expenses h3 {
+  font-size: 18px;
+  font-weight: 600;
+  margin: 15px 0;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #e2e4e7;
+  color: #1d2327;
+}
+
+/* Formulario */
+.worker-portal-expenses-form-container {
+  background-color: #f9f9f9;
+  border: 1px solid #e2e4e7;
+  border-radius: 5px;
+  padding: 20px;
+  margin-bottom: 30px;
+}
+
+.worker-portal-form {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+  gap: 15px;
+}
+
+.worker-portal-form-group {
+  margin-bottom: 15px;
+}
+
+.worker-portal-form-group label {
+  display: block;
+  margin-bottom: 5px;
+  font-weight: 500;
+  color: #1d2327;
+}
+
+.worker-portal-form-group input[type="text"],
+.worker-portal-form-group input[type="date"],
+.worker-portal-form-group input[type="number"],
+.worker-portal-form-group select,
+.worker-portal-form-group textarea {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #ccd0d4;
+  border-radius: 4px;
+  background-color: #fff;
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+.worker-portal-form-group input:focus,
+.worker-portal-form-group select:focus,
+.worker-portal-form-group textarea:focus {
+  border-color: #2271b1;
+  box-shadow: 0 0 0 1px #2271b1;
+  outline: none;
+}
+
+.worker-portal-form-group textarea {
+  resize: vertical;
+  min-height: 80px;
+}
+
+/* Estilos para el input de sufijo */
+.worker-portal-input-suffix {
+  position: relative;
+  display: inline-block;
+  margin-left: -30px;
+  color: #555;
+  font-weight: bold;
+  pointer-events: none;
+}
+
+/* Estilos para checkbox */
+.worker-portal-checkbox-group {
+  display: flex;
+  align-items: center;
+  margin-top: 5px;
+}
+
+.worker-portal-checkbox-group input[type="checkbox"] {
+  margin-right: 8px;
+}
+
+.worker-portal-checkbox-group label {
+  margin-bottom: 0;
+  font-weight: normal;
+}
+
+/* Subida de archivos */
+.worker-portal-file-upload {
+  display: flex;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.worker-portal-file-upload input[type="file"] {
+  flex: 1;
+  padding: 10px 0;
+}
+
+.worker-portal-receipt-preview {
+  margin-top: 10px;
+  max-width: 100%;
+}
+
+.worker-portal-receipt-image {
+  max-width: 100%;
+  max-height: 200px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.worker-portal-receipt-file {
+  padding: 10px;
+  background-color: #f1f1f1;
+  border-radius: 4px;
+  font-size: 14px;
+  color: #1d2327;
+}
+
+/* Botones */
+.worker-portal-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 16px;
+  font-size: 14px;
+  font-weight: 500;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-decoration: none;
+  border: 1px solid transparent;
+}
+
+.worker-portal-button .dashicons {
+  margin-right: 5px;
+  font-size: 16px;
+  height: 16px;
+  width: 16px;
+}
+
+.worker-portal-button-primary {
+  background-color: #2271b1;
+  color: #fff;
+  border-color: #2271b1;
+}
+
+.worker-portal-button-primary:hover {
+  background-color: #135e96;
+  border-color: #135e96;
+  color: #fff;
+}
+
+.worker-portal-button-secondary {
+  background-color: #f6f7f7;
+  color: #1d2327;
+  border-color: #ccd0d4;
+}
+
+.worker-portal-button-secondary:hover {
+  background-color: #f0f0f1;
+  border-color: #999;
+  color: #1d2327;
+}
+
+.worker-portal-button-success {
+  background-color: #00a32a;
+  color: #fff;
+  border-color: #00a32a;
+}
+
+.worker-portal-button-success:hover {
+  background-color: #008a20;
+  border-color: #008a20;
+  color: #fff;
+}
+
+.worker-portal-button-danger {
+  background-color: #d63638;
+  color: #fff;
+  border-color: #d63638;
+}
+
+.worker-portal-button-danger:hover {
+  background-color: #b32d2e;
+  border-color: #b32d2e;
+  color: #fff;
+}
+
+.worker-portal-button-outline {
+  background-color: transparent;
+  color: #2271b1;
+  border-color: #2271b1;
+}
+
+.worker-portal-button-outline:hover {
+  background-color: #f0f6fc;
+  color: #135e96;
+  border-color: #135e96;
+}
+
+.worker-portal-button-small {
+  padding: 4px 8px;
+  font-size: 12px;
+}
+
+.worker-portal-form-actions {
+  grid-column: 1 / -1;
+  margin-top: 10px;
+  display: flex;
+  justify-content: flex-end;
+}
+
+/* Animación de carga */
+.spinning {
+  animation: spin 1.5s linear infinite;
+}
+
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+/* Tabla de gastos */
+.worker-portal-table-responsive {
+  overflow-x: auto;
+  margin-bottom: 20px;
+}
+
+.worker-portal-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 20px;
+  font-size: 14px;
+}
+
+.worker-portal-table th {
+  padding: 12px 10px;
+  text-align: left;
+  background-color: #f0f0f1;
+  border-bottom: 2px solid #c3c4c7;
+  font-weight: 600;
+  color: #1d2327;
+}
+
+.worker-portal-table td {
+  padding: 10px;
+  border-bottom: 1px solid #e2e4e7;
+  vertical-align: middle;
+}
+
+.worker-portal-table tr:hover {
+  background-color: #f9f9f9;
+}
+
+/* Badges para estados */
+.worker-portal-badge {
+  display: inline-block;
+  padding: 3px 8px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 500;
+  text-align: center;
+}
+
+.worker-portal-badge-success {
+  background-color: #edfaef;
+  color: #00701a;
+}
+
+.worker-portal-badge-warning {
+  background-color: #fcf9e8;
+  color: #926d00;
+}
+
+.worker-portal-badge-danger {
+  background-color: #fcebe9;
+  color: #ab0000;
+}
+
+.worker-portal-badge-secondary {
+  background-color: #f0f0f1;
+  color: #666;
+}
+
+/* Enlaces para visualizar recibos */
+.worker-portal-view-receipt {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: 5px;
+  color: #2271b1;
+}
+
+.worker-portal-view-receipt:hover {
+  color: #135e96;
+}
+
+/* Mensaje de no datos */
+.worker-portal-no-data {
+  padding: 15px;
+  text-align: center;
+  color: #666;
+  background-color: #f9f9f9;
+  border: 1px solid #e2e4e7;
+  border-radius: 4px;
+}
+
+/* Acciones de la tabla de gastos */
+.worker-portal-expenses-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 20px;
+}
+
+/* Modal de cámara */
+.worker-portal-modal {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+  z-index: 1000;
+  overflow: auto;
+}
+
+.worker-portal-modal-content {
+  background-color: #fff;
+  margin: 10% auto;
+  padding: 0;
+  width: 90%;
+  max-width: 600px;
+  border-radius: 5px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  position: relative;
+}
+
+.worker-portal-modal-header {
+  padding: 15px 20px;
+  border-bottom: 1px solid #e2e4e7;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.worker-portal-modal-header h3 {
+  margin: 0;
+  font-size: 18px;
+  color: #1d2327;
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.worker-portal-modal-close {
+  background: none;
+  border: none;
+  font-size: 24px;
+  line-height: 1;
+  cursor: pointer;
+  color: #666;
+}
+
+.worker-portal-modal-body {
+  padding: 20px;
+}
+
+#camera-preview {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  margin-bottom: 15px;
+  background-color: #000;
+}
+
+.worker-portal-camera-controls {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 15px;
+}
+
+/* Estilos para pantallas pequeñas */
+@media screen and (max-width: 782px) {
+  .worker-portal-form {
+    grid-template-columns: 1fr;
+  }
+
+  .worker-portal-table th,
+  .worker-portal-table td {
+    padding: 8px 5px;
+    font-size: 13px;
+  }
+
+  .worker-portal-modal-content {
+    margin: 5% auto;
+    width: 95%;
+  }
+
+  .worker-portal-camera-controls {
+    flex-direction: column;
+  }
+
+  .worker-portal-button {
+    padding: 10px;
+  }
+}
