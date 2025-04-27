@@ -1,6 +1,6 @@
 <?php
 /**
- * Plantilla principal del portal del trabajador (vista de usuario)
+ * Contenido específico para la vista de trabajador
  *
  * @since      1.0.0
  */
@@ -9,9 +9,6 @@
 if (!defined('ABSPATH')) {
     exit;
 }
-
-// Definir contenido específico para esta vista
-ob_start();
 ?>
 
 <div class="worker-portal-navigation">
@@ -85,17 +82,3 @@ jQuery(document).ready(function($) {
     $('.worker-portal-navigation a[data-section="expenses"]').click();
 });
 </script>
-
-<?php
-$content = ob_get_clean();
-
-// Definir la ubicación del contenido
-$content_template = 'public/partials/portal-content-worker.php';
-
-// Guardar el contenido en un archivo temporal
-if (!file_exists(WORKER_PORTAL_PATH . $content_template)) {
-    file_put_contents(WORKER_PORTAL_PATH . $content_template, $content);
-}
-
-// Incluir la plantilla base
-include(WORKER_PORTAL_PATH . 'public/partials/portal-base.php');
