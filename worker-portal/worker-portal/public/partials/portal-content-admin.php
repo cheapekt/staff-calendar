@@ -386,12 +386,124 @@ if (!defined('ABSPATH')) {
         </div>
         
         <!-- Otras pestañas estarán disponibles en futuras versiones -->
-        <div id="tab-worksheets" class="worker-portal-tab-content">
-            <h2><?php _e('Hojas de Trabajo', 'worker-portal'); ?></h2>
-            <div class="worker-portal-coming-soon">
-                <p><?php _e('La funcionalidad completa de gestión de hojas de trabajo estará disponible próximamente.', 'worker-portal'); ?></p>
+<!-- Hojas de Trabajo -->
+<div id="tab-worksheets" class="worker-portal-tab-content">
+    <h2><?php _e('Hojas de Trabajo', 'worker-portal'); ?></h2>
+    
+    <!-- Filtros de hojas de trabajo -->
+    <div class="worker-portal-admin-filters">
+        <form id="admin-worksheets-filter-form" class="worker-portal-admin-filter-form">
+            <div class="worker-portal-admin-filter-row">
+                <div class="worker-portal-admin-filter-group">
+                    <label for="filter-worker-ws"><?php _e('Trabajador:', 'worker-portal'); ?></label>
+                    <select id="filter-worker-ws" name="user_id">
+                        <option value=""><?php _e('Todos', 'worker-portal'); ?></option>
+                        <?php 
+                        $workers = get_users();
+                        $workers = array_filter($workers, function($user) {
+                            return !user_can($user->ID, 'manage_options'); // Excluir administradores
+                        });
+                        foreach ($workers as $worker): 
+                        ?>
+                            <option value="<?php echo esc_attr($worker->ID); ?>"><?php echo esc_html($worker->display_name); ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+                
+                <div class="worker-portal-admin-filter-group">
+                    <label for="filter-project"><?php _e('Proyecto:', 'worker-portal'); ?></label>
+                    <select id="filter-project" name="project_id">
+                        <option value=""><?php _e('Todos', 'worker-portal'); ?></option>
+                        <?php 
+                        global $wpdb;
+                        $projects = $wpdb->get_results("SELECT id, name FROM {$wpdb->prefix}worker_projects WHERE status = 'active'", ARRAY_A);
+                        foreach ($projects as $project): 
+                        ?>
+                            <option value="<?php echo esc_attr($project['id']); ?>"><?php echo esc_html($project['name']); ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+                
+                <div class="worker-portal-admin-filter-group">
+                    <label for="filter-date-from"><?php _e('Desde:', 'worker-portal'); ?></label>
+                    <input type="date" id="filter-date-from" name="date_from">
+                </div>
+                
+                <div class="worker-portal-admin-filter-group">
+                    <label for="filter-date-to"><?php _e('Hasta:', 'worker-portal'); ?></label>
+                    <input type="date" id="filter-date-to" name="date_to">
+                </div>
             </div>
+            
+            <div class="worker-portal-admin-filter-actions">
+                <button type="submit" class="worker-portal-button worker-portal-button-secondary">
+                    <i class="dashicons dashicons-search"></i> <?php _e('Filtrar', 'worker-portal'); ?>
+                </button>
+                <button type="button" id="clear-filters" class="worker-portal-button worker-portal-button-link">
+                    <?php _e('Limpiar filtros', 'worker-portal'); ?>
+                </button>
+            </div>
+        </form>
+    </div>
+    
+    <!-- Lista de hojas de trabajo -->
+    <div id="worksheets-list-container">
+        <div class="worker-portal-loading">
+            <div class="worker-portal-spinner"></div>
+            <p><?php _e('Cargando hojas de trabajo...', 'worker-portal'); ?></p>
         </div>
+    </div>
+    
+    <!-- Acciones -->
+    <div class="worker-portal-admin-actions">
+        <button type="button" id="export-worksheets-button" class="worker-portal-button worker-portal-button-secondary">
+            <i class="dashicons dashicons-download"></i> <?php _e('Exportar a Excel', 'worker-portal'); ?>
+        </button>
+    </div>
+</div>
+
+<script>
+jQuery(document).ready(function($) {
+    // Cargar hojas de trabajo mediante AJAX al hacer clic en la pestaña
+    $('.worker-portal-tab-link[data-tab="worksheets"]').on('click', function() {
+        loadWorksheets();
+    });
+
+    function loadWorksheets(page = 1) {
+        $.ajax({
+            url: ajaxurl,
+            type: 'POST',
+            data: {
+                action: 'admin_load_worksheets',
+                page: page,
+                nonce: '<?php echo wp_create_nonce('worker_portal_ajax_nonce'); ?>'
+            },
+            beforeSend: function() {
+                $('#worksheets-list-container').html(
+                    '<div class="worker-portal-loading">' +
+                    '<div class="worker-portal-spinner"></div>' +
+                    '<p><?php _e('Cargando hojas de trabajo...', 'worker-portal'); ?></p>' +
+                    '</div>'
+                );
+            },
+            success: function(response) {
+                if (response.success) {
+                    $('#worksheets-list-container').html(response.data);
+                } else {
+                    $('#worksheets-list-container').html(
+                        '<div class="worker-portal-error">' + response.data + '</div>'
+                    );
+                }
+            },
+            error: function() {
+                $('#worksheets-list-container').html(
+                    '<div class="worker-portal-error"><?php _e('Error al cargar las hojas de trabajo.', 'worker-portal'); ?></div>'
+                );
+            }
+        });
+    }
+});
+</script>
         
         <div id="tab-documents" class="worker-portal-tab-content">
             <h2><?php _e('Gestión de Documentos', 'worker-portal'); ?></h2>

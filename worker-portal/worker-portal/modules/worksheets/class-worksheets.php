@@ -37,7 +37,87 @@ class Worker_Portal_Module_Worksheets {
         add_action('wp_ajax_admin_validate_worksheet', array($this, 'ajax_admin_validate_worksheet'));
         add_action('wp_ajax_admin_bulk_worksheet_action', array($this, 'ajax_admin_bulk_worksheet_action'));
         add_action('wp_ajax_admin_get_worksheet_details', array($this, 'ajax_admin_get_worksheet_details'));
+        add_action('wp_ajax_admin_load_worksheets', array($this, 'ajax_admin_load_worksheets'));
     }
+
+    public function ajax_admin_load_worksheets() {
+    // Verificar nonce
+    check_ajax_referer('worker_portal_ajax_nonce', 'nonce');
+    
+    // Verificar permisos de administrador
+    if (!current_user_can('manage_options')) {
+        wp_send_json_error(__('No tienes permisos', 'worker-portal'));
+    }
+    
+    // Obtener parámetros de paginación
+    $page = isset($_POST['page']) ? intval($_POST['page']) : 1;
+    $per_page = 10;
+    $offset = ($page - 1) * $per_page;
+    
+    global $wpdb;
+    
+    // Consulta para obtener hojas de trabajo
+    $query = $wpdb->prepare(
+        "SELECT w.*, u.display_name as user_name, p.name as project_name 
+        FROM {$wpdb->prefix}worker_worksheets w
+        LEFT JOIN {$wpdb->users} u ON w.user_id = u.ID
+        LEFT JOIN {$wpdb->prefix}worker_projects p ON w.project_id = p.id
+        ORDER BY w.work_date DESC
+        LIMIT %d OFFSET %d",
+        $per_page,
+        $offset
+    );
+    
+    $worksheets = $wpdb->get_results($query, ARRAY_A);
+    
+    // Preparar HTML de respuesta
+    ob_start();
+    ?>
+    <div class="worker-portal-admin-table-container">
+        <table class="wp-list-table widefat fixed striped">
+            <thead>
+                <tr>
+                    <th><?php _e('Fecha', 'worker-portal'); ?></th>
+                    <th><?php _e('Trabajador', 'worker-portal'); ?></th>
+                    <th><?php _e('Proyecto', 'worker-portal'); ?></th>
+                    <th><?php _e('Sistema', 'worker-portal'); ?></th>
+                    <th><?php _e('Horas', 'worker-portal'); ?></th>
+                    <th><?php _e('Estado', 'worker-portal'); ?></th>
+                    <th><?php _e('Acciones', 'worker-portal'); ?></th>
+                </tr>
+            </thead>
+            <tbody>
+                <?php foreach ($worksheets as $worksheet): ?>
+                    <tr>
+                        <td><?php echo date_i18n(get_option('date_format'), strtotime($worksheet['work_date'])); ?></td>
+                        <td><?php echo esc_html($worksheet['user_name']); ?></td>
+                        <td><?php echo esc_html($worksheet['project_name']); ?></td>
+                        <td><?php echo esc_html($worksheet['system_type']); ?></td>
+                        <td><?php echo esc_html($worksheet['hours']); ?> h</td>
+                        <td>
+                            <?php 
+                            $status_class = $worksheet['status'] == 'pending' ? 'worker-portal-badge-warning' : 'worker-portal-badge-success';
+                            $status_text = $worksheet['status'] == 'pending' ? 'Pendiente' : 'Validada';
+                            ?>
+                            <span class="worker-portal-badge <?php echo $status_class; ?>">
+                                <?php echo $status_text; ?>
+                            </span>
+                        </td>
+                        <td>
+                            <button class="button button-small view-worksheet" data-id="<?php echo $worksheet['id']; ?>">
+                                <?php _e('Ver detalles', 'worker-portal'); ?>
+                            </button>
+                        </td>
+                    </tr>
+                <?php endforeach; ?>
+            </tbody>
+        </table>
+    </div>
+    <?php
+    
+    $html = ob_get_clean();
+    wp_send_json_success($html);
+}
 
     /**
      * Registra las páginas de menú en el área de administración

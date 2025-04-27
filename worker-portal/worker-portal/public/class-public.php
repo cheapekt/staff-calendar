@@ -901,9 +901,62 @@ Saludos,
      * @return   string            HTML generado
      */
     public function render_worksheets_shortcode($atts) {
-        return '<div class="worker-portal-section-placeholder">' . 
-            __('Sección de Hojas de Trabajo (Próximamente)', 'worker-portal') . 
-            '</div>';
+        // Si el usuario no está logueado, mostrar mensaje de error
+        if (!is_user_logged_in()) {
+            return '<div class="worker-portal-error">' . __('Debes iniciar sesión para ver tus hojas de trabajo.', 'worker-portal') . '</div>';
+        }
+        
+        // Cargar módulo de hojas de trabajo
+        require_once WORKER_PORTAL_PATH . 'modules/worksheets/class-worksheets.php';
+        $worksheets_module = new Worker_Portal_Module_Worksheets();
+        
+        // Atributos por defecto
+        $atts = shortcode_atts(
+            array(
+                'limit' => 10,     // Número de hojas a mostrar
+                'show_form' => 'yes'  // Mostrar formulario para añadir hojas
+            ),
+            $atts,
+            'worker_worksheets'
+        );
+        
+        // Obtener el usuario actual
+        $user_id = get_current_user_id();
+        
+        // Obtener las hojas de trabajo del usuario
+        $worksheets = $worksheets_module->get_user_worksheets($user_id, $atts['limit']);
+        
+        // Obtener proyectos disponibles
+        $projects = $worksheets_module->get_available_projects();
+        
+        // Obtener configuración
+        $system_types = get_option('worker_portal_system_types', array(
+            'estructura_techo' => __('Estructura en techo continuo de PYL', 'worker-portal'),
+            'estructura_tabique' => __('Estructura en tabique o trasdosado', 'worker-portal'),
+            'aplacado_simple' => __('Aplacado 1 placa en tabique/trasdosado', 'worker-portal'),
+            'aplacado_doble' => __('Aplacado 2 placas en tabique/trasdosado', 'worker-portal'),
+            'horas_ayuda' => __('Horas de ayudas, descargas, etc.', 'worker-portal')
+        ));
+        
+        $unit_types = get_option('worker_portal_unit_types', array(
+            'm2' => __('Metros cuadrados', 'worker-portal'),
+            'h' => __('Horas', 'worker-portal')
+        ));
+        
+        $difficulty_levels = get_option('worker_portal_difficulty_levels', array(
+            'baja' => __('Baja', 'worker-portal'),
+            'media' => __('Media', 'worker-portal'),
+            'alta' => __('Alta', 'worker-portal')
+        ));
+        
+        // Iniciar buffer de salida
+        ob_start();
+        
+        // Incluir plantilla
+        include(WORKER_PORTAL_PATH . 'modules/worksheets/templates/worksheets-view.php');
+        
+        // Retornar el contenido
+        return ob_get_clean();
     }
 
     /**
