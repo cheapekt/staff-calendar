@@ -450,7 +450,7 @@ if (!defined('ABSPATH')) {
     <div id="worksheets-list-container">
         <div class="worker-portal-loading">
             <div class="worker-portal-spinner"></div>
-            <p><?php _e('Cargando hojas de trabajo...', 'worker-portal'); ?></p>
+            <p><?php _e('Cargando hojas de trabajo...2', 'worker-portal'); ?></p>
         </div>
     </div>
     
@@ -464,43 +464,58 @@ if (!defined('ABSPATH')) {
 
 <script>
 jQuery(document).ready(function($) {
-    // Cargar hojas de trabajo mediante AJAX al hacer clic en la pestaña
-    $('.worker-portal-tab-link[data-tab="worksheets"]').on('click', function() {
-        loadWorksheets();
-    });
-
+    // Función para cargar hojas de trabajo
     function loadWorksheets(page = 1) {
+        // Obtener los datos del formulario
+        const formData = new FormData(document.getElementById('admin-worksheets-filter-form') || {});
+        formData.append('action', 'admin_load_worksheets');
+        formData.append('page', page);
+        formData.append('nonce', worker_portal_params.nonce);
+        
+        console.log('Enviando datos:', Object.fromEntries(formData)); // Añadir log de depuración
+        
         $.ajax({
-            url: ajaxurl,
+            url: worker_portal_params.ajax_url,
             type: 'POST',
-            data: {
-                action: 'admin_load_worksheets',
-                page: page,
-                nonce: '<?php echo wp_create_nonce('worker_portal_ajax_nonce'); ?>'
-            },
-            beforeSend: function() {
-                $('#worksheets-list-container').html(
-                    '<div class="worker-portal-loading">' +
-                    '<div class="worker-portal-spinner"></div>' +
-                    '<p><?php _e('Cargando hojas de trabajo...', 'worker-portal'); ?></p>' +
-                    '</div>'
-                );
-            },
+            data: formData,
+            processData: false,
+            contentType: false,
             success: function(response) {
+                console.log('Respuesta recibida:', response); // Añadir log de depuración
                 if (response.success) {
-                    $('#worksheets-list-container').html(response.data);
+                    $('#worksheets-list-container').html(response.data.html);
                 } else {
                     $('#worksheets-list-container').html(
                         '<div class="worker-portal-error">' + response.data + '</div>'
                     );
                 }
             },
-            error: function() {
+            error: function(xhr, status, error) {
+                console.error('Error en la solicitud:', status, error); // Añadir log de error detallado
                 $('#worksheets-list-container').html(
-                    '<div class="worker-portal-error"><?php _e('Error al cargar las hojas de trabajo.', 'worker-portal'); ?></div>'
+                    '<div class="worker-portal-error">Error al cargar las hojas de trabajo: ' + error + '</div>'
                 );
             }
         });
+    }
+
+    // Cargar hojas de trabajo al hacer clic en la pestaña
+    $('.worker-portal-tab-link[data-tab="worksheets"]').on('click', function() {
+        console.log('Pestaña de hojas de trabajo clicada'); // Log de depuración
+        loadWorksheets();
+    });
+
+    // Manejar el envío del formulario de filtros
+    $('#admin-worksheets-filter-form').on('submit', function(e) {
+        e.preventDefault();
+        console.log('Formulario de filtros enviado'); // Log de depuración
+        loadWorksheets();
+    });
+
+    // Cargar hojas de trabajo al cargar la página si la pestaña está activa
+    if ($('.worker-portal-tab-link[data-tab="worksheets"]').hasClass('active')) {
+        console.log('Pestaña de hojas de trabajo activa al cargar');
+        loadWorksheets();
     }
 });
 </script>

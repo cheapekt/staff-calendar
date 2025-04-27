@@ -219,7 +219,7 @@
       $("#worksheets-list-content").html(
         '<div class="worker-portal-loading">' +
           '<div class="worker-portal-loader-spinner"></div>' +
-          "<p>Cargando hojas de trabajo...</p>" +
+          "<p>Cargando hojas de trabajo...1</p>" +
           "</div>"
       );
 

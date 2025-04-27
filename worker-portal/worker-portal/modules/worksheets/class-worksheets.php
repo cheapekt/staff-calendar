@@ -40,84 +40,186 @@ class Worker_Portal_Module_Worksheets {
         add_action('wp_ajax_admin_load_worksheets', array($this, 'ajax_admin_load_worksheets'));
     }
 
-    public function ajax_admin_load_worksheets() {
-    // Verificar nonce
-    check_ajax_referer('worker_portal_ajax_nonce', 'nonce');
+ 
     
-    // Verificar permisos de administrador
-    if (!current_user_can('manage_options')) {
-        wp_send_json_error(__('No tienes permisos', 'worker-portal'));
+
+        public function ajax_admin_load_worksheets() {
+                error_log('Método ajax_admin_load_worksheets iniciado'); // Log de depuración
+        // Verificar nonce
+        check_ajax_referer('worker_portal_ajax_nonce', 'nonce');
+        
+        // Verificar permisos de administrador
+        if (!current_user_can('manage_options')) {
+            wp_send_json_error(__('No tienes permisos', 'worker-portal'));
+        }
+        
+        // Obtener parámetros de filtrado
+        $user_id = isset($_POST['user_id']) ? intval($_POST['user_id']) : 0;
+        $project_id = isset($_POST['project_id']) ? intval($_POST['project_id']) : 0;
+        $date_from = isset($_POST['date_from']) ? sanitize_text_field($_POST['date_from']) : '';
+        $date_to = isset($_POST['date_to']) ? sanitize_text_field($_POST['date_to']) : '';
+        
+        // Obtener parámetros de paginación
+        $page = isset($_POST['page']) ? intval($_POST['page']) : 1;
+        $per_page = 10;
+        $offset = ($page - 1) * $per_page;
+        
+        global $wpdb;
+        
+        // Construir consulta base
+        $query = "SELECT w.*, u.display_name as user_name, p.name as project_name 
+                FROM {$wpdb->prefix}worker_worksheets w
+                LEFT JOIN {$wpdb->users} u ON w.user_id = u.ID
+                LEFT JOIN {$wpdb->prefix}worker_projects p ON w.project_id = p.id
+                WHERE 1=1";
+        
+        $params = array();
+        
+        // Filtros
+        if ($user_id > 0) {
+            $query .= " AND w.user_id = %d";
+            $params[] = $user_id;
+        }
+        
+        if ($project_id > 0) {
+            $query .= " AND w.project_id = %d";
+            $params[] = $project_id;
+        }
+        
+        if (!empty($date_from)) {
+            $query .= " AND w.work_date >= %s";
+            $params[] = $date_from;
+        }
+        
+        if (!empty($date_to)) {
+            $query .= " AND w.work_date <= %s";
+            $params[] = $date_to;
+        }
+        
+        // Ordenar y paginar
+        $query .= " ORDER BY w.work_date DESC LIMIT %d OFFSET %d";
+        $params[] = $per_page;
+        $params[] = $offset;
+        
+        // Preparar consulta con parámetros
+        $prepared_query = $wpdb->prepare($query, $params);
+        
+        // Ejecutar consulta
+        $worksheets = $wpdb->get_results($prepared_query, ARRAY_A);
+        
+        // Obtener total de elementos
+        $count_query = str_replace(
+            array('w.*, u.display_name as user_name, p.name as project_name', 'ORDER BY w.work_date DESC LIMIT %d OFFSET %d'), 
+            array('COUNT(*)', ''), 
+            $query
+        );
+        $total_items = $wpdb->get_var($wpdb->prepare($count_query, array_slice($params, 0, -2)));
+        
+        // Obtener configuraciones
+        $system_types = get_option('worker_portal_system_types', array());
+        $difficulty_levels = get_option('worker_portal_difficulty_levels', array());
+        
+        // Generar HTML
+        ob_start();
+        ?>
+        <div class="worker-portal-admin-table-container">
+            <?php if (empty($worksheets)): ?>
+                <p><?php _e('No se encontraron hojas de trabajo.', 'worker-portal'); ?></p>
+            <?php else: ?>
+                <table class="wp-list-table widefat fixed striped">
+                    <thead>
+                        <tr>
+                            <th><?php _e('Fecha', 'worker-portal'); ?></th>
+                            <th><?php _e('Trabajador', 'worker-portal'); ?></th>
+                            <th><?php _e('Proyecto', 'worker-portal'); ?></th>
+                            <th><?php _e('Dificultad', 'worker-portal'); ?></th>
+                            <th><?php _e('Sistema', 'worker-portal'); ?></th>
+                            <th><?php _e('Cantidad', 'worker-portal'); ?></th>
+                            <th><?php _e('Horas', 'worker-portal'); ?></th>
+                            <th><?php _e('Estado', 'worker-portal'); ?></th>
+                            <th><?php _e('Acciones', 'worker-portal'); ?></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php foreach ($worksheets as $worksheet): ?>
+                            <tr>
+                                <td><?php echo date_i18n(get_option('date_format'), strtotime($worksheet['work_date'])); ?></td>
+                                <td><?php echo esc_html($worksheet['user_name']); ?></td>
+                                <td><?php echo esc_html($worksheet['project_name']); ?></td>
+                                <td>
+                                    <?php 
+                                    echo isset($difficulty_levels[$worksheet['difficulty']]) 
+                                        ? esc_html($difficulty_levels[$worksheet['difficulty']]) 
+                                        : esc_html(ucfirst($worksheet['difficulty'])); 
+                                    ?>
+                                </td>
+                                <td>
+                                    <?php 
+                                    echo isset($system_types[$worksheet['system_type']]) 
+                                        ? esc_html($system_types[$worksheet['system_type']]) 
+                                        : esc_html($worksheet['system_type']); 
+                                    ?>
+                                </td>
+                                <td><?php echo esc_html($worksheet['quantity']); ?> <?php echo $worksheet['unit_type'] == 'm2' ? 'm²' : 'H'; ?></td>
+                                <td><?php echo esc_html($worksheet['hours']); ?> h</td>
+                                <td>
+                                    <?php
+                                    $status_class = $worksheet['status'] == 'pending' ? 'worker-portal-badge-warning' : 'worker-portal-badge-success';
+                                    $status_text = $worksheet['status'] == 'pending' ? 'Pendiente' : 'Validada';
+                                    ?>
+                                    <span class="worker-portal-badge <?php echo $status_class; ?>">
+                                        <?php echo $status_text; ?>
+                                    </span>
+                                </td>
+                                <td>
+                                    <button class="button button-small view-worksheet" data-id="<?php echo $worksheet['id']; ?>">
+                                        <?php _e('Detalles', 'worker-portal'); ?>
+                                    </button>
+                                </td>
+                            </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
+                
+                <!-- Paginación -->
+                <?php if ($total_items > $per_page): ?>
+                    <div class="tablenav-pages">
+                        <span class="displaying-num"><?php echo sprintf(__('%s elementos', 'worker-portal'), number_format_i18n($total_items)); ?></span>
+                        <?php
+                        $total_pages = ceil($total_items / $per_page);
+                        $current_page = $page;
+                        
+                        echo paginate_links(array(
+                            'base' => add_query_arg('paged', '%#%'),
+                            'format' => '',
+                            'prev_text' => __('&laquo;'),
+                            'next_text' => __('&raquo;'),
+                            'total' => $total_pages,
+                            'current' => $current_page,
+                            'type' => 'plain'
+                        ));
+                        ?>
+                    </div>
+                <?php endif; ?>
+            <?php endif; ?>
+        </div>
+        <?php
+        
+        $html = ob_get_clean();
+        
+        wp_send_json_success(array(
+            'html' => $html,
+            'total_items' => $total_items,
+            'total_pages' => $total_pages,
+            'current_page' => $current_page
+        ));
+        
+        wp_die();
     }
-    
-    // Obtener parámetros de paginación
-    $page = isset($_POST['page']) ? intval($_POST['page']) : 1;
-    $per_page = 10;
-    $offset = ($page - 1) * $per_page;
-    
-    global $wpdb;
-    
-    // Consulta para obtener hojas de trabajo
-    $query = $wpdb->prepare(
-        "SELECT w.*, u.display_name as user_name, p.name as project_name 
-        FROM {$wpdb->prefix}worker_worksheets w
-        LEFT JOIN {$wpdb->users} u ON w.user_id = u.ID
-        LEFT JOIN {$wpdb->prefix}worker_projects p ON w.project_id = p.id
-        ORDER BY w.work_date DESC
-        LIMIT %d OFFSET %d",
-        $per_page,
-        $offset
-    );
-    
-    $worksheets = $wpdb->get_results($query, ARRAY_A);
-    
-    // Preparar HTML de respuesta
-    ob_start();
-    ?>
-    <div class="worker-portal-admin-table-container">
-        <table class="wp-list-table widefat fixed striped">
-            <thead>
-                <tr>
-                    <th><?php _e('Fecha', 'worker-portal'); ?></th>
-                    <th><?php _e('Trabajador', 'worker-portal'); ?></th>
-                    <th><?php _e('Proyecto', 'worker-portal'); ?></th>
-                    <th><?php _e('Sistema', 'worker-portal'); ?></th>
-                    <th><?php _e('Horas', 'worker-portal'); ?></th>
-                    <th><?php _e('Estado', 'worker-portal'); ?></th>
-                    <th><?php _e('Acciones', 'worker-portal'); ?></th>
-                </tr>
-            </thead>
-            <tbody>
-                <?php foreach ($worksheets as $worksheet): ?>
-                    <tr>
-                        <td><?php echo date_i18n(get_option('date_format'), strtotime($worksheet['work_date'])); ?></td>
-                        <td><?php echo esc_html($worksheet['user_name']); ?></td>
-                        <td><?php echo esc_html($worksheet['project_name']); ?></td>
-                        <td><?php echo esc_html($worksheet['system_type']); ?></td>
-                        <td><?php echo esc_html($worksheet['hours']); ?> h</td>
-                        <td>
-                            <?php 
-                            $status_class = $worksheet['status'] == 'pending' ? 'worker-portal-badge-warning' : 'worker-portal-badge-success';
-                            $status_text = $worksheet['status'] == 'pending' ? 'Pendiente' : 'Validada';
-                            ?>
-                            <span class="worker-portal-badge <?php echo $status_class; ?>">
-                                <?php echo $status_text; ?>
-                            </span>
-                        </td>
-                        <td>
-                            <button class="button button-small view-worksheet" data-id="<?php echo $worksheet['id']; ?>">
-                                <?php _e('Ver detalles', 'worker-portal'); ?>
-                            </button>
-                        </td>
-                    </tr>
-                <?php endforeach; ?>
-            </tbody>
-        </table>
-    </div>
-    <?php
-    
-    $html = ob_get_clean();
-    wp_send_json_success($html);
-}
+
+
+
+
 
     /**
      * Registra las páginas de menú en el área de administración
@@ -385,14 +487,16 @@ class Worker_Portal_Module_Worksheets {
      * @return   array    Lista de proyectos
      */
     public function get_available_projects() {
-        global $wpdb;
+        // Incluir la clase de base de datos si no está ya cargada
+        if (!class_exists('Worker_Portal_Database')) {
+            require_once WORKER_PORTAL_PATH . 'includes/class-database.php';
+        }
         
-        $table_name = $wpdb->prefix . 'worker_projects';
+        // Obtener la instancia de la clase de base de datos
+        $database = Worker_Portal_Database::get_instance();
         
-        $projects = $wpdb->get_results(
-            "SELECT * FROM $table_name WHERE status = 'active' ORDER BY name ASC",
-            ARRAY_A
-        );
+        // Obtener proyectos activos
+        $projects = $database->get_projects(true, 50, 0);
         
         return $projects;
     }

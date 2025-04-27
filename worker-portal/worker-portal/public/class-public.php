@@ -87,6 +87,16 @@ class Worker_Portal_Public {
                 'nonce' => wp_create_nonce('worker_portal_ajax_nonce')
             )
         );
+
+         // Localizar script de admin frontend
+        wp_localize_script(
+            'worker-portal-admin-frontend', 
+            'worker_portal_params', 
+            array(
+                'ajax_url' => admin_url('admin-ajax.php'),
+                'nonce' => wp_create_nonce('worker_portal_ajax_nonce')
+            )
+        );
         
         // Scripts específicos según el rol
         if (Worker_Portal_Utils::is_portal_admin()) {

@@ -459,7 +459,7 @@ ob_start();
                 <!-- Esta sección se cargará vía AJAX -->
                 <div class="worker-portal-loading">
                     <div class="worker-portal-spinner"></div>
-                    <p><?php _e('Cargando hojas de trabajo...', 'worker-portal'); ?></p>
+                    <p><?php _e('Cargando hojas de trabajo...3', 'worker-portal'); ?></p>
                 </div>
             </div>
         </div>
