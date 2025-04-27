@@ -6,6 +6,15 @@
  */
 class Worker_Portal_Public {
 
+      // Añadir esta propiedad al inicio de la clase
+    private $utils;
+
+    // Modificar el constructor
+    public function __construct() {
+        // Cargar la clase de utilidades
+        require_once WORKER_PORTAL_PATH . 'includes/class-utils.php';
+    }
+
     /**
      * Carga de estilos para el frontend
      *
