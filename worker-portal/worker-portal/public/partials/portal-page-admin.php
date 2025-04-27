@@ -318,8 +318,10 @@ ob_start();
                             <select id="filter-worker" name="user_id">
                                 <option value=""><?php _e('Todos', 'worker-portal'); ?></option>
                                 <?php 
-                                $workers = get_users(['role__not_in' => ['administrator']]);
-                                foreach ($workers as $worker): 
+                                $workers = get_users();
+                                $workers = array_filter($workers, function($user) {
+                                    return !user_can($user->ID, 'manage_options'); // Excluir administradores
+                                });                                foreach ($workers as $worker): 
                                 ?>
                                     <option value="<?php echo esc_attr($worker->ID); ?>"><?php echo esc_html($worker->display_name); ?></option>
                                 <?php endforeach; ?>

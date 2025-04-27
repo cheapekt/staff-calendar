@@ -195,11 +195,16 @@ class Worker_Portal_Public {
      * @since    1.0.0
      */
     public function ajax_admin_load_pending_expenses() {
+        // Cargar la clase de utilidades
+        require_once WORKER_PORTAL_PATH . 'includes/class-utils.php';
+        
         // Verificar nonce
-        check_ajax_referer('worker_portal_ajax_nonce', 'nonce');
+        if (!isset($_POST['nonce']) || !wp_verify_nonce($_POST['nonce'], 'worker_portal_ajax_nonce')) {
+            wp_send_json_error(__('Error de seguridad. Por favor, recarga la página.', 'worker-portal'));
+        }
         
         // Verificar que el usuario está logueado y es administrador
-        if (!is_user_logged_in() || !Worker_Portal_Utils::is_portal_admin()) {
+        if (!is_user_logged_in() || !current_user_can('manage_options')) {
             wp_send_json_error(__('No tienes permisos para realizar esta acción', 'worker-portal'));
         }
         
@@ -213,9 +218,9 @@ class Worker_Portal_Public {
         global $wpdb;
         
         $query = "SELECT e.*, u.display_name 
-                  FROM {$wpdb->prefix}worker_expenses e 
-                  LEFT JOIN {$wpdb->users} u ON e.user_id = u.ID 
-                  WHERE e.status = 'pending'";
+                FROM {$wpdb->prefix}worker_expenses e 
+                LEFT JOIN {$wpdb->users} u ON e.user_id = u.ID 
+                WHERE e.status = 'pending'";
         $params = array();
         
         // Filtro por usuario
@@ -242,7 +247,7 @@ class Worker_Portal_Public {
             $params[] = $date_to;
         }
         
-        // Ordenar y limitar
+        // Ordenar
         $query .= " ORDER BY e.report_date DESC";
         
         // Ejecutar consulta
@@ -251,7 +256,12 @@ class Worker_Portal_Public {
             $wpdb->get_results($wpdb->prepare($query, $params), ARRAY_A);
         
         // Obtener tipos de gastos
-        $expense_types = get_option('worker_portal_expense_types', array());
+        $expense_types = get_option('worker_portal_expense_types', array(
+            'km' => __('Kilometraje', 'worker-portal'),
+            'hours' => __('Horas de desplazamiento', 'worker-portal'),
+            'meal' => __('Dietas', 'worker-portal'),
+            'other' => __('Otros', 'worker-portal')
+        ));
         
         // Generar HTML de respuesta
         ob_start();
@@ -298,7 +308,20 @@ class Worker_Portal_Public {
                                 </td>
                                 <td><?php echo esc_html($expense['description']); ?></td>
                                 <td>
-                                    <?php echo Worker_Portal_Utils::format_expense_amount($expense['amount'], $expense['expense_type']); ?>
+                                    <?php 
+                                    // Mostrar importe con formato según tipo de gasto
+                                    switch ($expense['expense_type']) {
+                                        case 'km':
+                                            echo esc_html($expense['amount']) . ' Km';
+                                            break;
+                                        case 'hours':
+                                            echo esc_html($expense['amount']) . ' ' . __('Horas', 'worker-portal');
+                                            break;
+                                        default:
+                                            echo esc_html(number_format((float)$expense['amount'], 2, ',', '.')) . ' €';
+                                            break;
+                                    }
+                                    ?>
                                 </td>
                                 <td>
                                     <?php if ($expense['has_receipt']): ?>
@@ -333,7 +356,7 @@ class Worker_Portal_Public {
         $html = ob_get_clean();
         wp_send_json_success($html);
     }
-    
+        
     /**
      * Aprobar un gasto desde el panel de administración
      *
