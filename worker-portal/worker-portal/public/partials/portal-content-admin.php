@@ -310,10 +310,7 @@ if (!defined('ABSPATH')) {
                             <select id="filter-worker" name="user_id">
                                 <option value=""><?php _e('Todos', 'worker-portal'); ?></option>
                                 <?php 
-                                $workers = get_users();
-                                $workers = array_filter($workers, function($user) {
-                                    return !user_can($user->ID, 'manage_options'); // Excluir administradores
-                                });
+                                $workers = get_users(array('role__not_in' => array('administrator')));
                                 foreach ($workers as $worker): 
                                 ?>
                                     <option value="<?php echo esc_attr($worker->ID); ?>"><?php echo esc_html($worker->display_name); ?></option>
@@ -325,7 +322,10 @@ if (!defined('ABSPATH')) {
                             <label for="filter-type"><?php _e('Tipo:', 'worker-portal'); ?></label>
                             <select id="filter-type" name="expense_type">
                                 <option value=""><?php _e('Todos', 'worker-portal'); ?></option>
-                                <?php foreach ($expense_types as $key => $label): ?>
+                                <?php 
+                                $expense_types = get_option('worker_portal_expense_types', array());
+                                foreach ($expense_types as $key => $label): 
+                                ?>
                                     <option value="<?php echo esc_attr($key); ?>"><?php echo esc_html($label); ?></option>
                                 <?php endforeach; ?>
                             </select>
@@ -346,7 +346,7 @@ if (!defined('ABSPATH')) {
                         <button type="submit" class="worker-portal-button worker-portal-button-secondary">
                             <i class="dashicons dashicons-search"></i> <?php _e('Filtrar', 'worker-portal'); ?>
                         </button>
-                        <button type="button" id="clear-filters" class="worker-portal-button worker-portal-button-link">
+                        <button type="button" id="clear-filters-expenses" class="worker-portal-button worker-portal-button-link">
                             <?php _e('Limpiar filtros', 'worker-portal'); ?>
                         </button>
                     </div>
@@ -385,140 +385,81 @@ if (!defined('ABSPATH')) {
             </div>
         </div>
         
-        <!-- Otras pestañas estarán disponibles en futuras versiones -->
-<!-- Hojas de Trabajo -->
-<div id="tab-worksheets" class="worker-portal-tab-content">
-    <h2><?php _e('Hojas de Trabajo', 'worker-portal'); ?></h2>
-    
-    <!-- Filtros de hojas de trabajo -->
-    <div class="worker-portal-admin-filters">
-        <form id="admin-worksheets-filter-form" class="worker-portal-admin-filter-form">
-            <div class="worker-portal-admin-filter-row">
-                <div class="worker-portal-admin-filter-group">
-                    <label for="filter-worker-ws"><?php _e('Trabajador:', 'worker-portal'); ?></label>
-                    <select id="filter-worker-ws" name="user_id">
-                        <option value=""><?php _e('Todos', 'worker-portal'); ?></option>
-                        <?php 
-                        $workers = get_users();
-                        $workers = array_filter($workers, function($user) {
-                            return !user_can($user->ID, 'manage_options'); // Excluir administradores
-                        });
-                        foreach ($workers as $worker): 
-                        ?>
-                            <option value="<?php echo esc_attr($worker->ID); ?>"><?php echo esc_html($worker->display_name); ?></option>
-                        <?php endforeach; ?>
-                    </select>
-                </div>
-                
-                <div class="worker-portal-admin-filter-group">
-                    <label for="filter-project"><?php _e('Proyecto:', 'worker-portal'); ?></label>
-                    <select id="filter-project" name="project_id">
-                        <option value=""><?php _e('Todos', 'worker-portal'); ?></option>
-                        <?php 
-                        global $wpdb;
-                        $projects = $wpdb->get_results("SELECT id, name FROM {$wpdb->prefix}worker_projects WHERE status = 'active'", ARRAY_A);
-                        foreach ($projects as $project): 
-                        ?>
-                            <option value="<?php echo esc_attr($project['id']); ?>"><?php echo esc_html($project['name']); ?></option>
-                        <?php endforeach; ?>
-                    </select>
-                </div>
-                
-                <div class="worker-portal-admin-filter-group">
-                    <label for="filter-date-from"><?php _e('Desde:', 'worker-portal'); ?></label>
-                    <input type="date" id="filter-date-from" name="date_from">
-                </div>
-                
-                <div class="worker-portal-admin-filter-group">
-                    <label for="filter-date-to"><?php _e('Hasta:', 'worker-portal'); ?></label>
-                    <input type="date" id="filter-date-to" name="date_to">
+        <!-- Hojas de Trabajo -->
+        <div id="tab-worksheets" class="worker-portal-tab-content">
+            <h2><?php _e('Hojas de Trabajo', 'worker-portal'); ?></h2>
+            
+            <!-- Filtros de hojas de trabajo -->
+            <div class="worker-portal-admin-filters">
+                <form id="admin-worksheets-filter-form" class="worker-portal-admin-filter-form">
+                    <div class="worker-portal-admin-filter-row">
+                        <div class="worker-portal-admin-filter-group">
+                            <label for="filter-worker-ws"><?php _e('Trabajador:', 'worker-portal'); ?></label>
+                            <select id="filter-worker-ws" name="user_id">
+                                <option value=""><?php _e('Todos', 'worker-portal'); ?></option>
+                                <?php 
+                                $workers = get_users(array('role__not_in' => array('administrator')));
+                                foreach ($workers as $worker): 
+                                ?>
+                                    <option value="<?php echo esc_attr($worker->ID); ?>"><?php echo esc_html($worker->display_name); ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                        
+                        <div class="worker-portal-admin-filter-group">
+                            <label for="filter-project"><?php _e('Proyecto:', 'worker-portal'); ?></label>
+                            <select id="filter-project" name="project_id">
+                                <option value=""><?php _e('Todos', 'worker-portal'); ?></option>
+                                <?php 
+                                $projects = $wpdb->get_results("SELECT id, name FROM {$wpdb->prefix}worker_projects WHERE status = 'active'", ARRAY_A);
+                                if ($projects):
+                                    foreach ($projects as $project): 
+                                ?>
+                                    <option value="<?php echo esc_attr($project['id']); ?>"><?php echo esc_html($project['name']); ?></option>
+                                <?php 
+                                    endforeach;
+                                endif;
+                                ?>
+                            </select>
+                        </div>
+                        
+                        <div class="worker-portal-admin-filter-group">
+                            <label for="filter-date-from-ws"><?php _e('Desde:', 'worker-portal'); ?></label>
+                            <input type="date" id="filter-date-from-ws" name="date_from">
+                        </div>
+                        
+                        <div class="worker-portal-admin-filter-group">
+                            <label for="filter-date-to-ws"><?php _e('Hasta:', 'worker-portal'); ?></label>
+                            <input type="date" id="filter-date-to-ws" name="date_to">
+                        </div>
+                    </div>
+                    
+                    <div class="worker-portal-admin-filter-actions">
+                        <button type="submit" class="worker-portal-button worker-portal-button-secondary">
+                            <i class="dashicons dashicons-search"></i> <?php _e('Filtrar', 'worker-portal'); ?>
+                        </button>
+                        <button type="button" id="clear-filters-ws" class="worker-portal-button worker-portal-button-link">
+                            <?php _e('Limpiar filtros', 'worker-portal'); ?>
+                        </button>
+                    </div>
+                </form>
+            </div>
+            
+            <!-- Lista de hojas de trabajo -->
+            <div id="worksheets-list-container" data-nonce="<?php echo wp_create_nonce('worker_portal_ajax_nonce'); ?>">
+                <div class="worker-portal-loading">
+                    <div class="worker-portal-spinner"></div>
+                    <p><?php _e('Cargando hojas de trabajo...', 'worker-portal'); ?></p>
                 </div>
             </div>
             
-            <div class="worker-portal-admin-filter-actions">
-                <button type="submit" class="worker-portal-button worker-portal-button-secondary">
-                    <i class="dashicons dashicons-search"></i> <?php _e('Filtrar', 'worker-portal'); ?>
-                </button>
-                <button type="button" id="clear-filters" class="worker-portal-button worker-portal-button-link">
-                    <?php _e('Limpiar filtros', 'worker-portal'); ?>
+            <!-- Acciones -->
+            <div class="worker-portal-admin-actions">
+                <button type="button" id="export-worksheets-button" class="worker-portal-button worker-portal-button-secondary">
+                    <i class="dashicons dashicons-download"></i> <?php _e('Exportar a Excel', 'worker-portal'); ?>
                 </button>
             </div>
-        </form>
-    </div>
-    
-    <!-- Lista de hojas de trabajo -->
-    <div id="worksheets-list-container">
-        <div class="worker-portal-loading">
-            <div class="worker-portal-spinner"></div>
-            <p><?php _e('Cargando hojas de trabajo...2', 'worker-portal'); ?></p>
         </div>
-    </div>
-    
-    <!-- Acciones -->
-    <div class="worker-portal-admin-actions">
-        <button type="button" id="export-worksheets-button" class="worker-portal-button worker-portal-button-secondary">
-            <i class="dashicons dashicons-download"></i> <?php _e('Exportar a Excel', 'worker-portal'); ?>
-        </button>
-    </div>
-</div>
-
-<script>
-jQuery(document).ready(function($) {
-    // Función para cargar hojas de trabajo
-    function loadWorksheets(page = 1) {
-        // Obtener los datos del formulario
-        const formData = new FormData(document.getElementById('admin-worksheets-filter-form') || {});
-        formData.append('action', 'admin_load_worksheets');
-        formData.append('page', page);
-        formData.append('nonce', worker_portal_params.nonce);
-        
-        console.log('Enviando datos:', Object.fromEntries(formData)); // Añadir log de depuración
-        
-        $.ajax({
-            url: worker_portal_params.ajax_url,
-            type: 'POST',
-            data: formData,
-            processData: false,
-            contentType: false,
-            success: function(response) {
-                console.log('Respuesta recibida:', response); // Añadir log de depuración
-                if (response.success) {
-                    $('#worksheets-list-container').html(response.data.html);
-                } else {
-                    $('#worksheets-list-container').html(
-                        '<div class="worker-portal-error">' + response.data + '</div>'
-                    );
-                }
-            },
-            error: function(xhr, status, error) {
-                console.error('Error en la solicitud:', status, error); // Añadir log de error detallado
-                $('#worksheets-list-container').html(
-                    '<div class="worker-portal-error">Error al cargar las hojas de trabajo: ' + error + '</div>'
-                );
-            }
-        });
-    }
-
-    // Cargar hojas de trabajo al hacer clic en la pestaña
-    $('.worker-portal-tab-link[data-tab="worksheets"]').on('click', function() {
-        console.log('Pestaña de hojas de trabajo clicada'); // Log de depuración
-        loadWorksheets();
-    });
-
-    // Manejar el envío del formulario de filtros
-    $('#admin-worksheets-filter-form').on('submit', function(e) {
-        e.preventDefault();
-        console.log('Formulario de filtros enviado'); // Log de depuración
-        loadWorksheets();
-    });
-
-    // Cargar hojas de trabajo al cargar la página si la pestaña está activa
-    if ($('.worker-portal-tab-link[data-tab="worksheets"]').hasClass('active')) {
-        console.log('Pestaña de hojas de trabajo activa al cargar');
-        loadWorksheets();
-    }
-});
-</script>
         
         <div id="tab-documents" class="worker-portal-tab-content">
             <h2><?php _e('Gestión de Documentos', 'worker-portal'); ?></h2>
@@ -572,7 +513,11 @@ jQuery(document).ready(function($) {
     </div>
 </div>
 
+<input type="hidden" id="admin_nonce" value="<?php echo wp_create_nonce('worker_portal_ajax_nonce'); ?>">
+
 <script type="text/javascript">
+var ajaxurl = "<?php echo admin_url('admin-ajax.php'); ?>";
+
 jQuery(document).ready(function($) {
     // Navegación entre pestañas
     $('.worker-portal-tab-link').on('click', function(e) {
@@ -585,25 +530,32 @@ jQuery(document).ready(function($) {
         $('.worker-portal-tab-link').removeClass('active');
         
         // Mostrar pestaña seleccionada
-        const tab = $(this).data('tab');
+        var tab = $(this).data('tab');
         $('#tab-' + tab).addClass('active');
         
         // Activar enlace
         $(this).addClass('active');
+        
+        // Cargar contenido específico según la pestaña
+        if (tab === 'pending-expenses') {
+            loadPendingExpenses();
+        } else if (tab === 'worksheets') {
+            loadWorksheets();
+        }
     });
     
     // Navegación entre sub-pestañas
     $('.worker-portal-subtab-link').on('click', function(e) {
         e.preventDefault();
         
-        // Ocultar todas las sub-pestañas
+// Ocultar todas las sub-pestañas
         $('.worker-portal-subtab-content').removeClass('active');
         
         // Remover clase activa de todos los enlaces
         $('.worker-portal-subtab-link').removeClass('active');
         
         // Mostrar sub-pestaña seleccionada
-        const subtab = $(this).data('subtab');
+        var subtab = $(this).data('subtab');
         $('#subtab-' + subtab).addClass('active');
         
         // Activar enlace
@@ -614,7 +566,7 @@ jQuery(document).ready(function($) {
     $('.worker-portal-admin-stat-action').on('click', function(e) {
         e.preventDefault();
         
-        const tab = $(this).data('tab');
+        var tab = $(this).data('tab');
         $('.worker-portal-tab-link[data-tab="' + tab + '"]').click();
     });
     
@@ -622,38 +574,36 @@ jQuery(document).ready(function($) {
     $('.tab-nav-link').on('click', function(e) {
         e.preventDefault();
         
-        const tab = $(this).data('tab');
+        var tab = $(this).data('tab');
         $('.worker-portal-tab-link[data-tab="' + tab + '"]').click();
-    });
-    
-    // Cargar lista de gastos pendientes al hacer clic en la pestaña
-    $('.worker-portal-tab-link[data-tab="pending-expenses"]').on('click', function() {
-        loadPendingExpenses();
     });
     
     // Función para cargar gastos pendientes
     function loadPendingExpenses() {
+        console.log('Cargando gastos pendientes...');
+        
         // Obtener valores de filtros
-        const formData = new FormData($('#admin-expenses-filter-form')[0]);
+        var formData = new FormData(document.getElementById('admin-expenses-filter-form'));
         formData.append('action', 'admin_load_pending_expenses');
-        formData.append('nonce', worker_portal_params.nonce);
+        formData.append('nonce', $('#admin_nonce').val());
         
         // Mostrar indicador de carga
         $('#pending-expenses-list-container').html(
             '<div class="worker-portal-loading">' +
             '<div class="worker-portal-spinner"></div>' +
-            '<p><?php echo esc_js(__('Cargando gastos...', 'worker-portal')); ?></p>' +
+            '<p>Cargando gastos...</p>' +
             '</div>'
         );
         
         // Realizar petición AJAX
         $.ajax({
-            url: worker_portal_params.ajax_url,
+            url: ajaxurl,
             type: 'POST',
             data: formData,
             processData: false,
             contentType: false,
             success: function(response) {
+                console.log('Respuesta de gastos recibida:', response);
                 if (response.success) {
                     $('#pending-expenses-list-container').html(response.data);
                     initExpenseActions();
@@ -663,11 +613,71 @@ jQuery(document).ready(function($) {
                     );
                 }
             },
-            error: function() {
+            error: function(xhr, status, error) {
+                console.error('Error AJAX:', status, error);
                 $('#pending-expenses-list-container').html(
-                    '<div class="worker-portal-error">' + 
-                    '<?php echo esc_js(__('Error al cargar los gastos. Por favor, inténtalo de nuevo.', 'worker-portal')); ?>' + 
-                    '</div>'
+                    '<div class="worker-portal-error">Error al cargar los gastos. Por favor, inténtalo de nuevo.</div>'
+                );
+            }
+        });
+    }
+    
+    // Función para cargar hojas de trabajo
+    function loadWorksheets() {
+        console.log('Cargando hojas de trabajo...');
+        
+        // Mostrar indicador de carga
+        $('#worksheets-list-container').html(
+            '<div class="worker-portal-loading">' +
+            '<div class="worker-portal-spinner"></div>' +
+            '<p>Cargando hojas de trabajo...</p>' +
+            '</div>'
+        );
+        
+        // Obtener datos del formulario
+        var formData = new FormData();
+        formData.append('action', 'admin_load_worksheets');
+        formData.append('nonce', $('#admin_nonce').val());
+        
+        // Añadir filtros si existen
+        if ($('#filter-worker-ws').length) {
+            formData.append('user_id', $('#filter-worker-ws').val() || '');
+        }
+        
+        if ($('#filter-project').length) {
+            formData.append('project_id', $('#filter-project').val() || '');
+        }
+        
+        if ($('#filter-date-from-ws').length) {
+            formData.append('date_from', $('#filter-date-from-ws').val() || '');
+        }
+        
+        if ($('#filter-date-to-ws').length) {
+            formData.append('date_to', $('#filter-date-to-ws').val() || '');
+        }
+        
+        // Realizar petición AJAX
+        $.ajax({
+            url: ajaxurl,
+            type: 'POST',
+            data: formData,
+            processData: false,
+            contentType: false,
+            success: function(response) {
+                console.log('Respuesta de hojas recibida:', response);
+                if (response.success) {
+                    $('#worksheets-list-container').html(response.data.html || '<p>No hay datos para mostrar</p>');
+                } else {
+                    $('#worksheets-list-container').html(
+                        '<div class="worker-portal-error">Error al cargar datos: ' + 
+                        (response.data || 'Error desconocido') + '</div>'
+                    );
+                }
+            },
+            error: function(xhr, status, error) {
+                console.error('Error en la solicitud AJAX:', status, error);
+                $('#worksheets-list-container').html(
+                    '<div class="worker-portal-error">Error de comunicación con el servidor: ' + error + '</div>'
                 );
             }
         });
@@ -711,17 +721,17 @@ jQuery(document).ready(function($) {
     
     // Aprobar un gasto individual
     function approveExpense(expenseId) {
-        if (!confirm('<?php echo esc_js(__('¿Estás seguro de aprobar este gasto?', 'worker-portal')); ?>')) {
+        if (!confirm('¿Estás seguro de aprobar este gasto?')) {
             return;
         }
         
         $.ajax({
-            url: worker_portal_params.ajax_url,
+            url: ajaxurl,
             type: 'POST',
             data: {
                 action: 'admin_approve_expense',
                 expense_id: expenseId,
-                nonce: worker_portal_params.nonce
+                nonce: $('#admin_nonce').val()
             },
             success: function(response) {
                 if (response.success) {
@@ -732,24 +742,24 @@ jQuery(document).ready(function($) {
                 }
             },
             error: function() {
-                alert('<?php echo esc_js(__('Ha ocurrido un error. Por favor, inténtalo de nuevo.', 'worker-portal')); ?>');
+                alert('Ha ocurrido un error. Por favor, inténtalo de nuevo.');
             }
         });
     }
     
     // Rechazar un gasto individual
     function rejectExpense(expenseId) {
-        if (!confirm('<?php echo esc_js(__('¿Estás seguro de denegar este gasto?', 'worker-portal')); ?>')) {
+        if (!confirm('¿Estás seguro de denegar este gasto?')) {
             return;
         }
         
         $.ajax({
-            url: worker_portal_params.ajax_url,
+            url: ajaxurl,
             type: 'POST',
             data: {
                 action: 'admin_reject_expense',
                 expense_id: expenseId,
-                nonce: worker_portal_params.nonce
+                nonce: $('#admin_nonce').val()
             },
             success: function(response) {
                 if (response.success) {
@@ -760,7 +770,7 @@ jQuery(document).ready(function($) {
                 }
             },
             error: function() {
-                alert('<?php echo esc_js(__('Ha ocurrido un error. Por favor, inténtalo de nuevo.', 'worker-portal')); ?>');
+                alert('Ha ocurrido un error. Por favor, inténtalo de nuevo.');
             }
         });
     }
@@ -768,396 +778,174 @@ jQuery(document).ready(function($) {
     // Ver detalles de un gasto
     function viewExpenseDetails(expenseId) {
         $.ajax({
-            url: worker_portal_params.ajax_url,
+            url: ajaxurl,
             type: 'POST',
             data: {
                 action: 'admin_get_expense_details',
                 expense_id: expenseId,
-                nonce: worker_portal_params.nonce
+                nonce: $('#admin_nonce').val()
             },
             beforeSend: function() {
                 $('#expense-details-content').html(
                     '<div class="worker-portal-loading">' +
-                    '<div<?php
-if (!defined('ABSPATH')) {
-    exit;
-}
-?>
-
-<div class="worker-portal-admin-dashboard">
-    <!-- Pestañas de navegación de administrador -->
-    <div class="worker-portal-admin-tabs">
-        <ul class="worker-portal-admin-tabs-nav">
-            <li>
-                <a href="#" class="worker-portal-tab-link active" data-tab="dashboard">
-                    <i class="dashicons dashicons-dashboard"></i> 
-                    <?php _e('Dashboard', 'worker-portal'); ?>
-                </a>
-            </li>
-            <li>
-                <a href="#" class="worker-portal-tab-link" data-tab="pending-expenses">
-                    <i class="dashicons dashicons-money-alt"></i> 
-                    <?php _e('Gastos Pendientes', 'worker-portal'); ?>
-                    <?php 
-                    // Obtener número de gastos pendientes
-                    global $wpdb;
-                    $pending_count = $wpdb->get_var("SELECT COUNT(*) FROM {$wpdb->prefix}worker_expenses WHERE status = 'pending'");
-                    if ($pending_count > 0): 
-                    ?>
-                    <span class="worker-portal-pending-count"><?php echo esc_html($pending_count); ?></span>
-                    <?php endif; ?>
-                </a>
-            </li>
-            <li>
-                <a href="#" class="worker-portal-tab-link" data-tab="worksheets">
-                    <i class="dashicons dashicons-clipboard"></i> 
-                    <?php _e('Hojas de Trabajo', 'worker-portal'); ?>
-                    <?php 
-                    // Obtener número de hojas pendientes
-                    $worksheets_count = $wpdb->get_var("SELECT COUNT(*) FROM {$wpdb->prefix}worker_worksheets WHERE status = 'pending'");
-                    if ($worksheets_count > 0): 
-                    ?>
-                    <span class="worker-portal-pending-count"><?php echo esc_html($worksheets_count); ?></span>
-                    <?php endif; ?>
-                </a>
-            </li>
-            <li>
-                <a href="#" class="worker-portal-tab-link" data-tab="documents">
-                    <i class="dashicons dashicons-media-document"></i> 
-                    <?php _e('Documentos', 'worker-portal'); ?>
-                </a>
-            </li>
-            <li>
-                <a href="#" class="worker-portal-tab-link" data-tab="incentives">
-                    <i class="dashicons dashicons-star-filled"></i> 
-                    <?php _e('Incentivos', 'worker-portal'); ?>
-                </a>
-            </li>
-            <li>
-                <a href="#" class="worker-portal-tab-link" data-tab="workers">
-                    <i class="dashicons dashicons-groups"></i> 
-                    <?php _e('Trabajadores', 'worker-portal'); ?>
-                    <?php
-                    // Obtener número de trabajadores
-                    $workers_count = $wpdb->get_var("SELECT COUNT(*) FROM {$wpdb->prefix}users WHERE role NOT IN ('administrator')");
-                    if ($workers_count > 0):
-                    ?>
-                    <span class="worker-portal-pending-count"><?php echo esc_html($workers_count); ?></span>
-                    <?php endif; ?>
-                </a>
-            </li>
-        </ul>
-    </div>  
-    <!-- Contenido de cada pestaña -->
-    <div class="worker-portal-admin-tabs-content">
-        <!-- Dashboard -->
-        <div id="tab-dashboard" class="worker-portal-tab-content active">
-            <h2><?php _e('Dashboard', 'worker-portal'); ?></h2>
-            
-            <div class="worker-portal-admin-statistics">
-                <div class="worker-portal-admin-stat-boxes">
-                    <!-- Estadísticas de Trabajadores -->
-                    <?php 
-                    $workers_count = $wpdb->get_var("SELECT COUNT(*) FROM {$wpdb->prefix}users WHERE role NOT IN ('administrator')");
-                    ?>
-                    <div class="worker-portal-admin-stat-box worker-portal-stat-workers">
-                        <div class="worker-portal-admin-stat-icon">
-                            <i class="dashicons dashicons-groups"></i>
-                        </div>
-                        <div class="worker-portal-admin-stat-content">
-                            <div class="worker-portal-admin-stat-value"><?php echo $workers_count; ?></div>
-                            <div class="worker-portal-admin-stat-label"><?php _e('Trabajadores', 'worker-portal'); ?></div>
-                            <a href="#" class="worker-portal-admin-stat-action" data-tab="workers">
-                                <i class="dashicons dashicons-arrow-right-alt"></i>
-                                <?php _e('Ver todos', 'worker-portal'); ?>
-                            </a>
-                        </div>
-                    </div>
-                    <!-- Estadísticas de Gastos -->
-                    <?php
-                    $expenses_count = $wpdb->get_var("SELECT COUNT(*) FROM {$wpdb->prefix}worker_expenses");
-                    $total_expenses = $wpdb->get_var("SELECT SUM(amount) FROM {$wpdb->prefix}worker_expenses");
-                    ?>  
-                    <div class="worker-portal-admin-stat-box worker-portal-stat-expenses">
-                        <div class="worker-portal-admin-stat-icon">
-                            <i class="dashicons dashicons-money-alt"></i>
-                        </div>
-                        <div class="worker-portal-admin-stat-content">
-                            <div class="worker-portal-admin-stat-value"><?php echo $expenses_count; ?></div>
-                            <div class="worker-portal-admin-stat-label"><?php _e('Gastos', 'worker-portal'); ?></div>
-                            <a href="#" class="worker-portal-admin-stat-action" data-tab="pending-expenses">
-                                <i class="dashicons dashicons-arrow-right-alt"></i>
-                                <?php _e('Ver todos', 'worker-portal'); ?>
-                            </a>
-                        </div>
-                    </div>
-                    <!-- Estadísticas de Hojas de Trabajo -->
-                    <?php
-                    $worksheets_count = $wpdb->get_var("SELECT COUNT(*) FROM {$wpdb->prefix}worker_worksheets");
-                    $total_hours = $wpdb->get_var("SELECT SUM(hours) FROM {$wpdb->prefix}worker_worksheets");
-                    ?>  
-                    <div class="worker-portal-admin-stat-box worker-portal-stat-worksheets">
-                        <div class="worker-portal-admin-stat-icon">
-                            <i class="dashicons dashicons-clipboard"></i>
-                        </div>
-                        <div class="worker-portal-admin-stat-content">
-                            <div class="worker-portal-admin-stat-value"><?php echo $worksheets_count; ?></div>
-                            <div class="worker-portal-admin-stat-label"><?php _e('Hojas de Trabajo', 'worker-portal'); ?></div>
-                            <a href="#" class="worker-portal-admin-stat-action" data-tab="worksheets">
-                                <i class="dashicons dashicons-arrow-right-alt"></i>
-                                <?php _e('Ver todos', 'worker-portal'); ?>
-                            </a>
-                        </div>
-                    </div>
-                    <!-- Estadísticas de Incentivos -->
-                    <?php
-                    $incentives_count = $wpdb->get_var("SELECT COUNT(*) FROM {$wpdb->prefix}worker_incentives");
-                    $total_incentives = $wpdb->get_var("SELECT SUM(amount) FROM {$wpdb->prefix}worker_incentives");
-                    ?>  
-                    <div class="worker-portal-admin-stat-box worker-portal-stat-incentives">
-                        <div class="worker-portal-admin-stat-icon">
-                            <i class="dashicons dashicons-star-filled"></i>
-                        </div>
-                        <div class="worker-portal-admin-stat-content">
-                            <div class="worker-portal-admin-stat-value"><?php echo $incentives_count; ?></div>
-                            <div class="worker-portal-admin-stat-label"><?php _e('Incentivos', 'worker-portal'); ?></div>
-                            <a href="#" class="worker-portal-admin-stat-action" data-tab="incentives">
-                                <i class="dashicons dashicons-arrow-right-alt"></i>
-                                <?php _e('Ver todos', 'worker-portal'); ?>
-                            </a>
-                        </div>
-                    </div>
-                </div>
-                <div class="worker-portal-admin-stat-summary">
-                    <h3><?php _e('Resumen de Gastos', 'worker-portal'); ?></h3>
-                    <p><?php _e('Total de gastos: ', 'worker-portal') . $total_expenses; ?></p>
-                    <p><?php _e('Total de horas trabajadas: ', 'worker-portal') . $total_hours; ?></p>
-                    <p><?php _e('Total de incentivos: ', 'worker-portal') . $total_incentives; ?></p>
-                </div>
-            </div>
-        </div>
-        <!-- Gastos Pendientes -->  
-        <div id="tab-expenses" class="worker-portal-tab-content">
-            <h2><?php _e('Gastos Pendientes', 'worker-portal'); ?></h2>
-            <div class="worker-portal-admin-table">
-                <table>
-                    <thead>
-                        <tr>
-                            <th><?php _e('Fecha', 'worker-portal'); ?></th>
-                            <th><?php _e('Descripción', 'worker-portal'); ?></th>
-                            <th><?php _e('Monto', 'worker-portal'); ?></th>
-                            <th><?php _e('Estado', 'worker-portal'); ?></th>
-                            <th><?php _e('Acciones', 'worker-portal'); ?></th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <?php
-                        $expenses = $wpdb->get_results("SELECT * FROM {$wpdb->prefix}worker_expenses WHERE status = 'pending'");
-                        foreach ($expenses as $expense) {
-                            $status_icon = ($expense->status == 'approved') ? 'dashicons-yes' : 'dashicons-no';
-                            ?>
-                            <tr>
-                                <td><?php echo date('d/m/Y', strtotime($expense->date)); ?></td>
-                                <td><?php echo $expense->description; ?></td>
-                                <td><?php echo $expense->amount; ?></td>
-                                <td>
-                                    <span class="worker-portal-badge worker-portal-badge-<?php echo $expense->status; ?>">
-                                        <?php echo ucfirst($expense->status); ?>
-                                    </span>
-                                </td>
-                                <td>
-                                    <button type="button" class="worker-portal-button worker-portal-button-small approve-expense" data-expense-id="<?php echo $expense->id; ?>">
-                                        <i class="dashicons <?php echo $status_icon; ?>"></i>
-                                    </button>
-                                    <button type="button" class="worker-portal-button worker-portal-button-small view-expense" data-expense-id="<?php echo $expense->id; ?>">
-                                        <i class="dashicons dashicons-visibility"></i>
-                                    </button>
-                                    <button type="button" class="worker-portal-button worker-portal-button-small reject-expense" data-expense-id="<?php echo $expense->id; ?>">
-                                        <i class="dashicons dashicons-trash"></i>
-                                    </button>
-                                </td>
-                            </tr>
-                        <?php } ?>
-                    </tbody>
-                </table>
-            </div>
-            <div class="worker-portal-admin-table-actions">
-                <button type="button" class="worker-portal-button worker-portal-button-primary" id="approve-selected-expenses">
-                    <?php _e('Aprobar seleccionados', 'worker-portal'); ?>
-                </button>
-                <button type="button" class="worker-portal-button worker-portal-button-secondary" id="reject-selected-expenses">
-                    <?php _e('Rechazar seleccionados', 'worker-portal'); ?>
-                </button>
-                <button type="button" class="worker-portal-button worker-portal-button-link" id="clear-filters">
-                    <?php _e('Limpiar filtros', 'worker-portal'); ?>
-                </button>
-            </div>
-        </div>
-        <!-- Documentos -->
-        <div id="tab-documents" class="worker-portal-tab-content">
-            <h2><?php _e('Documentos', 'worker-portal'); ?></h2>
-            <table class="worker-portal-admin-table">
-                <thead>
-                    <tr>
-                        <th><?php _e('Nombre', 'worker-portal'); ?></th>
-                        <th><?php _e('Descripción', 'worker-portal'); ?></th>
-                        <th><?php _e('Estado', 'worker-portal'); ?></th>
-                        <th><?php _e('Acciones', 'worker-portal'); ?></th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <?php
-                    $documents = $wpdb->get_results("SELECT * FROM {$wpdb->prefix}worker_documents");
-                    foreach ($documents as $document) {
-                        ?>
-                        <tr>
-                            <td><?php echo esc_html($document->name); ?></td>
-                            <td><?php echo esc_html($document->description); ?></td>
-                            <td>
-                                <span class="worker-portal-badge worker-portal-badge-<?php echo esc_attr($document->status); ?>">
-                                    <?php echo ucfirst(esc_html($document->status)); ?>
-                                </span>
-                            </td>
-                            <td>
-                                <button type="button" class="worker-portal-button worker-portal-button-small view-document" data-document-id="<?php echo esc_attr($document->id); ?>">
-                                    <i class="dashicons dashicons-visibility"></i>
-                                </button>
-                            </td>
-                        </tr>
-                    <?php } ?>
-                </tbody>
-            </table>
-            <div class="worker-portal-admin-table-actions">
-                <button type="button" class="worker-portal-button worker-portal-button-primary" id="upload-new-document">
-                    <?php _e('Subir nuevo documento', 'worker-portal'); ?>
-                </button>
-                <button type="button" class="worker-portal-button worker-portal-button-secondary" id="delete-selected-documents">
-                    <?php _e('Eliminar seleccionados', 'worker-portal'); ?>
-                </button>
-                <button type="button" class="worker-portal-button worker-portal-button-link" id="clear-filters">
-                    <?php _e('Limpiar filtros', 'worker-portal'); ?>
-                </button>
-            </div>
-        </div>
-        <!-- Incentivos -->
-        <div id="tab-incentives" class="worker-portal-tab-content">
-            <h2><?php _e('Incentivos', 'worker-portal'); ?></h2>
-            <table class="worker-portal-admin-table">
-                <thead>
-                    <tr>
-                        <th><?php _e('Nombre', 'worker-portal'); ?></th>
-                        <th><?php _e('Descripción', 'worker-portal'); ?></th>
-                        <th><?php _e('Estado', 'worker-portal'); ?></th>
-                        <th><?php _e('Acciones', 'worker-portal'); ?></th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <?php
-                    $incentives = $wpdb->get_results("SELECT * FROM {$wpdb->prefix}worker_incentives");
-                    foreach ($incentives as $incentive) {
-                        ?>
-                        <tr>
-                            <td><?php echo esc_html($incentive->name); ?></td>
-                            <td><?php echo esc_html($incentive->description); ?></td>
-                            <td>
-                                <span class="worker-portal-badge worker-portal-badge-<?php echo esc_attr($incentive->status); ?>">
-                                    <?php echo ucfirst(esc_html($incentive->status)); ?>
-                                </span>
-                            </td>
-                            <td>
-                                <button type="button" class="worker-portal-button worker-portal-button-small view-incentive" data-incentive-id="<?php echo esc_attr($incentive->id); ?>">
-                                    <i class="dashicons dashicons-visibility"></i>
-                                </button>
-                                <button type="button" class="worker-portal-button worker-portal-button-small delete-incentive" data-incentive-id="<?php echo esc_attr($incentive->id); ?>">
-                                    <i class="dashicons dashicons-trash"></i>
-                                </button>
-                            </td>
-                        </tr>
-                    <?php } ?>
-                </tbody>
-            </table>
-            <div class="worker-portal-admin-table-actions">
-                <button type="button" class="worker-portal-button worker-portal-button-primary" id="add-new-incentive">
-                    <?php _e('Agregar nuevo incentivo', 'worker-portal'); ?>
-                </button>
-                <button type="button" class="worker-portal-button worker-portal-button-secondary" id="delete-selected-incentives">
-                    <?php _e('Eliminar seleccionados', 'worker-portal'); ?>
-                </button>
-                <button type="button" class="worker-portal-button worker-portal-button-link" id="clear-filters">
-                    <?php _e('Limpiar filtros', 'worker-portal'); ?>
-                </button>
-            </div>
-        </div>
-        <!-- Trabajadores -->   
-        <div id="tab-workers" class="worker-portal-tab-content">
-            <h2><?php _e('Trabajadores', 'worker-portal'); ?></h2>
-            <table class="worker-portal-admin-table">
-                <thead>
-                    <tr>
-                        <th><?php _e('Nombre', 'worker-portal'); ?></th>
-                        <th><?php _e('Correo electrónico', 'worker-portal'); ?></th>
-                        <th><?php _e('Estado', 'worker-portal'); ?></th>
-                        <th><?php _e('Acciones', 'worker-portal'); ?></th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <?php
-                    $workers = $wpdb->get_results("SELECT * FROM {$wpdb->prefix}users WHERE role NOT IN ('administrator')");
-                    foreach ($workers as $worker) {
-                        ?>
-                        <tr>
-                            <td><?php echo esc_html($worker->display_name); ?></td>
-                            <td><?php echo esc_html($worker->user_email); ?></td>
-                            <td>
-                                <span class="worker-portal-badge worker-portal-badge-<?php echo esc_attr($worker->status); ?>">
-                                    <?php echo ucfirst(esc_html($worker->status)); ?>
-                                </span>
-                            </td>
-                            <td>
-                                <button type="button" class="worker-portal-button worker-portal-button-small view-worker" data-worker-id="<?php echo esc_attr($worker->ID); ?>">
-                                    <i class="dashicons dashicons-visibility"></i>
-                                </button>
-                                <button type="button" class="worker-portal-button worker-portal-button-small delete-worker" data-worker-id="<?php echo esc_attr($worker->ID); ?>">
-                                    <i class="dashicons dashicons-trash"></i>
-                                </button>
-                            </td>
-                        </tr>
-                    <?php } ?>
-                </tbody>
-            </table>
-            <div class="worker-portal-admin-table-actions">
-                <button type="button" class="worker-portal-button worker-portal-button-primary" id="add-new-worker">
-                    <?php _e('Agregar nuevo trabajador', 'worker-portal'); ?>
-                </button>
-                <button type="button" class="worker-portal-button worker-portal-button-secondary" id="delete-selected-workers">
-                    <?php _e('Eliminar seleccionados', 'worker-portal'); ?>
-                </button>
-                <button type="button" class="worker-portal-button worker-portal-button-link" id="clear-filters">
-                    <?php _e('Limpiar filtros', 'worker-portal'); ?>
-                </button>
-            </div>
-        </div>
-    </div>
-</div>  
-                <div class="worker-portal-loading">
-                    <div class="worker-portal-spinner"></div>
-                    <p><?php _e('Cargando detalles del gasto...', 'worker-portal'); ?></p>
-                </div>
-            </div>
-        </div>
-    </div>
-        success: function(response) {
-            if (response.success) {
-                $('#expense-details-content').html(response.data);
+                    '<div class="worker-portal-spinner"></div>' +
+                    '<p>Cargando detalles del gasto...</p>' +
+                    '</div>'
+                );
                 $('#expense-details-modal').show();
-            } else {
-                alert(response.data);
+            },
+            success: function(response) {
+                if (response.success) {
+                    $('#expense-details-content').html(response.data);
+                } else {
+                    $('#expense-details-content').html(
+                        '<div class="worker-portal-error">' + response.data + '</div>'
+                    );
+                }
+            },
+            error: function() {
+                $('#expense-details-content').html(
+                    '<div class="worker-portal-error">Ha ocurrido un error. Por favor, inténtalo de nuevo.</div>'
+                );
             }
-        },
-        error: function() {
-            alert('<?php echo esc_js(__('Ha ocurrido un error. Por favor, inténtalo de nuevo.', 'worker-portal')); ?>');
+        });
+    }
+    
+    // Manejar el envío del formulario de filtros de gastos
+    $('#admin-expenses-filter-form').on('submit', function(e) {
+        e.preventDefault();
+        loadPendingExpenses();
+    });
+    
+    // Manejar el envío del formulario de filtros de hojas de trabajo
+    $('#admin-worksheets-filter-form').on('submit', function(e) {
+        e.preventDefault();
+        loadWorksheets();
+    });
+    
+    // Limpiar filtros de gastos
+    $('#clear-filters-expenses').on('click', function() {
+        $('#admin-expenses-filter-form')[0].reset();
+        loadPendingExpenses();
+    });
+    
+    // Limpiar filtros de hojas de trabajo
+    $('#clear-filters-ws').on('click', function() {
+        $('#admin-worksheets-filter-form')[0].reset();
+        loadWorksheets();
+    });
+    
+    // Cerrar modales
+    $('.worker-portal-modal-close').on('click', function() {
+        $(this).closest('.worker-portal-modal').hide();
+    });
+    
+    // Cerrar modal haciendo clic fuera
+    $(window).on('click', function(e) {
+        if ($(e.target).hasClass('worker-portal-modal')) {
+            $('.worker-portal-modal').hide();
         }
     });
-    }
+    
+    // Manejar acciones masivas
+    $('#bulk-approve-form').on('submit', function(e) {
+        e.preventDefault();
+        
+        var action = $('#bulk-action').val();
+        if (!action) {
+            alert('Por favor, selecciona una acción.');
+            return;
+        }
+        
+        var selectedIds = [];
+        $('.expense-checkbox:checked').each(function() {
+            selectedIds.push($(this).val());
+        });
+        
+        if (selectedIds.length === 0) {
+            alert('Por favor, selecciona al menos un gasto.');
+            return;
+        }
+        
+        if (!confirm('¿Estás seguro de realizar esta acción? No se puede deshacer.')) {
+            return;
+        }
+        
+        $.ajax({
+            url: ajaxurl,
+            type: 'POST',
+            data: {
+                action: 'admin_bulk_expense_action',
+                bulk_action: action,
+                expense_ids: selectedIds,
+                nonce: $('#admin_nonce').val()
+            },
+            success: function(response) {
+                if (response.success) {
+                    alert(response.data.message);
+                    loadPendingExpenses();
+                } else {
+                    alert(response.data);
+                }
+            },
+            error: function() {
+                alert('Ha ocurrido un error. Por favor, inténtalo de nuevo.');
+            }
+        });
+    });
+    
+    // Exportar hojas de trabajo
+    $('#export-worksheets-button').on('click', function() {
+        var formData = new FormData();
+        formData.append('action', 'admin_export_worksheets');
+        formData.append('nonce', $('#admin_nonce').val());
+        
+        // Añadir filtros si existen
+        if ($('#filter-worker-ws').length) {
+            formData.append('user_id', $('#filter-worker-ws').val() || '');
+        }
+        
+        if ($('#filter-project').length) {
+            formData.append('project_id', $('#filter-project').val() || '');
+        }
+        
+        if ($('#filter-date-from-ws').length) {
+            formData.append('date_from', $('#filter-date-from-ws').val() || '');
+        }
+        
+        if ($('#filter-date-to-ws').length) {
+            formData.append('date_to', $('#filter-date-to-ws').val() || '');
+        }
+        
+        $.ajax({
+            url: ajaxurl,
+            type: 'POST',
+            data: formData,
+            processData: false,
+            contentType: false,
+            beforeSend: function() {
+                $(this).prop('disabled', true).html('<i class="dashicons dashicons-update-alt spinning"></i> Exportando...');
+            }.bind(this),
+            success: function(response) {
+                if (response.success && response.data.file_url) {
+                    // Crear y hacer clic en un enlace de descarga
+                    var link = document.createElement('a');
+                    link.href = response.data.file_url;
+                    link.download = response.data.filename || 'hojas-trabajo.xlsx';
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                } else {
+                    alert(response.data || 'Error al exportar las hojas de trabajo.');
+                }
+            },
+            error: function() {
+                alert('Ha ocurrido un error durante la exportación. Por favor, inténtalo de nuevo.');
+            },
+            complete: function() {
+                $(this).prop('disabled', false).html('<i class="dashicons dashicons-download"></i> Exportar a Excel');
+            }.bind(this)
+        });
+    });
 });
 </script>

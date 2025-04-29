@@ -33,12 +33,19 @@ if (!current_user_can('wp_worker_manage_worksheets')) {
                     <input type="date" id="work-date" name="work_date" value="<?php echo date('Y-m-d'); ?>" required>
                 </div>
                 
-                <div class="worker-portal-form-group">
+               <div class="worker-portal-form-group">
                     <label for="project-id"><?php _e('Obra:', 'worker-portal'); ?></label>
                     <select id="project-id" name="project_id" required>
                         <option value=""><?php _e('Seleccionar obra', 'worker-portal'); ?></option>
-                        <?php foreach ($projects as $project): ?>
-                            <option value="<?php echo esc_attr($project['id']); ?>"><?php echo esc_html($project['name']); ?></option>
+                        <?php 
+                        // Verificar si hay un último proyecto asignado
+                        $last_project_id = get_user_meta(get_current_user_id(), 'last_assigned_project', true);
+                        
+                        foreach ($projects as $project): 
+                        ?>
+                            <option value="<?php echo esc_attr($project['id']); ?>" <?php selected($last_project_id, $project['id']); ?>>
+                                <?php echo esc_html($project['name']); ?>
+                            </option>
                         <?php endforeach; ?>
                     </select>
                 </div>

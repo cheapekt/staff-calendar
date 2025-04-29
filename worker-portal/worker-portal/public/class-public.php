@@ -80,18 +80,8 @@ class Worker_Portal_Public {
 
         // Localizar script de portal
         wp_localize_script(
-            'worker-portal-public', 
-            'worker_portal_params', 
-            array(
-                'ajax_url' => admin_url('admin-ajax.php'),
-                'nonce' => wp_create_nonce('worker_portal_ajax_nonce')
-            )
-        );
-
-         // Localizar script de admin frontend
-        wp_localize_script(
-            'worker-portal-admin-frontend', 
-            'worker_portal_params', 
+            'worker-portal-public',
+            'worker_portal_params',
             array(
                 'ajax_url' => admin_url('admin-ajax.php'),
                 'nonce' => wp_create_nonce('worker_portal_ajax_nonce')
@@ -108,6 +98,16 @@ class Worker_Portal_Public {
                 WORKER_PORTAL_VERSION,
                 true
             );
+            
+            // MOVER A AQUÍ: Localizar script de admin frontend (después de registrarlo)
+            wp_localize_script(
+                'worker-portal-admin-frontend',
+                'worker_portal_params',
+                array(
+                    'ajax_url' => admin_url('admin-ajax.php'),
+                    'nonce' => wp_create_nonce('worker_portal_ajax_nonce')
+                )
+            );
         } else {
             // Scripts específicos para trabajadores
             wp_enqueue_script(
@@ -117,7 +117,7 @@ class Worker_Portal_Public {
                 WORKER_PORTAL_VERSION,
                 true
             );
-
+            
             // Localizar script de gastos
             wp_localize_script(
                 'worker-portal-expenses',

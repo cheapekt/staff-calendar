@@ -209,9 +209,9 @@ class Worker_Portal_Module_Worksheets {
         
         wp_send_json_success(array(
             'html' => $html,
-            'total_items' => $total_items,
-            'total_pages' => $total_pages,
-            'current_page' => $current_page
+            'total_items' => isset($total_items) ? $total_items : 0,
+            'total_pages' => isset($total_pages) ? $total_pages : 1,
+            'current_page' => isset($current_page) ? $current_page : 1
         ));
         
         wp_die();
@@ -486,17 +486,44 @@ class Worker_Portal_Module_Worksheets {
      * @since    1.0.0
      * @return   array    Lista de proyectos
      */
-    public function get_available_projects() {
-        // Incluir la clase de base de datos si no está ya cargada
-        if (!class_exists('Worker_Portal_Database')) {
-            require_once WORKER_PORTAL_PATH . 'includes/class-database.php';
+   public function get_available_projects() {
+        global $wpdb;
+        
+        // Consultar directamente la tabla de proyectos
+        $projects_table = $wpdb->prefix . 'worker_projects';
+        
+        // Verificar si la tabla existe
+        if($wpdb->get_var("SHOW TABLES LIKE '$projects_table'") != $projects_table) {
+            // Si la tabla no existe, devolver un array vacío
+            return array();
         }
         
-        // Obtener la instancia de la clase de base de datos
-        $database = Worker_Portal_Database::get_instance();
-        
         // Obtener proyectos activos
-        $projects = $database->get_projects(true, 50, 0);
+        $projects = $wpdb->get_results(
+            "SELECT * FROM $projects_table WHERE status = 'active' ORDER BY name ASC",
+            ARRAY_A
+        );
+        
+        // Si no hay proyectos, crear uno por defecto para pruebas
+        if (empty($projects)) {
+            // Intentar insertar un proyecto de ejemplo si la tabla existe
+            $default_project = array(
+                'name' => 'Proyecto de Prueba',
+                'description' => 'Proyecto de prueba para desarrollo',
+                'location' => 'Barcelona',
+                'start_date' => date('Y-m-d'),
+                'end_date' => date('Y-m-d', strtotime('+30 days')),
+                'status' => 'active'
+            );
+            
+            $wpdb->insert($projects_table, $default_project);
+            
+            // Volver a consultar
+            $projects = $wpdb->get_results(
+                "SELECT * FROM $projects_table WHERE status = 'active' ORDER BY name ASC",
+                ARRAY_A
+            );
+        }
         
         return $projects;
     }
