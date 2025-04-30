@@ -23,32 +23,22 @@ if (!current_user_can('wp_worker_manage_worksheets')) {
     <h2><?php _e('Mis Hojas de Trabajo', 'worker-portal'); ?></h2>
     
     <?php if ($atts['show_form'] === 'yes'): ?>
-    <div class="worker-portal-worksheets-form-container">
+    <div class="worker-portal-worksheets-form-container" style="display: none;">
         <h3><?php _e('Registrar Nueva Hoja de Trabajo', 'worker-portal'); ?></h3>
         
-        <!-- Formulario simplificado con JavaScript nativo -->
-        <form id="worksheet-form-direct" action="<?php echo admin_url('admin-ajax.php'); ?>" method="post">
-            <!-- Campos ocultos necesarios -->
-            <input type="hidden" name="action" value="submit_worksheet">
-            <input type="hidden" name="nonce" value="<?php echo wp_create_nonce('worker_portal_worksheets_nonce'); ?>">
-            
+        <form id="worker-portal-worksheet-form" class="worker-portal-form">
             <div class="worker-portal-form-row">
                 <div class="worker-portal-form-group">
-                    <label for="work-date-direct"><?php _e('Fecha:', 'worker-portal'); ?></label>
-                    <input type="date" id="work-date-direct" name="work_date" value="<?php echo date('Y-m-d'); ?>" required>
+                    <label for="work-date"><?php _e('Fecha:', 'worker-portal'); ?></label>
+                    <input type="date" id="work-date" name="work_date" value="<?php echo date('Y-m-d'); ?>" required>
                 </div>
                 
                 <div class="worker-portal-form-group">
-                    <label for="project-id-direct"><?php _e('Obra:', 'worker-portal'); ?></label>
-                    <select id="project-id-direct" name="project_id" required>
+                    <label for="project-id"><?php _e('Obra:', 'worker-portal'); ?></label>
+                    <select id="project-id" name="project_id" required>
                         <option value=""><?php _e('Seleccionar obra', 'worker-portal'); ?></option>
-                        <?php 
-                        // Verificar si hay un último proyecto asignado
-                        $last_project_id = get_user_meta(get_current_user_id(), 'last_assigned_project', true);
-                        
-                        foreach ($projects as $project): 
-                        ?>
-                            <option value="<?php echo esc_attr($project['id']); ?>" <?php selected($last_project_id, $project['id']); ?>>
+                        <?php foreach ($projects as $project): ?>
+                            <option value="<?php echo esc_attr($project['id']); ?>">
                                 <?php echo esc_html($project['name']); ?>
                             </option>
                         <?php endforeach; ?>
@@ -58,8 +48,8 @@ if (!current_user_can('wp_worker_manage_worksheets')) {
             
             <div class="worker-portal-form-row">
                 <div class="worker-portal-form-group">
-                    <label for="difficulty-direct"><?php _e('Dificultad:', 'worker-portal'); ?></label>
-                    <select id="difficulty-direct" name="difficulty">
+                    <label for="difficulty"><?php _e('Dificultad:', 'worker-portal'); ?></label>
+                    <select id="difficulty" name="difficulty">
                         <?php foreach ($difficulty_levels as $key => $label): ?>
                             <option value="<?php echo esc_attr($key); ?>" <?php selected($key, 'media'); ?>>
                                 <?php echo esc_html($label); ?>
@@ -69,8 +59,8 @@ if (!current_user_can('wp_worker_manage_worksheets')) {
                 </div>
                 
                 <div class="worker-portal-form-group">
-                    <label for="system-type-direct"><?php _e('SISTEMA:', 'worker-portal'); ?></label>
-                    <select id="system-type-direct" name="system_type" required>
+                    <label for="system-type"><?php _e('SISTEMA:', 'worker-portal'); ?></label>
+                    <select id="system-type" name="system_type" required>
                         <option value=""><?php _e('Seleccionar sistema', 'worker-portal'); ?></option>
                         <?php foreach ($system_types as $key => $label): ?>
                             <option value="<?php echo esc_attr($key); ?>"><?php echo esc_html($label); ?></option>
@@ -81,8 +71,8 @@ if (!current_user_can('wp_worker_manage_worksheets')) {
             
             <div class="worker-portal-form-row">
                 <div class="worker-portal-form-group">
-                    <label for="unit-type-direct"><?php _e('Ud.:', 'worker-portal'); ?></label>
-                    <select id="unit-type-direct" name="unit_type" required>
+                    <label for="unit-type"><?php _e('Ud.:', 'worker-portal'); ?></label>
+                    <select id="unit-type" name="unit_type" required>
                         <?php foreach ($unit_types as $key => $label): ?>
                             <option value="<?php echo esc_attr($key); ?>"><?php echo esc_html($label); ?></option>
                         <?php endforeach; ?>
@@ -90,86 +80,27 @@ if (!current_user_can('wp_worker_manage_worksheets')) {
                 </div>
                 
                 <div class="worker-portal-form-group">
-                    <label for="quantity-direct"><?php _e('Cantidad:', 'worker-portal'); ?></label>
-                    <input type="number" id="quantity-direct" name="quantity" step="0.01" min="0" required>
+                    <label for="quantity"><?php _e('Cantidad:', 'worker-portal'); ?></label>
+                    <input type="number" id="quantity" name="quantity" step="0.01" min="0" required>
                 </div>
                 
                 <div class="worker-portal-form-group">
-                    <label for="hours-direct"><?php _e('HORAS:', 'worker-portal'); ?></label>
-                    <input type="number" id="hours-direct" name="hours" step="0.5" min="0" required>
+                    <label for="hours"><?php _e('HORAS:', 'worker-portal'); ?></label>
+                    <input type="number" id="hours" name="hours" step="0.5" min="0" required>
                 </div>
             </div>
             
             <div class="worker-portal-form-group">
-                <label for="notes-direct"><?php _e('Notas:', 'worker-portal'); ?></label>
-                <textarea id="notes-direct" name="notes" rows="3"></textarea>
+                <label for="notes"><?php _e('Notas:', 'worker-portal'); ?></label>
+                <textarea id="notes" name="notes" rows="3"></textarea>
             </div>
             
             <div class="worker-portal-form-actions">
-                <input type="submit" value="<?php _e('Enviar Hoja de Trabajo', 'worker-portal'); ?>" class="worker-portal-button worker-portal-button-primary">
+                <button type="submit" class="worker-portal-button worker-portal-button-primary">
+                    <?php _e('Enviar Hoja de Trabajo', 'worker-portal'); ?>
+                </button>
             </div>
         </form>
-        
-        <script>
-        // Código JavaScript nativo para procesar el envío
-        document.addEventListener('DOMContentLoaded', function() {
-            console.log("Inicializando manejador de formulario independiente");
-            
-            var form = document.getElementById('worksheet-form-direct');
-            if (form) {
-                form.addEventListener('submit', function(event) {
-                    event.preventDefault();
-                    alert("Formulario detectado - procesando envío");
-                    
-                    // Validar campos obligatorios
-                    var workDate = document.getElementById('work-date-direct').value;
-                    var projectId = document.getElementById('project-id-direct').value;
-                    var systemType = document.getElementById('system-type-direct').value;
-                    var unitType = document.getElementById('unit-type-direct').value;
-                    var quantity = document.getElementById('quantity-direct').value;
-                    var hours = document.getElementById('hours-direct').value;
-                    
-                    if (!workDate || !projectId || !systemType || !unitType || !quantity || !hours) {
-                        alert("Por favor, completa todos los campos obligatorios");
-                        return;
-                    }
-                    
-                    // Crear solicitud AJAX con JavaScript nativo
-                    var formData = new FormData(form);
-                    var xhr = new XMLHttpRequest();
-                    xhr.open('POST', '<?php echo admin_url('admin-ajax.php'); ?>', true);
-                    
-                    xhr.onload = function() {
-                        if (xhr.status >= 200 && xhr.status < 400) {
-                            try {
-                                var response = JSON.parse(xhr.responseText);
-                                if (response.success) {
-                                    alert("Hoja de trabajo registrada correctamente");
-                                    form.reset();
-                                    window.location.reload();
-                                } else {
-                                    alert("Error: " + (response.data || "Error desconocido"));
-                                }
-                            } catch (e) {
-                                alert("Error al procesar la respuesta del servidor");
-                                console.error("Error al parsear JSON:", e, "Respuesta:", xhr.responseText);
-                            }
-                        } else {
-                            alert("Error del servidor: " + xhr.status);
-                        }
-                    };
-                    
-                    xhr.onerror = function() {
-                        alert("Error de conexión. Por favor, inténtalo de nuevo.");
-                    };
-                    
-                    xhr.send(formData);
-                });
-            } else {
-                console.error("No se encontró el formulario con ID 'worksheet-form-direct'");
-            }
-        });
-        </script>
     </div>
     <?php endif; ?>
     
@@ -317,19 +248,3 @@ if (!current_user_can('wp_worker_manage_worksheets')) {
         </div>
     </div>
 </div>
-
-<script type="text/javascript">
-jQuery(document).ready(function($) {
-    // Mostrar/ocultar el formulario de hojas de trabajo
-    $("#new-worksheet-button").on("click", function() {
-        $(".worker-portal-worksheets-form-container").slideToggle();
-        $(this).toggleClass("active");
-        
-        if ($(this).hasClass("active")) {
-            $(this).html('<i class="dashicons dashicons-minus"></i> CANCELAR');
-        } else {
-            $(this).html('<i class="dashicons dashicons-plus-alt"></i> NUEVA HOJA DE TRABAJO');
-        }
-    });
-});
-</script>

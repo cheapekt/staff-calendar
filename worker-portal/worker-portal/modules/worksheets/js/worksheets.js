@@ -8,6 +8,7 @@
   const WorkerPortalWorksheets = {
     // Inicialización
     init: function () {
+      console.log("Inicializando módulo de hojas de trabajo...");
       this.setupFormToggle();
       this.setupFormSubmission();
       this.setupWorksheetActions();
@@ -19,6 +20,7 @@
 
     // Configurar el toggle del formulario
     setupFormToggle: function () {
+      console.log("Configurando toggle de formulario");
       $("#new-worksheet-button").on("click", function () {
         $(".worker-portal-worksheets-form-container").slideToggle();
         $(this).toggleClass("active");
@@ -35,8 +37,10 @@
 
     // Configurar el envío del formulario
     setupFormSubmission: function () {
+      console.log("Configurando envío de formulario");
       $("#worker-portal-worksheet-form").on("submit", function (e) {
         e.preventDefault();
+        console.log("Formulario enviado");
 
         const form = this;
         const formData = new FormData(form);
@@ -108,15 +112,70 @@
           },
         });
       });
+
+      // También configurar el formulario directo usado en algunas plantillas
+      $("#worksheet-form-direct").on("submit", function (e) {
+        e.preventDefault();
+        console.log("Formulario directo enviado");
+
+        // Validar campos obligatorios
+        const workDate = $("#work-date-direct").val();
+        const projectId = $("#project-id-direct").val();
+        const systemType = $("#system-type-direct").val();
+        const unitType = $("#unit-type-direct").val();
+        const quantity = $("#quantity-direct").val();
+        const hours = $("#hours-direct").val();
+
+        if (
+          !workDate ||
+          !projectId ||
+          !systemType ||
+          !unitType ||
+          !quantity ||
+          quantity <= 0 ||
+          !hours ||
+          hours <= 0
+        ) {
+          alert(
+            "Por favor, completa todos los campos obligatorios correctamente."
+          );
+          return;
+        }
+
+        const formData = new FormData(this);
+        formData.append("nonce", workerPortalWorksheets.nonce);
+
+        $.ajax({
+          url: workerPortalWorksheets.ajax_url,
+          type: "POST",
+          data: formData,
+          processData: false,
+          contentType: false,
+          success: function (response) {
+            if (response.success) {
+              alert("Hoja de trabajo registrada correctamente");
+              $("#worksheet-form-direct")[0].reset();
+              window.location.reload();
+            } else {
+              alert(response.data || "Error al registrar la hoja de trabajo");
+            }
+          },
+          error: function () {
+            alert("Error de comunicación. Por favor, inténtalo de nuevo.");
+          },
+        });
+      });
     },
 
     // Configurar acciones sobre las hojas de trabajo
     setupWorksheetActions: function () {
+      console.log("Configurando acciones de hojas de trabajo");
       // Eliminar hoja de trabajo
       $(document).on("click", ".worker-portal-delete-worksheet", function () {
-        if (confirm(workerPortalWorksheets.i18n.confirm_delete)) {
-          const worksheetId = $(this).data("worksheet-id");
+        console.log("Clic en eliminar hoja de trabajo");
+        const worksheetId = $(this).data("worksheet-id");
 
+        if (confirm(workerPortalWorksheets.i18n.confirm_delete)) {
           $.ajax({
             url: workerPortalWorksheets.ajax_url,
             type: "POST",
@@ -127,7 +186,7 @@
             },
             success: function (response) {
               if (response.success) {
-                // Eliminar la fila de la tabla
+                // Eliminar la fila de la tabla o recargar la página
                 $(`tr[data-worksheet-id="${worksheetId}"]`).fadeOut(
                   function () {
                     $(this).remove();
@@ -155,6 +214,7 @@
 
       // Ver detalles de hoja de trabajo
       $(document).on("click", ".worker-portal-view-worksheet", function () {
+        console.log("Clic en ver detalles de hoja de trabajo");
         const worksheetId = $(this).data("worksheet-id");
         WorkerPortalWorksheets.loadWorksheetDetails(worksheetId);
       });
@@ -162,6 +222,7 @@
 
     // Cargar detalles de hoja de trabajo
     loadWorksheetDetails: function (worksheetId) {
+      console.log("Cargando detalles de hoja de trabajo:", worksheetId);
       $.ajax({
         url: workerPortalWorksheets.ajax_url,
         type: "POST",
@@ -200,14 +261,17 @@
 
     // Configurar filtros de búsqueda
     setupFilters: function () {
+      console.log("Configurando filtros");
       // Enviar formulario de filtros
       $("#worksheets-filter-form").on("submit", function (e) {
         e.preventDefault();
+        console.log("Aplicando filtros");
         WorkerPortalWorksheets.loadFilteredWorksheets(1);
       });
 
       // Limpiar filtros
       $("#clear-filters").on("click", function () {
+        console.log("Limpiando filtros");
         $("#worksheets-filter-form")[0].reset();
         WorkerPortalWorksheets.loadFilteredWorksheets(1);
       });
@@ -215,11 +279,12 @@
 
     // Cargar hojas filtradas mediante AJAX
     loadFilteredWorksheets: function (page) {
+      console.log("Cargando hojas filtradas, página:", page);
       // Mostrar indicador de carga
       $("#worksheets-list-content").html(
         '<div class="worker-portal-loading">' +
-          '<div class="worker-portal-loader-spinner"></div>' +
-          "<p>Cargando hojas de trabajo...1</p>" +
+          '<div class="worker-portal-spinner"></div>' +
+          "<p>Cargando hojas de trabajo...</p>" +
           "</div>"
       );
 
@@ -257,6 +322,7 @@
 
     // Configurar paginación
     setupPagination: function () {
+      console.log("Configurando paginación");
       // Delegación de eventos para los botones de paginación
       $(document).on(
         "click",
@@ -264,6 +330,7 @@
         function (e) {
           e.preventDefault();
           const page = $(this).data("page");
+          console.log("Cambiando a página:", page);
           WorkerPortalWorksheets.loadFilteredWorksheets(page);
         }
       );
@@ -271,7 +338,9 @@
 
     // Configurar exportación de hojas de trabajo
     setupExport: function () {
+      console.log("Configurando exportación");
       $("#export-worksheets-button").on("click", function () {
+        console.log("Exportando hojas de trabajo");
         // Obtener datos del formulario de filtros
         const formData = new FormData($("#worksheets-filter-form")[0]);
         formData.append("action", "export_worksheets");
@@ -323,6 +392,7 @@
 
     // Configurar modal de detalles
     setupDetails: function () {
+      console.log("Configurando modales");
       // Cerrar modal
       $(".worker-portal-modal-close").on("click", function () {
         $(this).closest(".worker-portal-modal").fadeOut();
@@ -345,6 +415,12 @@
 
   // Inicializar cuando el DOM esté listo
   $(function () {
+    console.log("DOM listo, inicializando módulo de hojas de trabajo");
     WorkerPortalWorksheets.init();
+
+    // Si estamos en la página de hojas de trabajo, cargar los datos iniciales
+    if ($("#worksheets-list-content").length > 0) {
+      WorkerPortalWorksheets.loadFilteredWorksheets(1);
+    }
   });
 })(jQuery);

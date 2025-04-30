@@ -30,6 +30,7 @@ class Worker_Portal_Module_Worksheets {
         add_action('wp_ajax_delete_worksheet', array($this, 'ajax_delete_worksheet'));
         add_action('wp_ajax_validate_worksheet', array($this, 'ajax_validate_worksheet'));
         add_action('wp_ajax_filter_worksheets', array($this, 'ajax_filter_worksheets'));
+        add_action('wp_ajax_get_worksheet_details', array($this, 'ajax_get_worksheet_details'));
         add_action('wp_ajax_export_worksheets', array($this, 'ajax_export_worksheets'));
         
         // Registrar AJAX actions para admin
@@ -665,6 +666,164 @@ class Worker_Portal_Module_Worksheets {
             'worksheet_id' => $result,
             'message' => __('Hoja de trabajo registrada correctamente.', 'worker-portal')
         ));
+    }
+
+    /**
+     * Maneja la petición AJAX para obtener los detalles de una hoja de trabajo
+     *
+     * @since      1.0.0
+     */
+    public function ajax_get_worksheet_details() {
+        // Verificar nonce
+        if (!isset($_POST['nonce']) || !wp_verify_nonce($_POST['nonce'], 'worker_portal_worksheets_nonce')) {
+            wp_send_json_error(__('Error de seguridad. Por favor, recarga la página.', 'worker-portal'));
+        }
+        
+        // Verificar que el usuario está logueado
+        if (!is_user_logged_in()) {
+            wp_send_json_error(__('Debes iniciar sesión para ver los detalles.', 'worker-portal'));
+        }
+        
+        // Obtener ID de la hoja de trabajo
+        $worksheet_id = isset($_POST['worksheet_id']) ? intval($_POST['worksheet_id']) : 0;
+        
+        if ($worksheet_id <= 0) {
+            wp_send_json_error(__('ID de hoja de trabajo no válido.', 'worker-portal'));
+        }
+        
+        // Obtener detalles de la hoja de trabajo
+        global $wpdb;
+        
+        $table_name = $wpdb->prefix . 'worker_worksheets';
+        $projects_table = $wpdb->prefix . 'worker_projects';
+        
+        $worksheet = $wpdb->get_row(
+            $wpdb->prepare(
+                "SELECT w.*, p.name as project_name, p.location as project_location
+                FROM $table_name w
+                LEFT JOIN $projects_table p ON w.project_id = p.id
+                WHERE w.id = %d",
+                $worksheet_id
+            ),
+            ARRAY_A
+        );
+        
+        if (!$worksheet) {
+            wp_send_json_error(__('Hoja de trabajo no encontrada.', 'worker-portal'));
+        }
+        
+        // Verificar permisos: el usuario debe ser propietario o administrador
+        $current_user_id = get_current_user_id();
+        if ($worksheet['user_id'] != $current_user_id && !current_user_can('manage_options') && !Worker_Portal_Utils::is_portal_admin()) {
+            wp_send_json_error(__('No tienes permiso para ver esta hoja de trabajo.', 'worker-portal'));
+        }
+        
+        // Obtener información del validador si existe
+        $validator_name = '';
+        if (!empty($worksheet['validated_by'])) {
+            $validator = get_userdata($worksheet['validated_by']);
+            if ($validator) {
+                $validator_name = $validator->display_name;
+            }
+        }
+        
+        // Obtener configuración
+        $system_types = get_option('worker_portal_system_types', array());
+        $unit_types = get_option('worker_portal_unit_types', array());
+        $difficulty_levels = get_option('worker_portal_difficulty_levels', array());
+        
+        // Generar HTML para mostrar los detalles
+        ob_start();
+        ?>
+        <div class="worker-portal-worksheet-details">
+            <table class="worker-portal-details-table">
+                <tr>
+                    <th><?php _e('ID:', 'worker-portal'); ?></th>
+                    <td><?php echo esc_html($worksheet['id']); ?></td>
+                </tr>
+                <tr>
+                    <th><?php _e('Fecha de trabajo:', 'worker-portal'); ?></th>
+                    <td><?php echo date_i18n(get_option('date_format'), strtotime($worksheet['work_date'])); ?></td>
+                </tr>
+                <tr>
+                    <th><?php _e('Proyecto:', 'worker-portal'); ?></th>
+                    <td><?php echo esc_html($worksheet['project_name']); ?></td>
+                </tr>
+                <tr>
+                    <th><?php _e('Ubicación:', 'worker-portal'); ?></th>
+                    <td><?php echo esc_html($worksheet['project_location']); ?></td>
+                </tr>
+                <tr>
+                    <th><?php _e('Dificultad:', 'worker-portal'); ?></th>
+                    <td>
+                        <?php 
+                        echo isset($difficulty_levels[$worksheet['difficulty']]) 
+                            ? esc_html($difficulty_levels[$worksheet['difficulty']]) 
+                            : esc_html(ucfirst($worksheet['difficulty'])); 
+                        ?>
+                    </td>
+                </tr>
+                <tr>
+                    <th><?php _e('Sistema:', 'worker-portal'); ?></th>
+                    <td>
+                        <?php 
+                        echo isset($system_types[$worksheet['system_type']]) 
+                            ? esc_html($system_types[$worksheet['system_type']]) 
+                            : esc_html($worksheet['system_type']); 
+                        ?>
+                    </td>
+                </tr>
+                <tr>
+                    <th><?php _e('Cantidad:', 'worker-portal'); ?></th>
+                    <td>
+                        <?php echo esc_html($worksheet['quantity']); ?> 
+                        <?php echo $worksheet['unit_type'] == 'm2' ? 'm²' : 'H'; ?>
+                    </td>
+                </tr>
+                <tr>
+                    <th><?php _e('Horas:', 'worker-portal'); ?></th>
+                    <td><?php echo esc_html($worksheet['hours']); ?> h</td>
+                </tr>
+                <tr>
+                    <th><?php _e('Estado:', 'worker-portal'); ?></th>
+                    <td>
+                        <?php if ($worksheet['status'] === 'pending'): ?>
+                            <span class="worker-portal-badge worker-portal-badge-warning"><?php _e('Pendiente', 'worker-portal'); ?></span>
+                        <?php else: ?>
+                            <span class="worker-portal-badge worker-portal-badge-success"><?php _e('Validada', 'worker-portal'); ?></span>
+                        <?php endif; ?>
+                    </td>
+                </tr>
+                <?php if (!empty($worksheet['notes'])): ?>
+                <tr>
+                    <th><?php _e('Notas:', 'worker-portal'); ?></th>
+                    <td><?php echo esc_html($worksheet['notes']); ?></td>
+                </tr>
+                <?php endif; ?>
+                <?php if (!empty($validator_name)): ?>
+                    <tr>
+                        <th><?php _e('Validada por:', 'worker-portal'); ?></th>
+                        <td><?php echo esc_html($validator_name); ?></td>
+                    </tr>
+                    <tr>
+                        <th><?php _e('Fecha de validación:', 'worker-portal'); ?></th>
+                        <td><?php echo date_i18n(get_option('date_format') . ' ' . get_option('time_format'), strtotime($worksheet['validated_date'])); ?></td>
+                    </tr>
+                <?php endif; ?>
+            </table>
+            
+            <?php if ($worksheet['status'] === 'pending' && $worksheet['user_id'] == $current_user_id): ?>
+                <div class="worker-portal-worksheet-actions">
+                    <button type="button" class="worker-portal-button worker-portal-button-danger worker-portal-delete-worksheet" data-worksheet-id="<?php echo esc_attr($worksheet['id']); ?>">
+                        <i class="dashicons dashicons-trash"></i> <?php _e('Eliminar', 'worker-portal'); ?>
+                    </button>
+                </div>
+            <?php endif; ?>
+        </div>
+        <?php
+        
+        $html = ob_get_clean();
+        wp_send_json_success($html);
     }
 
     /**
