@@ -1,3 +1,62 @@
+// Añade este código al inicio de worksheets-view.php para diagnóstico
+// Solo temporalmente para depuración
+
+<?php
+// Verificar las acciones AJAX registradas
+global $wp_filter;
+$ajax_actions = array(
+    'wp_ajax_get_worksheet_details',
+    'wp_ajax_delete_worksheet',
+    'wp_ajax_submit_worksheet',
+    'wp_ajax_filter_worksheets'
+);
+
+$missing_actions = array();
+foreach ($ajax_actions as $action) {
+    if (!isset($wp_filter[$action]) || empty($wp_filter[$action])) {
+        $missing_actions[] = $action;
+    }
+}
+
+if (!empty($missing_actions)) {
+    echo '<div style="background-color:#ffdddd; padding:10px; margin:10px 0; border:1px solid #ff0000;">';
+    echo '<strong>Acciones AJAX no registradas:</strong><br>';
+    echo implode('<br>', $missing_actions);
+    echo '</div>';
+}
+
+// Verificar que se están cargando los scripts correctamente
+$scripts = wp_scripts();
+$worksheets_script_loaded = false;
+foreach ($scripts->registered as $handle => $script) {
+    if (strpos($handle, 'worksheet') !== false) {
+        $worksheets_script_loaded = true;
+        break;
+    }
+}
+
+if (!$worksheets_script_loaded) {
+    echo '<div style="background-color:#ffdddd; padding:10px; margin:10px 0; border:1px solid #ff0000;">';
+    echo '<strong>Scripts de hojas de trabajo no cargados correctamente.</strong>';
+    echo '</div>';
+}
+
+// Verificar las capacidades del usuario actual
+$current_user = wp_get_current_user();
+$user_caps = array(
+    'wp_worker_manage_worksheets' => current_user_can('wp_worker_manage_worksheets'),
+    'manage_options' => current_user_can('manage_options')
+);
+
+echo '<div style="background-color:#e5f9e5; padding:10px; margin:10px 0; border:1px solid #00aa00;">';
+echo '<strong>Capacidades del usuario actual:</strong><br>';
+foreach ($user_caps as $cap => $has_cap) {
+    echo $cap . ': ' . ($has_cap ? 'Sí' : 'No') . '<br>';
+}
+echo '</div>';
+?>
+
+
 <?php
 /**
  * Plantilla para mostrar la sección de hojas de trabajo en el frontend
@@ -5,6 +64,9 @@
  * @since      1.0.0
  */
 
+
+
+ 
 // Si se accede directamente, salir
 if (!defined('ABSPATH')) {
     exit;
@@ -205,19 +267,110 @@ if (!current_user_can('wp_worker_manage_worksheets')) {
                                     </td>
                                     <td>
                                         <?php if ($worksheet['status'] === 'pending'): ?>
-                                            <button type="button" class="worker-portal-button worker-portal-button-small worker-portal-button-outline worker-portal-delete-worksheet" data-worksheet-id="<?php echo esc_attr($worksheet['id']); ?>">
+                                            <a href="javascript:void(0);" 
+                                            onclick="deleteWorksheet(<?php echo esc_attr($worksheet['id']); ?>)" 
+                                            class="worker-portal-button worker-portal-button-small worker-portal-button-outline">
                                                 <i class="dashicons dashicons-trash"></i>
-                                            </button>
+                                            </a>
                                         <?php endif; ?>
                                         
-                                        <button type="button" class="worker-portal-button worker-portal-button-small worker-portal-button-outline worker-portal-view-worksheet" data-worksheet-id="<?php echo esc_attr($worksheet['id']); ?>">
+                                        <a href="javascript:void(0);" 
+                                        onclick="viewWorksheetDetails(<?php echo esc_attr($worksheet['id']); ?>)"
+                                        class="worker-portal-button worker-portal-button-small worker-portal-button-outline">
                                             <i class="dashicons dashicons-visibility"></i>
-                                        </button>
+                                        </a>
                                     </td>
                                 </tr>
                             <?php endforeach; ?>
                         </tbody>
                     </table>
+                    <script type="text/javascript">
+function viewWorksheetDetails(worksheetId) {
+    console.log("Viendo detalles de la hoja ID:", worksheetId);
+    
+    jQuery.ajax({
+        url: '<?php echo admin_url('admin-ajax.php'); ?>',
+        type: 'POST',
+        data: {
+            action: 'get_worksheet_details',
+            worksheet_id: worksheetId,
+            nonce: '<?php echo wp_create_nonce('worker_portal_worksheets_nonce'); ?>'
+        },
+        beforeSend: function() {
+            jQuery("#worksheet-details-content").html(
+                '<div class="worker-portal-loading"><div class="worker-portal-spinner"></div><p>Cargando detalles...</p></div>'
+            );
+            jQuery("#worksheet-details-modal").fadeIn();
+        },
+        success: function(response) {
+            if (response.success) {
+                jQuery("#worksheet-details-content").html(response.data);
+            } else {
+                jQuery("#worksheet-details-content").html(
+                    '<div class="worker-portal-error">' + response.data + '</div>'
+                );
+            }
+        },
+        error: function(xhr, status, error) {
+            console.error("Error AJAX:", status, error);
+            jQuery("#worksheet-details-content").html(
+                '<div class="worker-portal-error">Error al cargar los detalles. Por favor, inténtalo de nuevo.</div>'
+            );
+        }
+    });
+}
+
+function deleteWorksheet(worksheetId) {
+    console.log("Eliminando hoja ID:", worksheetId);
+    
+    if (confirm("¿Estás seguro que deseas eliminar esta hoja de trabajo?")) {
+        jQuery.ajax({
+            url: '<?php echo admin_url('admin-ajax.php'); ?>',
+            type: 'POST',
+            data: {
+                action: 'delete_worksheet',
+                worksheet_id: worksheetId,
+                nonce: '<?php echo wp_create_nonce('worker_portal_worksheets_nonce'); ?>'
+            },
+            success: function(response) {
+                if (response.success) {
+                    alert("Hoja de trabajo eliminada correctamente");
+                    jQuery('tr[data-worksheet-id="' + worksheetId + '"]').fadeOut(function() {
+                        jQuery(this).remove();
+                    });
+                } else {
+                    alert(response.data || "Error al eliminar la hoja de trabajo");
+                }
+            },
+            error: function(xhr, status, error) {
+                console.error("Error AJAX:", status, error);
+                alert("Ha ocurrido un error. Por favor, inténtalo de nuevo.");
+            }
+        });
+    }
+}
+
+// Para el botón de nueva hoja de trabajo
+jQuery(document).ready(function($) {
+    $("#new-worksheet-button").on("click", function() {
+        $(".worker-portal-worksheets-form-container").slideToggle();
+        $(this).toggleClass("active");
+
+        if ($(this).hasClass("active")) {
+            $(this).html('<i class="dashicons dashicons-minus"></i> Cancelar');
+        } else {
+            $(this).html(
+                '<i class="dashicons dashicons-plus-alt"></i> NUEVA HOJA DE TRABAJO'
+            );
+        }
+    });
+    
+    // Cerrar modal
+    $(".worker-portal-modal-close").on("click", function() {
+        $("#worksheet-details-modal").fadeOut();
+    });
+});
+</script>
                 </div>
             <?php endif; ?>
         </div>
@@ -248,3 +401,299 @@ if (!current_user_can('wp_worker_manage_worksheets')) {
         </div>
     </div>
 </div>
+
+<!-- Script de inicialización para asegurar que los listeners estén configurados -->
+<script type="text/javascript">
+jQuery(document).ready(function($) {
+    console.log("Inicializando eventos de hojas de trabajo en carga directa");
+    
+    // Asegurarnos que los botones de la tabla tengan sus manejadores de eventos
+    $(".worker-portal-view-worksheet").on("click", function() {
+        const worksheetId = $(this).data("worksheet-id");
+        console.log("Click en botón de ver worksheet ID:", worksheetId);
+        
+        $.ajax({
+            url: "<?php echo admin_url('admin-ajax.php'); ?>",
+            type: "POST",
+            data: {
+                action: "get_worksheet_details",
+                nonce: "<?php echo wp_create_nonce('worker_portal_worksheets_nonce'); ?>",
+                worksheet_id: worksheetId,
+            },
+            beforeSend: function() {
+                $("#worksheet-details-content").html(
+                    '<div class="worker-portal-loading"><div class="worker-portal-spinner"></div><p>Cargando detalles...</p></div>'
+                );
+                $("#worksheet-details-modal").fadeIn();
+            },
+            success: function(response) {
+                if (response.success) {
+                    $("#worksheet-details-content").html(response.data);
+                } else {
+                    $("#worksheet-details-content").html(
+                        '<div class="worker-portal-error">' + response.data + "</div>"
+                    );
+                }
+            },
+            error: function() {
+                $("#worksheet-details-content").html(
+                    '<div class="worker-portal-error">Error al cargar los detalles. Por favor, inténtalo de nuevo.</div>'
+                );
+            }
+        });
+    });
+    
+    $(".worker-portal-delete-worksheet").on("click", function() {
+        const worksheetId = $(this).data("worksheet-id");
+        console.log("Click en botón de eliminar worksheet ID:", worksheetId);
+        
+        if (confirm("¿Estás seguro de que deseas eliminar esta hoja de trabajo?")) {
+            $.ajax({
+                url: "<?php echo admin_url('admin-ajax.php'); ?>",
+                type: "POST",
+                data: {
+                    action: "delete_worksheet",
+                    nonce: "<?php echo wp_create_nonce('worker_portal_worksheets_nonce'); ?>",
+                    worksheet_id: worksheetId,
+                },
+                success: function(response) {
+                    if (response.success) {
+                        $('tr[data-worksheet-id="' + worksheetId + '"]').fadeOut(function() {
+                            $(this).remove();
+                            if ($(".worker-portal-worksheets-table tbody tr").length === 0) {
+                                $(".worker-portal-table-responsive").html(
+                                    '<p class="worker-portal-no-data">No hay hojas de trabajo registradas.</p>'
+                                );
+                            }
+                        });
+                    } else {
+                        alert(response.data);
+                    }
+                },
+                error: function() {
+                    alert("Ha ocurrido un error. Por favor, inténtalo de nuevo.");
+                }
+            });
+        }
+    });
+    
+    // Botón de nueva hoja de trabajo
+    $("#new-worksheet-button").on("click", function() {
+        console.log("Click en botón de nueva hoja de trabajo");
+        $(".worker-portal-worksheets-form-container").slideToggle();
+        $(this).toggleClass("active");
+
+        if ($(this).hasClass("active")) {
+            $(this).html('<i class="dashicons dashicons-minus"></i> Cancelar');
+        } else {
+            $(this).html(
+                '<i class="dashicons dashicons-plus-alt"></i> NUEVA HOJA DE TRABAJO'
+            );
+        }
+    });
+    
+    // Cerrar modal
+    $(".worker-portal-modal-close").on("click", function() {
+        $(this).closest(".worker-portal-modal").fadeOut();
+    });
+    
+    // Cerrar modal haciendo clic fuera
+    $(window).on("click", function(e) {
+        if ($(e.target).hasClass("worker-portal-modal")) {
+            $(".worker-portal-modal").fadeOut();
+        }
+    });
+    
+    // Manejar envío del formulario de hoja de trabajo
+    $("#worker-portal-worksheet-form").on("submit", function(e) {
+        e.preventDefault();
+        console.log("Enviando formulario de hoja de trabajo");
+        
+        const formData = new FormData(this);
+        formData.append("action", "submit_worksheet");
+        formData.append("nonce", "<?php echo wp_create_nonce('worker_portal_worksheets_nonce'); ?>");
+        
+        // Deshabilitar el botón de envío
+        const submitButton = $(this).find("button[type=submit]");
+        submitButton.prop("disabled", true).html('<i class="dashicons dashicons-update-alt spinning"></i> Enviando...');
+        
+        $.ajax({
+            url: "<?php echo admin_url('admin-ajax.php'); ?>",
+            type: "POST",
+            data: formData,
+            processData: false,
+            contentType: false,
+            success: function(response) {
+                if (response.success) {
+                    alert(response.data.message);
+                    window.location.reload(); // Recargar para mostrar la nueva hoja
+                } else {
+                    alert(response.data);
+                }
+            },
+            error: function() {
+                alert("Ha ocurrido un error al enviar el formulario. Por favor, inténtalo de nuevo.");
+            },
+            complete: function() {
+                submitButton.prop("disabled", false).html('Enviar Hoja de Trabajo');
+            }
+        });
+    });
+    
+    // Exportar a Excel
+    $("#export-worksheets-button").on("click", function() {
+        console.log("Click en botón de exportar");
+        
+        const formData = new FormData($("#worksheets-filter-form")[0]);
+        formData.append("action", "export_worksheets");
+        formData.append("nonce", "<?php echo wp_create_nonce('worker_portal_worksheets_nonce'); ?>");
+        
+        // Deshabilitar botón
+        const button = $(this);
+        button.prop("disabled", true).html('<i class="dashicons dashicons-update-alt spinning"></i> Exportando...');
+        
+        $.ajax({
+            url: "<?php echo admin_url('admin-ajax.php'); ?>",
+            type: "POST",
+            data: formData,
+            processData: false,
+            contentType: false,
+            success: function(response) {
+                if (response.success) {
+                    // Crear enlace para descarga
+                    const link = document.createElement("a");
+                    link.href = response.data.file_url;
+                    link.download = response.data.filename || "hojas-trabajo.csv";
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                } else {
+                    alert(response.data || "Error al exportar las hojas de trabajo");
+                }
+            },
+            error: function() {
+                alert("Ha ocurrido un error durante la exportación. Por favor, inténtalo de nuevo.");
+            },
+            complete: function() {
+                button.prop("disabled", false).html('<i class="dashicons dashicons-download"></i> Exportar a Excel');
+            }
+        });
+    });
+    
+    // Filtrar hojas de trabajo
+    $("#worksheets-filter-form").on("submit", function(e) {
+        e.preventDefault();
+        console.log("Aplicando filtros de hojas de trabajo");
+        
+        // Mostrar indicador de carga
+        $("#worksheets-list-content").html(
+            '<div class="worker-portal-loading">' +
+            '<div class="worker-portal-spinner"></div>' +
+            "<p>Cargando hojas de trabajo...</p>" +
+            "</div>"
+        );
+        
+        const formData = new FormData(this);
+        formData.append("action", "filter_worksheets");
+        formData.append("nonce", "<?php echo wp_create_nonce('worker_portal_worksheets_nonce'); ?>");
+        formData.append("page", 1);
+        
+        $.ajax({
+            url: "<?php echo admin_url('admin-ajax.php'); ?>",
+            type: "POST",
+            data: formData,
+            processData: false,
+            contentType: false,
+            success: function(response) {
+                if (response.success) {
+                    $("#worksheets-list-content").html(response.data);
+                    
+                    // Reinicializar eventos para los botones
+                    $(".worker-portal-view-worksheet").on("click", function() {
+                        const worksheetId = $(this).data("worksheet-id");
+                        // Código para ver detalles (igual que arriba)
+                        $.ajax({
+                            url: "<?php echo admin_url('admin-ajax.php'); ?>",
+                            type: "POST",
+                            data: {
+                                action: "get_worksheet_details",
+                                nonce: "<?php echo wp_create_nonce('worker_portal_worksheets_nonce'); ?>",
+                                worksheet_id: worksheetId,
+                            },
+                            beforeSend: function() {
+                                $("#worksheet-details-content").html(
+                                    '<div class="worker-portal-loading"><div class="worker-portal-spinner"></div><p>Cargando detalles...</p></div>'
+                                );
+                                $("#worksheet-details-modal").fadeIn();
+                            },
+                            success: function(response) {
+                                if (response.success) {
+                                    $("#worksheet-details-content").html(response.data);
+                                } else {
+                                    $("#worksheet-details-content").html(
+                                        '<div class="worker-portal-error">' + response.data + "</div>"
+                                    );
+                                }
+                            },
+                            error: function() {
+                                $("#worksheet-details-content").html(
+                                    '<div class="worker-portal-error">Error al cargar los detalles. Por favor, inténtalo de nuevo.</div>'
+                                );
+                            }
+                        });
+                    });
+                    
+                    $(".worker-portal-delete-worksheet").on("click", function() {
+                        const worksheetId = $(this).data("worksheet-id");
+                        // Código para eliminar (igual que arriba)
+                        if (confirm("¿Estás seguro de que deseas eliminar esta hoja de trabajo?")) {
+                            $.ajax({
+                                url: "<?php echo admin_url('admin-ajax.php'); ?>",
+                                type: "POST",
+                                data: {
+                                    action: "delete_worksheet",
+                                    nonce: "<?php echo wp_create_nonce('worker_portal_worksheets_nonce'); ?>",
+                                    worksheet_id: worksheetId,
+                                },
+                                success: function(response) {
+                                    if (response.success) {
+                                        $('tr[data-worksheet-id="' + worksheetId + '"]').fadeOut(function() {
+                                            $(this).remove();
+                                            if ($(".worker-portal-worksheets-table tbody tr").length === 0) {
+                                                $(".worker-portal-table-responsive").html(
+                                                    '<p class="worker-portal-no-data">No hay hojas de trabajo registradas.</p>'
+                                                );
+                                            }
+                                        });
+                                    } else {
+                                        alert(response.data);
+                                    }
+                                },
+                                error: function() {
+                                    alert("Ha ocurrido un error. Por favor, inténtalo de nuevo.");
+                                }
+                            });
+                        }
+                    });
+                } else {
+                    $("#worksheets-list-content").html(
+                        '<p class="worker-portal-no-data">' + (response.data || "Error al filtrar hojas de trabajo") + "</p>"
+                    );
+                }
+            },
+            error: function() {
+                $("#worksheets-list-content").html(
+                    '<p class="worker-portal-no-data">Error al cargar las hojas de trabajo. Por favor, inténtalo de nuevo.</p>'
+                );
+            }
+        });
+    });
+    
+    // Limpiar filtros
+    $("#clear-filters").on("click", function() {
+        console.log("Limpiando filtros");
+        $("#worksheets-filter-form")[0].reset();
+        $("#worksheets-filter-form").submit(); // Enviar formulario para recargar datos
+    });
+});
+</script>

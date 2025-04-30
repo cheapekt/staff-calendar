@@ -12,33 +12,27 @@ class Worker_Portal_Module_Worksheets {
      * @since    1.0.0
      */
     public function init() {
-        // Registrar hooks para admin
-        add_action('admin_menu', array($this, 'register_admin_menu'), 20);
-        add_action('admin_init', array($this, 'register_settings'));
-        
         // Registrar hooks para frontend
         add_action('wp_enqueue_scripts', array($this, 'enqueue_scripts'));
-        
+
         // Registrar shortcodes
         add_shortcode('worker_worksheets', array($this, 'render_worksheets_shortcode'));
-        
+
         // Registrar endpoints de REST API
         add_action('rest_api_init', array($this, 'register_rest_routes'));
-        
-        // Registrar AJAX actions para frontend
+
+        // Registrar AJAX actions para frontend - Asegúrate de que estos están correctamente registrados
         add_action('wp_ajax_submit_worksheet', array($this, 'ajax_submit_worksheet'));
         add_action('wp_ajax_delete_worksheet', array($this, 'ajax_delete_worksheet'));
-        add_action('wp_ajax_validate_worksheet', array($this, 'ajax_validate_worksheet'));
-        add_action('wp_ajax_filter_worksheets', array($this, 'ajax_filter_worksheets'));
         add_action('wp_ajax_get_worksheet_details', array($this, 'ajax_get_worksheet_details'));
+        add_action('wp_ajax_filter_worksheets', array($this, 'ajax_filter_worksheets'));
         add_action('wp_ajax_export_worksheets', array($this, 'ajax_export_worksheets'));
-        
+
         // Registrar AJAX actions para admin
-        add_action('wp_ajax_admin_load_pending_worksheets', array($this, 'ajax_admin_load_pending_worksheets'));
+        add_action('wp_ajax_admin_load_worksheets', array($this, 'ajax_admin_load_worksheets'));
         add_action('wp_ajax_admin_validate_worksheet', array($this, 'ajax_admin_validate_worksheet'));
         add_action('wp_ajax_admin_bulk_worksheet_action', array($this, 'ajax_admin_bulk_worksheet_action'));
         add_action('wp_ajax_admin_get_worksheet_details', array($this, 'ajax_admin_get_worksheet_details'));
-        add_action('wp_ajax_admin_load_worksheets', array($this, 'ajax_admin_load_worksheets'));
     }
 
  
@@ -332,46 +326,43 @@ class Worker_Portal_Module_Worksheets {
         return $sanitized_input;
     }
 
-    /**
-     * Carga los scripts y estilos necesarios
-     *
-     * @since    1.0.0
-     */
-    public function enqueue_scripts() {
-        // Solo cargar en páginas que usen el shortcode
-        global $post;
-        if (is_a($post, 'WP_Post') && has_shortcode($post->post_content, 'worker_worksheets')) {
-            wp_enqueue_style(
-                'worker-portal-worksheets',
-                WORKER_PORTAL_URL . 'modules/worksheets/css/worksheets.css',
-                array(),
-                WORKER_PORTAL_VERSION,
-                'all'
-            );
-            
-            wp_enqueue_script(
-                'worker-portal-worksheets',
-                WORKER_PORTAL_URL . 'modules/worksheets/js/worksheets.js',
-                array('jquery'),
-                WORKER_PORTAL_VERSION,
-                true
-            );
-            
-            wp_localize_script(
-                'worker-portal-worksheets',
-                'workerPortalWorksheets',
-                array(
-                    'ajax_url' => admin_url('admin-ajax.php'),
-                    'nonce' => wp_create_nonce('worker_portal_worksheets_nonce'),
-                    'i18n' => array(
-                        'confirm_delete' => __('¿Estás seguro de que deseas eliminar esta hoja de trabajo?', 'worker-portal'),
-                        'error' => __('Ha ocurrido un error. Por favor, inténtalo de nuevo.', 'worker-portal'),
-                        'success' => __('Operación completada con éxito.', 'worker-portal')
-                    )
-                )
-            );
-        }
-    }
+/**
+ * Carga los scripts y estilos necesarios
+ *
+ * @since    1.0.0
+ */
+public function enqueue_scripts() {
+    // Cargar los scripts y estilos siempre, sin importar la página
+    wp_enqueue_style(
+        'worker-portal-worksheets',
+        WORKER_PORTAL_URL . 'modules/worksheets/css/worksheets.css',
+        array(),
+        WORKER_PORTAL_VERSION,
+        'all'
+    );
+    
+    wp_enqueue_script(
+        'worker-portal-worksheets',
+        WORKER_PORTAL_URL . 'modules/worksheets/js/worksheets.js',
+        array('jquery'),
+        WORKER_PORTAL_VERSION,
+        true
+    );
+    
+    wp_localize_script(
+        'worker-portal-worksheets',
+        'workerPortalWorksheets',
+        array(
+            'ajax_url' => admin_url('admin-ajax.php'),
+            'nonce' => wp_create_nonce('worker_portal_worksheets_nonce'),
+            'i18n' => array(
+                'confirm_delete' => __('¿Estás seguro de que deseas eliminar esta hoja de trabajo?', 'worker-portal'),
+                'error' => __('Ha ocurrido un error. Por favor, inténtalo de nuevo.', 'worker-portal'),
+                'success' => __('Operación completada con éxito.', 'worker-portal')
+            )
+        )
+    );
+}
 
     /**
      * Renderiza la página de administración
