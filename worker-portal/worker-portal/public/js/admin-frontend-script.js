@@ -1,5 +1,5 @@
 /**
- * JavaScript para el panel de administración en el frontend
+ * JavaScript corregido para el panel de administración en el frontend
  */
 (function ($) {
   "use strict";
@@ -10,7 +10,7 @@
     init: function () {
       this.setupNavigation();
       this.setupExpensesModule();
-      this.setupWorksheetModule(); // Añadido: inicialización para hojas de trabajo
+      this.setupWorksheetModule();
       this.setupModals();
     },
 
@@ -144,6 +144,7 @@
       });
 
       // Acciones para hojas de trabajo (delegación de eventos)
+      // CORRECCIÓN: Delegación de eventos para compatibilidad con contenido cargado dinámicamente
       $(document).on("click", ".validate-worksheet", function () {
         const worksheetId = $(this).data("worksheet-id");
         WorkerPortalAdminFrontend.validateWorksheet(worksheetId);
@@ -289,6 +290,12 @@
               response.data.html ||
                 "<p>No hay hojas de trabajo para mostrar</p>"
             );
+            // CORRECCIÓN: Asegurar que los botones tengan el atributo correcto
+            $(".validate-worksheet, .view-worksheet").each(function () {
+              if ($(this).data("id") && !$(this).data("worksheet-id")) {
+                $(this).attr("data-worksheet-id", $(this).data("id"));
+              }
+            });
           } else {
             $("#worksheets-list-container").html(
               '<div class="worker-portal-error">' +
@@ -326,6 +333,9 @@
         success: function (response) {
           if (response.success) {
             alert(response.data.message);
+            // Cerrar modal si está abierto
+            $("#worksheet-details-modal").fadeOut();
+            // Recargar las hojas
             WorkerPortalAdminFrontend.loadWorksheets();
           } else {
             alert(response.data || "Error al validar la hoja de trabajo");
@@ -337,8 +347,10 @@
       });
     },
 
-    // Ver detalles de una hoja de trabajo
+    // Ver detalles de una hoja de trabajo (CORREGIDO)
     viewWorksheetDetails: function (worksheetId) {
+      console.log("Mostrando detalles de la hoja: " + worksheetId);
+
       $.ajax({
         url: ajaxurl,
         type: "POST",
@@ -357,8 +369,22 @@
           $("#worksheet-details-modal").fadeIn();
         },
         success: function (response) {
+          console.log("Respuesta de detalles:", response);
           if (response.success) {
+            // Insertar directamente el HTML recibido
             $("#worksheet-details-content").html(response.data);
+
+            // Asegurar que el botón de validar tenga el atributo correcto
+            $("#worksheet-details-content .validate-worksheet").each(
+              function () {
+                if ($(this).data("id") && !$(this).data("worksheet-id")) {
+                  $(this).attr("data-worksheet-id", $(this).data("id"));
+                }
+              }
+            );
+
+            // Forzar la visualización del modal
+            $("#worksheet-details-modal").show();
           } else {
             $("#worksheet-details-content").html(
               '<div class="worker-portal-error">' +
@@ -367,7 +393,8 @@
             );
           }
         },
-        error: function () {
+        error: function (xhr, status, error) {
+          console.error("Error al cargar detalles:", xhr, status, error);
           $("#worksheet-details-content").html(
             '<div class="worker-portal-error">' +
               "Error al cargar los detalles. Por favor, inténtalo de nuevo." +
@@ -377,7 +404,7 @@
       });
     },
 
-    // Exportar hojas de trabajo
+    // Exportar hojas de trabajo (CORREGIDO)
     exportWorksheets: function () {
       const formData = new FormData();
       formData.append("action", "admin_export_worksheets");
@@ -414,6 +441,7 @@
         processData: false,
         contentType: false,
         success: function (response) {
+          console.log("Respuesta de exportación:", response);
           if (response.success && response.data.file_url) {
             // Crear enlace de descarga
             const link = document.createElement("a");
