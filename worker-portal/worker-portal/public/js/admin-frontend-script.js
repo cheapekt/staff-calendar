@@ -351,6 +351,30 @@
     viewWorksheetDetails: function (worksheetId) {
       console.log("Mostrando detalles de la hoja: " + worksheetId);
 
+      // Verificar la estructura del DOM
+      if ($("#worksheet-details-modal").length === 0) {
+        console.error("Modal no encontrado en el DOM");
+        // Opcionalmente, crear el modal dinámicamente si no existe
+        $("body").append(`
+            <div id="worksheet-details-modal" class="worker-portal-modal">
+                <div class="worker-portal-modal-content">
+                    <div class="worker-portal-modal-header">
+                        <h3>Detalles de la Hoja de Trabajo</h3>
+                        <button type="button" class="worker-portal-modal-close">&times;</button>
+                    </div>
+                    <div class="worker-portal-modal-body">
+                        <div id="worksheet-details-content"></div>
+                    </div>
+                </div>
+            </div>
+        `);
+
+        // Reinicializar los eventos de cierre del modal
+        $(".worker-portal-modal-close").on("click", function () {
+          $(this).closest(".worker-portal-modal").fadeOut();
+        });
+      }
+
       $.ajax({
         url: ajaxurl,
         type: "POST",
@@ -366,7 +390,14 @@
               "<p>Cargando detalles...</p>" +
               "</div>"
           );
-          $("#worksheet-details-modal").fadeIn();
+
+          // Forzar visibilidad del modal usando CSS inline
+          $("#worksheet-details-modal").css({
+            display: "block",
+            visibility: "visible",
+            opacity: "1",
+            "z-index": "9999",
+          });
         },
         success: function (response) {
           console.log("Respuesta de detalles:", response);
@@ -383,8 +414,13 @@
               }
             );
 
-            // Forzar la visualización del modal
-            $("#worksheet-details-modal").show();
+            // Forzar visibilidad del modal nuevamente para asegurar
+            $("#worksheet-details-modal").css({
+              display: "block",
+              visibility: "visible",
+              opacity: "1",
+              "z-index": "9999",
+            });
           } else {
             $("#worksheet-details-content").html(
               '<div class="worker-portal-error">' +

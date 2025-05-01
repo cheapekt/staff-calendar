@@ -1276,7 +1276,7 @@ Para validar esta hoja de trabajo, accede al panel de administración: %s', 'wor
         );
         
         if (empty($worksheets)) {
-            wp_send_json_error(__('No hay hojas de trabajo para exportar con los filtros seleccionados.', 'worker-portal'));
+            wp_send_json_error(__('No hay hojas de trabajo para exportar con los filtros seleccionados', 'worker-portal'));
             return;
         }
         
@@ -1611,7 +1611,7 @@ public function ajax_admin_export_worksheets() {
     );
     
     if (empty($worksheets)) {
-        wp_send_json_error(__('No hay hojas de trabajo para exportar con los filtros seleccionados.', 'worker-portal'));
+        wp_send_json_error(__('No hay hojas de trabajo para exportar con los filtros seleccionados...', 'worker-portal'));
         return;
     }
     
