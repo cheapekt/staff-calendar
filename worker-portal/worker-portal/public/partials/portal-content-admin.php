@@ -66,6 +66,18 @@ if (!defined('ABSPATH')) {
                     <?php _e('Trabajadores', 'worker-portal'); ?>
                 </a>
             </li>
+            <li>
+                <a href="#" class="worker-portal-tab-link" data-tab="calendar">
+                    <i class="dashicons dashicons-calendar-alt"></i> 
+                    <?php _e('Calendario', 'worker-portal'); ?>
+                </a>
+            </li>
+            <li>
+                <a href="#" class="worker-portal-tab-link" data-tab="timeclock">
+                    <i class="dashicons dashicons-clock"></i> 
+                    <?php _e('Fichajes', 'worker-portal'); ?>
+                </a>
+            </li>
         </ul>
     </div>
     
@@ -784,6 +796,28 @@ if (!defined('ABSPATH')) {
             <h2><?php _e('Gestión de Trabajadores', 'worker-portal'); ?></h2>
             <div class="worker-portal-coming-soon">
                 <p><?php _e('La funcionalidad completa de gestión de trabajadores estará disponible próximamente.', 'worker-portal'); ?></p>
+            </div>
+        </div>
+        <!-- Calendario -->
+        <div id="tab-calendar" class="worker-portal-tab-content">
+            <h2><?php _e('Gestión de Calendario', 'worker-portal'); ?></h2>
+            <div class="worker-portal-admin-calendar-container">
+                <?php echo do_shortcode('[staff_calendar]'); ?>
+            </div>
+        </div>
+
+        <!-- Fichajes -->
+        <div id="tab-timeclock" class="worker-portal-tab-content">
+            <h2><?php _e('Gestión de Fichajes', 'worker-portal'); ?></h2>
+            <div class="worker-portal-admin-timeclock-container">
+                <!-- Vista de administrador para fichajes -->
+                <?php 
+                if (shortcode_exists('wp_time_clock_history')) {
+                    echo do_shortcode('[wp_time_clock_history]');
+                } else {
+                    echo do_shortcode('[wp_time_clock]');
+                }
+                ?>
             </div>
         </div>
     </div>

@@ -203,3 +203,40 @@
     overflow-x: auto;
   }
 }
+
+/* Mejoras para la integración de Staff Calendar y WP Time Clock */
+.worker-portal-section .staff-calendar-frontend,
+.worker-portal-section .wp-time-clock-container {
+  margin: 0;
+  max-width: 100%;
+  border-radius: 5px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.worker-portal-section .wp-time-clock-container {
+  padding: 20px;
+  background-color: #fff;
+}
+
+/* Ajustes para el calendario en dispositivos móviles */
+@media screen and (max-width: 768px) {
+  .worker-portal-section .staff-calendar-frontend {
+    overflow-x: auto;
+  }
+
+  .worker-portal-section .calendar-table {
+    min-width: 800px; /* Ajustar según sea necesario */
+  }
+}
+
+/* Ajustes para el componente de fichaje en dispositivos móviles */
+@media screen and (max-width: 768px) {
+  .worker-portal-section .wp-time-clock-container {
+    padding: 15px;
+  }
+
+  .worker-portal-section .wp-time-clock-button {
+    font-size: 14px;
+    padding: 10px;
+  }
+}

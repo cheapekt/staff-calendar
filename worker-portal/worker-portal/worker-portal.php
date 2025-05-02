@@ -53,6 +53,8 @@ function run_worker_portal() {
     $plugin = new Worker_Portal();
     // Ejecutar el plugin
     $plugin->run();
+        // Cargar integraciones
+    require_once WORKER_PORTAL_PATH . 'includes/integrations.php';
 }
 
 require_once WORKER_PORTAL_PATH . 'includes/integrations/calendario-sync.php';

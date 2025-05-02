@@ -37,6 +37,19 @@ if (!defined('ABSPATH')) {
                 <?php _e('Mis Incentivos', 'worker-portal'); ?>
             </a>
         </li>
+        <!-- Nuevos botones para calendario y fichaje -->
+        <li>
+            <a href="#" class="worker-portal-button worker-portal-button-primary" data-section="calendar">
+                <i class="dashicons dashicons-calendar-alt"></i> 
+                <?php _e('Mi Calendario', 'worker-portal'); ?>
+            </a>
+        </li>
+        <li>
+            <a href="#" class="worker-portal-button worker-portal-button-primary" data-section="timeclock">
+                <i class="dashicons dashicons-clock"></i> 
+                <?php _e('Fichaje', 'worker-portal'); ?>
+            </a>
+        </li>
     </ul>
 </div>
 
@@ -55,6 +68,15 @@ if (!defined('ABSPATH')) {
 
     <div id="incentives-section" class="worker-portal-section" style="display:none;">
         <?php echo do_shortcode('[worker_incentives]'); ?>
+    </div>
+    
+    <!-- Nuevas secciones -->
+    <div id="calendar-section" class="worker-portal-section" style="display:none;">
+        <?php echo do_shortcode('[staff_calendar]'); ?>
+    </div>
+    
+    <div id="timeclock-section" class="worker-portal-section" style="display:none;">
+        <?php echo do_shortcode('[wp_time_clock]'); ?>
     </div>
 </div>
 

@@ -170,6 +170,37 @@ public function enqueue_scripts() {
             )
         );
     }
+    // Cargar scripts y estilos para el calendario si está activo
+    if (shortcode_exists('staff_calendar')) {
+        // Vamos a cargar los scripts del calendario cuando se necesiten
+        add_action('wp_footer', function() {
+            echo '<script>
+                if (window.location.hash === "#calendar-section" || document.querySelector("#calendar-section:not([style*=\'display: none\'])")) {
+                    // Disparar evento para que los scripts del calendario se inicialicen
+                    setTimeout(function() {
+                        const event = new Event("staff_calendar_init");
+                        document.dispatchEvent(event);
+                    }, 200);
+                }
+            </script>';
+        });
+    }
+    
+    // Cargar scripts y estilos para el fichaje si está activo
+    if (shortcode_exists('wp_time_clock')) {
+        // Vamos a cargar los scripts del fichaje cuando se necesiten
+        add_action('wp_footer', function() {
+            echo '<script>
+                if (window.location.hash === "#timeclock-section" || document.querySelector("#timeclock-section:not([style*=\'display: none\'])")) {
+                    // Disparar evento para que los scripts del fichaje se inicialicen
+                    setTimeout(function() {
+                        const event = new Event("wp_time_clock_init");
+                        document.dispatchEvent(event);
+                    }, 200);
+                }
+            </script>';
+        });
+    }
 }
 
     /**
@@ -177,13 +208,71 @@ public function enqueue_scripts() {
      *
      * @since    1.0.0
      */
-    public function register_shortcodes() {
-        add_shortcode('worker_portal', array($this, 'render_portal_shortcode'));
-        add_shortcode('worker_expenses', array($this, 'render_expenses_shortcode'));
-        add_shortcode('worker_documents', array($this, 'render_documents_shortcode'));
-        add_shortcode('worker_worksheets', array($this, 'render_worksheets_shortcode'));
-        add_shortcode('worker_incentives', array($this, 'render_incentives_shortcode'));
+public function register_shortcodes() {
+    add_shortcode('worker_portal', array($this, 'render_portal_shortcode'));
+    add_shortcode('worker_expenses', array($this, 'render_expenses_shortcode'));
+    add_shortcode('worker_documents', array($this, 'render_documents_shortcode'));
+    add_shortcode('worker_worksheets', array($this, 'render_worksheets_shortcode'));
+    add_shortcode('worker_incentives', array($this, 'render_incentives_shortcode'));
+    add_shortcode('worker_calendar', array($this, 'render_calendar_shortcode')); // Nuevo
+    add_shortcode('worker_timeclock', array($this, 'render_timeclock_shortcode')); // Nuevo
+}
+
+/**
+ * Renderiza shortcode de calendario
+ *
+ * @since    1.0.0
+ * @param    array    $atts    Atributos del shortcode
+ * @return   string            HTML generado
+ */
+public function render_calendar_shortcode($atts) {
+    // Verificar que el usuario está logueado
+    if (!is_user_logged_in()) {
+        return '<div class="worker-portal-login-required">' . 
+            __('Debes iniciar sesión para ver tu calendario.', 'worker-portal') . 
+            ' <a href="' . wp_login_url(get_permalink()) . '">' . 
+            __('Iniciar sesión', 'worker-portal') . 
+            '</a></div>';
     }
+    
+    // Comprobar si el shortcode de calendario está disponible
+    if (!shortcode_exists('staff_calendar')) {
+        return '<div class="worker-portal-error">' . 
+            __('El módulo de calendario no está disponible. Contacta con el administrador.', 'worker-portal') . 
+            '</div>';
+    }
+    
+    // Devolver el shortcode del calendario
+    return do_shortcode('[staff_calendar]');
+}
+
+/**
+ * Renderiza shortcode de fichaje
+ *
+ * @since    1.0.0
+ * @param    array    $atts    Atributos del shortcode
+ * @return   string            HTML generado
+ */
+public function render_timeclock_shortcode($atts) {
+    // Verificar que el usuario está logueado
+    if (!is_user_logged_in()) {
+        return '<div class="worker-portal-login-required">' . 
+            __('Debes iniciar sesión para utilizar el fichaje.', 'worker-portal') . 
+            ' <a href="' . wp_login_url(get_permalink()) . '">' . 
+            __('Iniciar sesión', 'worker-portal') . 
+            '</a></div>';
+    }
+    
+    // Comprobar si el shortcode de fichaje está disponible
+    if (!shortcode_exists('wp_time_clock')) {
+        return '<div class="worker-portal-error">' . 
+            __('El módulo de fichaje no está disponible. Contacta con el administrador.', 'worker-portal') . 
+            '</div>';
+    }
+    
+    // Devolver el shortcode del fichaje
+    return do_shortcode('[wp_time_clock]');
+}
 
 /**
  * Añade hooks de AJAX
