@@ -185,27 +185,34 @@ public function enqueue_scripts() {
         add_shortcode('worker_incentives', array($this, 'render_incentives_shortcode'));
     }
 
-    /**
-     * Añade hooks de AJAX
-     *
-     * @since    1.0.0
-     */
-    public function add_ajax_hooks() {
-        // Hook para cargar secciones del portal
-        add_action('wp_ajax_load_portal_section', array($this, 'ajax_load_portal_section'));
-        add_action('wp_ajax_nopriv_load_portal_section', array($this, 'ajax_load_portal_section'));
-        
-        // Hooks para acciones de administrador en frontend
-        add_action('wp_ajax_admin_load_pending_expenses', array($this, 'ajax_admin_load_pending_expenses'));
-        add_action('wp_ajax_admin_approve_expense', array($this, 'ajax_admin_approve_expense'));
-        add_action('wp_ajax_admin_reject_expense', array($this, 'ajax_admin_reject_expense'));
-        add_action('wp_ajax_admin_bulk_expense_action', array($this, 'ajax_admin_bulk_expense_action'));
-        add_action('wp_ajax_admin_get_expense_details', array($this, 'ajax_admin_get_expense_details'));
+/**
+ * Añade hooks de AJAX
+ *
+ * @since    1.0.0
+ */
+public function add_ajax_hooks() {
+    // Hook para cargar secciones del portal
+    add_action('wp_ajax_load_portal_section', array($this, 'ajax_load_portal_section'));
+    add_action('wp_ajax_nopriv_load_portal_section', array($this, 'ajax_load_portal_section'));
+    
+    // Hooks para acciones de administrador en frontend
+    add_action('wp_ajax_admin_load_pending_expenses', array($this, 'ajax_admin_load_pending_expenses'));
+    add_action('wp_ajax_admin_approve_expense', array($this, 'ajax_admin_approve_expense'));
+    add_action('wp_ajax_admin_reject_expense', array($this, 'ajax_admin_reject_expense'));
+    add_action('wp_ajax_admin_bulk_expense_action', array($this, 'ajax_admin_bulk_expense_action'));
+    add_action('wp_ajax_admin_get_expense_details', array($this, 'ajax_admin_get_expense_details'));
 
-        // Registrar el manejador AJAX para documentos
-        require_once WORKER_PORTAL_PATH . 'modules/documents/documents-ajax-handler.php';
-        new Worker_Portal_Document_Ajax_Handler();
-    }
+    // Hooks para acciones de documentos
+    add_action('wp_ajax_filter_documents', array($this, 'ajax_filter_documents'));
+    add_action('wp_ajax_admin_upload_document', array($this, 'ajax_admin_upload_document'));
+    add_action('wp_ajax_admin_delete_document', array($this, 'ajax_admin_delete_document'));
+    add_action('wp_ajax_admin_get_document_details', array($this, 'ajax_admin_get_document_details'));
+    add_action('wp_ajax_admin_save_document_settings', array($this, 'ajax_admin_save_document_settings'));
+
+    // Registrar el manejador AJAX para documentos
+    require_once WORKER_PORTAL_PATH . 'modules/documents/documents-ajax-handler.php';
+    new Worker_Portal_Document_Ajax_Handler();
+}
 
     /**
      * Carga dinámica de secciones del portal

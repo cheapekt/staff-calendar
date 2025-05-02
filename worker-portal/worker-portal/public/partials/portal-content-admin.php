@@ -461,10 +461,204 @@ if (!defined('ABSPATH')) {
             </div>
         </div>
         
+        <!-- Documentos -->
         <div id="tab-documents" class="worker-portal-tab-content">
             <h2><?php _e('Gestión de Documentos', 'worker-portal'); ?></h2>
-            <div class="worker-portal-coming-soon">
-                <p><?php _e('La funcionalidad de gestión de documentos estará disponible próximamente.', 'worker-portal'); ?></p>
+            
+            <!-- Pestañas de documentos -->
+            <div class="worker-portal-admin-tabs-in-tabs">
+                <ul class="worker-portal-admin-subtabs-nav">
+                    <li><a href="#" class="worker-portal-subtab-link active" data-subtab="doc-list"><?php _e('Lista de Documentos', 'worker-portal'); ?></a></li>
+                    <li><a href="#" class="worker-portal-subtab-link" data-subtab="doc-upload"><?php _e('Subir Documento', 'worker-portal'); ?></a></li>
+                    <li><a href="#" class="worker-portal-subtab-link" data-subtab="doc-settings"><?php _e('Configuración', 'worker-portal'); ?></a></li>
+                </ul>
+                
+                <div class="worker-portal-admin-subtabs-content">
+                    <!-- Lista de documentos -->
+                    <div id="subtab-doc-list" class="worker-portal-subtab-content active">
+                        <!-- Filtros de documentos -->
+                        <div class="worker-portal-admin-filters">
+                            <form id="admin-documents-filter-form" class="worker-portal-admin-filter-form">
+                                <div class="worker-portal-admin-filter-row">
+                                    <div class="worker-portal-admin-filter-group">
+                                        <label for="filter-category"><?php _e('Categoría:', 'worker-portal'); ?></label>
+                                        <select id="filter-category" name="category">
+                                            <option value=""><?php _e('Todas', 'worker-portal'); ?></option>
+                                            <?php 
+                                            $categories = get_option('worker_portal_document_categories', array(
+                                                'payroll' => __('Nóminas', 'worker-portal'),
+                                                'contract' => __('Contratos', 'worker-portal'),
+                                                'communication' => __('Comunicaciones', 'worker-portal'),
+                                                'other' => __('Otros', 'worker-portal')
+                                            ));
+                                            foreach ($categories as $key => $label): 
+                                            ?>
+                                                <option value="<?php echo esc_attr($key); ?>"><?php echo esc_html($label); ?></option>
+                                            <?php endforeach; ?>
+                                        </select>
+                                    </div>
+                                    
+                                    <div class="worker-portal-admin-filter-group">
+                                        <label for="filter-worker-doc"><?php _e('Trabajador:', 'worker-portal'); ?></label>
+                                        <select id="filter-worker-doc" name="user_id">
+                                            <option value=""><?php _e('Todos', 'worker-portal'); ?></option>
+                                            <?php foreach ($workers as $worker): ?>
+                                                <option value="<?php echo esc_attr($worker->ID); ?>"><?php echo esc_html($worker->display_name); ?></option>
+                                            <?php endforeach; ?>
+                                        </select>
+                                    </div>
+                                    
+                                    <div class="worker-portal-admin-filter-group">
+                                        <label for="filter-date-from-doc"><?php _e('Desde:', 'worker-portal'); ?></label>
+                                        <input type="date" id="filter-date-from-doc" name="date_from">
+                                    </div>
+                                    
+                                    <div class="worker-portal-admin-filter-group">
+                                        <label for="filter-date-to-doc"><?php _e('Hasta:', 'worker-portal'); ?></label>
+                                        <input type="date" id="filter-date-to-doc" name="date_to">
+                                    </div>
+                                </div>
+                                
+                                <div class="worker-portal-admin-filter-actions">
+                                    <button type="submit" class="worker-portal-button worker-portal-button-secondary">
+                                        <i class="dashicons dashicons-search"></i> <?php _e('Filtrar', 'worker-portal'); ?>
+                                    </button>
+                                    <button type="button" id="clear-filters-doc" class="worker-portal-button worker-portal-button-link">
+                                        <?php _e('Limpiar filtros', 'worker-portal'); ?>
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                        <!-- Lista de documentos -->
+                        <div id="documents-list-container" data-nonce="<?php echo wp_create_nonce('worker_portal_documents_nonce'); ?>">
+                            <div class="worker-portal-loading">
+                                <div class="worker-portal-spinner"></div>
+                                <p><?php _e('Cargando documentos...', 'worker-portal'); ?></p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Subir documento -->
+                    <div id="subtab-doc-upload" class="worker-portal-subtab-content">
+                        <h3><?php _e('Subir Nuevo Documento', 'worker-portal'); ?></h3>
+                        
+                        <form id="upload-document-form" class="worker-portal-form">
+                            <div class="worker-portal-form-row">
+                                <div class="worker-portal-form-group">
+                                    <label for="document-title"><?php _e('Título:', 'worker-portal'); ?></label>
+                                    <input type="text" id="document-title" name="title" required>
+                                </div>
+                                
+                                <div class="worker-portal-form-group">
+                                    <label for="document-category"><?php _e('Categoría:', 'worker-portal'); ?></label>
+                                    <select id="document-category" name="category">
+                                        <?php foreach ($categories as $key => $label): ?>
+                                            <option value="<?php echo esc_attr($key); ?>"><?php echo esc_html($label); ?></option>
+                                        <?php endforeach; ?>
+                                    </select>
+                                </div>
+                            </div>
+                            
+                            <div class="worker-portal-form-group">
+                                <label for="document-description"><?php _e('Descripción:', 'worker-portal'); ?></label>
+                                <textarea id="document-description" name="description" rows="3"></textarea>
+                            </div>
+                            
+                            <div class="worker-portal-form-group">
+                                <label for="document-file"><?php _e('Archivo (PDF):', 'worker-portal'); ?></label>
+                                <input type="file" id="document-file" name="document" accept="application/pdf" required>
+                                <p class="description"><?php _e('Solo se aceptan archivos PDF.', 'worker-portal'); ?></p>
+                            </div>
+                            
+                            <div class="worker-portal-form-group">
+                                <label for="document-users"><?php _e('Destinatarios:', 'worker-portal'); ?></label>
+                                <select id="document-users" name="users[]" multiple size="5" required>
+                                    <option value="all"><?php _e('Todos los trabajadores', 'worker-portal'); ?></option>
+                                    <?php foreach ($workers as $worker): ?>
+                                        <option value="<?php echo esc_attr($worker->ID); ?>"><?php echo esc_html($worker->display_name); ?></option>
+                                    <?php endforeach; ?>
+                                </select>
+                                <p class="description"><?php _e('Mantén presionada la tecla Ctrl (o Cmd en Mac) para seleccionar múltiples usuarios.', 'worker-portal'); ?></p>
+                            </div>
+                            
+                            <div class="worker-portal-form-group">
+                                <label for="document-notify">
+                                    <input type="checkbox" id="document-notify" name="notify" value="1" checked>
+                                    <?php _e('Enviar notificación por email a los usuarios', 'worker-portal'); ?>
+                                </label>
+                            </div>
+                            
+                            <div class="worker-portal-form-actions">
+                                <input type="hidden" name="nonce" value="<?php echo wp_create_nonce('worker_portal_admin_nonce'); ?>">
+                                <button type="submit" class="worker-portal-button worker-portal-button-primary">
+                                    <i class="dashicons dashicons-upload"></i> <?php _e('Subir Documento', 'worker-portal'); ?>
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                    
+                    <!-- Configuración de documentos -->
+                    <div id="subtab-doc-settings" class="worker-portal-subtab-content">
+                        <h3><?php _e('Configuración de Documentos', 'worker-portal'); ?></h3>
+                        
+                        <form id="document-settings-form" class="worker-portal-form">
+                            <h4><?php _e('Categorías de Documentos', 'worker-portal'); ?></h4>
+                            <p class="description"><?php _e('Configura las categorías disponibles para clasificar documentos.', 'worker-portal'); ?></p>
+                            
+                            <table class="worker-portal-table categories-table">
+                                <thead>
+                                    <tr>
+                                        <th><?php _e('Clave', 'worker-portal'); ?></th>
+                                        <th><?php _e('Nombre', 'worker-portal'); ?></th>
+                                        <th><?php _e('Acciones', 'worker-portal'); ?></th>
+                                    </tr>
+                                </thead>
+                                <tbody id="categories-list">
+                                    <?php foreach ($categories as $key => $label): ?>
+                                        <tr class="category-row">
+                                            <td>
+                                                <input type="text" name="categories[keys][]" value="<?php echo esc_attr($key); ?>" required>
+                                            </td>
+                                            <td>
+                                                <input type="text" name="categories[labels][]" value="<?php echo esc_attr($label); ?>" required>
+                                            </td>
+                                            <td>
+                                                <button type="button" class="worker-portal-button worker-portal-button-small worker-portal-button-outline remove-category">
+                                                    <i class="dashicons dashicons-trash"></i>
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    <?php endforeach; ?>
+                                </tbody>
+                                <tfoot>
+                                    <tr>
+                                        <td colspan="3">
+                                            <button type="button" id="add-category" class="worker-portal-button worker-portal-button-secondary">
+                                                <i class="dashicons dashicons-plus"></i> <?php _e('Añadir categoría', 'worker-portal'); ?>
+                                            </button>
+                                        </td>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                            
+                            <h4><?php _e('Notificaciones', 'worker-portal'); ?></h4>
+                            
+                            <div class="worker-portal-form-group">
+                                <label for="notification-email"><?php _e('Email de notificación:', 'worker-portal'); ?></label>
+                                <input type="email" id="notification-email" name="notification_email" value="<?php echo esc_attr(get_option('worker_portal_document_notification_email', get_option('admin_email'))); ?>" class="regular-text">
+                                <p class="description"><?php _e('Email al que se enviarán las notificaciones cuando se suba un nuevo documento.', 'worker-portal'); ?></p>
+                            </div>
+                            
+                            <div class="worker-portal-form-actions">
+                                <input type="hidden" name="nonce" value="<?php echo wp_create_nonce('worker_portal_admin_nonce'); ?>">
+                                <input type="hidden" name="action" value="admin_save_document_settings">
+                                <button type="submit" class="worker-portal-button worker-portal-button-primary">
+                                    <?php _e('Guardar Cambios', 'worker-portal'); ?>
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
             </div>
         </div>
         
@@ -513,6 +707,36 @@ if (!defined('ABSPATH')) {
     </div>
 </div>
 
+<!-- Modal para detalles de documento -->
+<div id="document-details-modal" class="worker-portal-modal">
+    <div class="worker-portal-modal-content">
+        <div class="worker-portal-modal-header">
+            <h3><?php _e('Detalles del Documento', 'worker-portal'); ?></h3>
+            <button type="button" class="worker-portal-modal-close">&times;</button>
+        </div>
+        <div class="worker-portal-modal-body">
+            <div id="document-details-content">
+                <!-- Contenido cargado por AJAX -->
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para ver documentos -->
+<div id="document-view-modal" class="worker-portal-modal">
+    <div class="worker-portal-modal-content worker-portal-modal-large">
+        <div class="worker-portal-modal-header">
+            <h3 id="document-modal-title"><?php _e('Documento', 'worker-portal'); ?></h3>
+            <button type="button" class="worker-portal-modal-close">&times;</button>
+        </div>
+        <div class="worker-portal-modal-body">
+            <div id="document-modal-content">
+                <!-- Contenido cargado por AJAX -->
+            </div>
+        </div>
+    </div>
+</div>
+
 <input type="hidden" id="admin_nonce" value="<?php echo wp_create_nonce('worker_portal_ajax_nonce'); ?>">
 
 <script type="text/javascript">
@@ -541,6 +765,11 @@ jQuery(document).ready(function($) {
             loadPendingExpenses();
         } else if (tab === 'worksheets') {
             loadWorksheets();
+        } else if (tab === 'documents') {
+            // Cargar documentos si estamos en la subpestaña de lista
+            if ($('#subtab-doc-list').hasClass('active')) {
+                loadDocuments();
+            }
         }
     });
     
@@ -548,7 +777,7 @@ jQuery(document).ready(function($) {
     $('.worker-portal-subtab-link').on('click', function(e) {
         e.preventDefault();
         
-// Ocultar todas las sub-pestañas
+        // Ocultar todas las sub-pestañas
         $('.worker-portal-subtab-content').removeClass('active');
         
         // Remover clase activa de todos los enlaces
@@ -560,6 +789,11 @@ jQuery(document).ready(function($) {
         
         // Activar enlace
         $(this).addClass('active');
+        
+        // Si seleccionamos la lista de documentos, cargarlos
+        if (subtab === 'doc-list') {
+            loadDocuments();
+        }
     });
     
     // Navegación desde enlaces de estadísticas
@@ -571,7 +805,7 @@ jQuery(document).ready(function($) {
     });
     
     // Enlaces para tabs desde botones
-    $('.tab-nav-link').on('click', function(e) {
+    $(document).on('click', '.tab-nav-link', function(e) {
         e.preventDefault();
         
         var tab = $(this).data('tab');
@@ -683,6 +917,67 @@ jQuery(document).ready(function($) {
         });
     }
     
+    // Función para cargar documentos
+    function loadDocuments() {
+        console.log('Cargando documentos...');
+        
+        // Mostrar indicador de carga
+        $('#documents-list-container').html(
+            '<div class="worker-portal-loading">' +
+            '<div class="worker-portal-spinner"></div>' +
+            '<p>Cargando documentos...</p>' +
+            '</div>'
+        );
+        
+        // Obtener datos del formulario
+        var formData = new FormData();
+        formData.append('action', 'filter_documents');
+        formData.append('nonce', $('#documents-list-container').data('nonce'));
+        
+        // Añadir filtros si existen
+        if ($('#filter-category').length) {
+            formData.append('category', $('#filter-category').val() || '');
+        }
+        
+        if ($('#filter-worker-doc').length) {
+            formData.append('user_id', $('#filter-worker-doc').val() || '');
+        }
+        
+        if ($('#filter-date-from-doc').length) {
+            formData.append('date_from', $('#filter-date-from-doc').val() || '');
+        }
+        
+        if ($('#filter-date-to-doc').length) {
+            formData.append('date_to', $('#filter-date-to-doc').val() || '');
+        }
+        
+        // Realizar petición AJAX
+        $.ajax({
+            url: ajaxurl,
+            type: 'POST',
+            data: formData,
+            processData: false,
+            contentType: false,
+            success: function(response) {
+                console.log('Respuesta de documentos recibida:', response);
+                if (response.success) {
+                    $('#documents-list-container').html(response.data.html || '<p>No hay documentos para mostrar</p>');
+                    initDocumentActions();
+                } else {
+                    $('#documents-list-container').html(
+                        '<div class="worker-portal-error">' + (response.data || 'Error al cargar documentos') + '</div>'
+                    );
+                }
+            },
+            error: function(xhr, status, error) {
+                console.error('Error en la solicitud AJAX:', status, error);
+                $('#documents-list-container').html(
+                    '<div class="worker-portal-error">Error de comunicación con el servidor: ' + error + '</div>'
+                );
+            }
+        });
+    }
+    
     // Inicializar acciones de gastos
     function initExpenseActions() {
         // Seleccionar/deseleccionar todos los gastos
@@ -707,6 +1002,30 @@ jQuery(document).ready(function($) {
         // Acción de ver gasto
         $(".view-expense").on("click", function() {
             viewExpenseDetails($(this).data("expense-id"));
+        });
+    }
+    
+    // Inicializar acciones de documentos
+    function initDocumentActions() {
+        // Acción de ver documento
+        $(".worker-portal-view-document").on("click", function() {
+            viewDocument($(this).data("document-id"));
+        });
+        
+        // Acción de descargar documento
+        $(".worker-portal-download-document").on("click", function(e) {
+            e.preventDefault();
+            downloadDocument($(this).data("document-id"));
+        });
+        
+        // Acción de ver detalles de documento
+        $(".worker-portal-document-details").on("click", function() {
+            viewDocumentDetails($(this).data("document-id"));
+        });
+        
+        // Acción de eliminar documento
+        $(".worker-portal-delete-document").on("click", function() {
+            deleteDocument($(this).data("document-id"));
         });
     }
     
@@ -811,6 +1130,207 @@ jQuery(document).ready(function($) {
         });
     }
     
+    // Ver un documento
+    function viewDocument(documentId) {
+        $.ajax({
+            url: ajaxurl,
+            type: 'POST',
+            data: {
+                action: 'download_document',
+                nonce: $('#documents-list-container').data('nonce'),
+                document_id: documentId
+            },
+            beforeSend: function() {
+                $('#document-modal-content').html(
+                    '<div class="worker-portal-loading">' +
+                    '<div class="worker-portal-spinner"></div>' +
+                    '<p>Cargando documento...</p>' +
+                    '</div>'
+                );
+                $('#document-view-modal').show();
+            },
+            success: function(response) {
+                if (response.success) {
+                    // Mostrar PDF en iframe
+                    var html = '<iframe src="' + response.data.download_url + '" style="width:100%; height:500px; border:none;"></iframe>';
+                    $('#document-modal-content').html(html);
+                    
+                    // Actualizar título
+                    $.ajax({
+                        url: ajaxurl,
+                        type: 'POST',
+                        data: {
+                            action: 'admin_get_document_details',
+                            nonce: $('#documents-list-container').data('nonce'),
+                            document_id: documentId
+                        },
+                        success: function(detailsResponse) {
+                            if (detailsResponse.success) {
+                                $('#document-modal-title').text(detailsResponse.data.title);
+                            }
+                        }
+                    });
+                } else {
+                    $('#document-modal-content').html(
+                        '<div class="worker-portal-error">' + response.data + '</div>'
+                    );
+                }
+            },
+            error: function() {
+                $('#document-modal-content').html(
+                    '<div class="worker-portal-error">Ha ocurrido un error al cargar el documento.</div>'
+                );
+            }
+        });
+    }
+    
+    // Descargar un documento
+    function downloadDocument(documentId) {
+        $.ajax({
+            url: ajaxurl,
+            type: 'POST',
+            data: {
+                action: 'download_document',
+                nonce: $('#documents-list-container').data('nonce'),
+                document_id: documentId
+            },
+            success: function(response) {
+                if (response.success) {
+                    // Crear enlace de descarga
+                    var link = document.createElement('a');
+                    link.href = response.data.download_url;
+                    link.download = response.data.filename;
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                } else {
+                    alert(response.data);
+                }
+            },
+            error: function() {
+                alert('Ha ocurrido un error. Por favor, inténtalo de nuevo.');
+            }
+        });
+    }
+    
+    // Ver detalles de un documento
+    function viewDocumentDetails(documentId) {
+        $.ajax({
+            url: ajaxurl,
+            type: 'POST',
+            data: {
+                action: 'admin_get_document_details',
+                nonce: $('#documents-list-container').data('nonce'),
+                document_id: documentId
+            },
+            beforeSend: function() {
+                $('#document-details-content').html(
+                    '<div class="worker-portal-loading">' +
+                    '<div class="worker-portal-spinner"></div>' +
+                    '<p>Cargando detalles del documento...</p>' +
+                    '</div>'
+                );
+                $('#document-details-modal').show();
+            },
+            success: function(response) {
+                if (response.success) {
+                    var document = response.data;
+                    
+                    var html = 
+                        '<table class="worker-portal-details-table">' +
+                            '<tr>' +
+                                '<th><?php _e('ID:', 'worker-portal'); ?></th>' +
+                                '<td>' + document.id + '</td>' +
+                            '</tr>' +
+                            '<tr>' +
+                                '<th><?php _e('Título:', 'worker-portal'); ?></th>' +
+                                '<td>' + document.title + '</td>' +
+                            '</tr>' +
+                            '<tr>' +
+                                '<th><?php _e('Categoría:', 'worker-portal'); ?></th>' +
+                                '<td>' + document.category_name + '</td>' +
+                            '</tr>' +
+                            '<tr>' +
+                                '<th><?php _e('Descripción:', 'worker-portal'); ?></th>' +
+                                '<td>' + (document.description || '<?php _e('Sin descripción', 'worker-portal'); ?>') + '</td>' +
+                            '</tr>' +
+                            '<tr>' +
+                                '<th><?php _e('Usuario:', 'worker-portal'); ?></th>' +
+                                '<td>' + document.user_name + '</td>' +
+                            '</tr>' +
+                            '<tr>' +
+                                '<th><?php _e('Fecha de subida:', 'worker-portal'); ?></th>' +
+                                '<td>' + document.upload_date + '</td>' +
+                            '</tr>' +
+                            '<tr>' +
+                                '<th><?php _e('Archivo:', 'worker-portal'); ?></th>' +
+                                '<td>' +
+                                    '<a href="' + document.download_url + '" target="_blank" class="worker-portal-button worker-portal-button-small worker-portal-button-outline">' +
+                                        '<i class="dashicons dashicons-visibility"></i> <?php _e('Ver documento', 'worker-portal'); ?>' +
+                                    '</a>' +
+                                '</td>' +
+                            '</tr>' +
+                        '</table>' +
+                        
+                        '<div class="worker-portal-document-actions" style="margin-top: 20px;">' +
+                            '<button type="button" class="worker-portal-button worker-portal-button-danger worker-portal-delete-document" data-document-id="' + document.id + '">' +
+                                '<i class="dashicons dashicons-trash"></i> <?php _e('Eliminar documento', 'worker-portal'); ?>' +
+                            '</button>' +
+                        '</div>';
+                    
+                    $('#document-details-content').html(html);
+                    
+                    // Reinicializar el botón de eliminar
+                    $('#document-details-modal .worker-portal-delete-document').on('click', function() {
+                        deleteDocument($(this).data('document-id'));
+                    });
+                } else {
+                    $('#document-details-content').html(
+                        '<div class="worker-portal-error">' + response.data + '</div>'
+                    );
+                }
+            },
+            error: function() {
+                $('#document-details-content').html(
+                    '<div class="worker-portal-error">Ha ocurrido un error. Por favor, inténtalo de nuevo.</div>'
+                );
+            }
+        });
+    }
+    
+    // Eliminar un documento
+    function deleteDocument(documentId) {
+        if (!confirm('¿Estás seguro de eliminar este documento? Esta acción no se puede deshacer.')) {
+            return;
+        }
+        
+        $.ajax({
+            url: ajaxurl,
+            type: 'POST',
+            data: {
+                action: 'admin_delete_document',
+                nonce: $('#documents-list-container').data('nonce'),
+                document_id: documentId
+            },
+            success: function(response) {
+                if (response.success) {
+                    alert(response.data);
+                    
+                    // Cerrar modal si está abierto
+                    $('#document-details-modal').hide();
+                    
+                    // Recargar lista de documentos
+                    loadDocuments();
+                } else {
+                    alert(response.data);
+                }
+            },
+            error: function() {
+                alert('Ha ocurrido un error. Por favor, inténtalo de nuevo.');
+            }
+        });
+    }
+    
     // Manejar el envío del formulario de filtros de gastos
     $('#admin-expenses-filter-form').on('submit', function(e) {
         e.preventDefault();
@@ -821,6 +1341,12 @@ jQuery(document).ready(function($) {
     $('#admin-worksheets-filter-form').on('submit', function(e) {
         e.preventDefault();
         loadWorksheets();
+    });
+    
+    // Manejar el envío del formulario de filtros de documentos
+    $('#admin-documents-filter-form').on('submit', function(e) {
+        e.preventDefault();
+        loadDocuments();
     });
     
     // Limpiar filtros de gastos
@@ -835,16 +1361,123 @@ jQuery(document).ready(function($) {
         loadWorksheets();
     });
     
-    // Cerrar modales
-    $('.worker-portal-modal-close').on('click', function() {
-        $(this).closest('.worker-portal-modal').hide();
+    // Limpiar filtros de documentos
+    $('#clear-filters-doc').on('click', function() {
+        $('#admin-documents-filter-form')[0].reset();
+        loadDocuments();
     });
     
-    // Cerrar modal haciendo clic fuera
-    $(window).on('click', function(e) {
-        if ($(e.target).hasClass('worker-portal-modal')) {
-            $('.worker-portal-modal').hide();
+    // Subir documento
+    $('#upload-document-form').on('submit', function(e) {
+        e.preventDefault();
+        
+        var formData = new FormData(this);
+        formData.append('action', 'admin_upload_document');
+        
+        // Verificar si se ha seleccionado un archivo
+        if (!$('#document-file')[0].files.length) {
+            alert('<?php _e('Por favor, selecciona un archivo PDF.', 'worker-portal'); ?>');
+            return;
         }
+        
+        // Verificar que se ha seleccionado al menos un usuario
+        if (!$('#document-users').val() || $('#document-users').val().length === 0) {
+            alert('<?php _e('Por favor, selecciona al menos un destinatario.', 'worker-portal'); ?>');
+            return;
+        }
+        
+        $.ajax({
+            url: ajaxurl,
+            type: 'POST',
+            data: formData,
+            contentType: false,
+            processData: false,
+            beforeSend: function() {
+                $(this).find('button[type=submit]').prop('disabled', true).html(
+                    '<i class="dashicons dashicons-update-alt spinning"></i> <?php _e('Subiendo...', 'worker-portal'); ?>'
+                );
+            }.bind(this),
+            success: function(response) {
+                if (response.success) {
+                    alert(response.data.message);
+                    this.reset();
+                    
+                    // Cambiar a la pestaña de lista de documentos y cargarlos
+                    $('.worker-portal-subtab-link[data-subtab="doc-list"]').click();
+                } else {
+                    alert(response.data);
+                }
+            }.bind(this),
+            error: function() {
+                alert('<?php _e('Ha ocurrido un error al subir el documento. Por favor, inténtalo de nuevo.', 'worker-portal'); ?>');
+            },
+            complete: function() {
+                $(this).find('button[type=submit]').prop('disabled', false).html(
+                    '<i class="dashicons dashicons-upload"></i> <?php _e('Subir Documento', 'worker-portal'); ?>'
+                );
+            }.bind(this)
+        });
+    });
+    
+    // Gestión de categorías
+    $('#add-category').on('click', function() {
+        var newRow = 
+            '<tr class="category-row">' +
+                '<td>' +
+                    '<input type="text" name="categories[keys][]" required>' +
+                '</td>' +
+                '<td>' +
+                    '<input type="text" name="categories[labels][]" required>' +
+                '</td>' +
+                '<td>' +
+                    '<button type="button" class="worker-portal-button worker-portal-button-small worker-portal-button-outline remove-category">' +
+                        '<i class="dashicons dashicons-trash"></i>' +
+                    '</button>' +
+                '</td>' +
+            '</tr>';
+        
+        $('#categories-list').append(newRow);
+    });
+    
+    $(document).on('click', '.remove-category', function() {
+        // Si solo queda una categoría, mostrar mensaje
+        if ($('.category-row').length <= 1) {
+            alert('<?php _e('Debe existir al menos una categoría.', 'worker-portal'); ?>');
+            return;
+        }
+        
+        $(this).closest('tr').remove();
+    });
+    
+    // Guardar configuración de documentos
+    $('#document-settings-form').on('submit', function(e) {
+        e.preventDefault();
+        
+        var formData = new FormData(this);
+        
+        $.ajax({
+            url: ajaxurl,
+            type: 'POST',
+            data: formData,
+            contentType: false,
+            processData: false,
+            beforeSend: function() {
+                $(this).find('button[type=submit]').prop('disabled', true).html('<?php _e('Guardando...', 'worker-portal'); ?>');
+            }.bind(this),
+            success: function(response) {
+                if (response.success) {
+                    alert(response.data.message);
+                } else {
+                    alert(response.data);
+                }
+            },
+            error: function() {
+                alert('<?php _e('Ha ocurrido un error al guardar la configuración. Por favor, inténtalo de nuevo.', 'worker-portal'); ?>');
+            },
+            complete: function() {
+                $(this).find('button[type=submit]').prop('disabled', false).html('<?php _e('Guardar Cambios', 'worker-portal'); ?>');
+            }.bind(this)
+        });
     });
     
     // Manejar acciones masivas
@@ -946,6 +1579,18 @@ jQuery(document).ready(function($) {
                 $(this).prop('disabled', false).html('<i class="dashicons dashicons-download"></i> Exportar a Excel');
             }.bind(this)
         });
+    });
+    
+    // Cerrar modales
+    $('.worker-portal-modal-close').on('click', function() {
+        $(this).closest('.worker-portal-modal').hide();
+    });
+    
+    // Cerrar modal haciendo clic fuera
+    $(window).on('click', function(e) {
+        if ($(e.target).hasClass('worker-portal-modal')) {
+            $('.worker-portal-modal').hide();
+        }
     });
 });
 </script>
