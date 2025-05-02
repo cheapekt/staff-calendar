@@ -1041,16 +1041,58 @@ public function render_documents_shortcode($atts) {
         return ob_get_clean();
     }
 
-    /**
-     * Renderiza shortcode de incentivos
-     *
-     * @since    1.0.0
-     * @param    array    $atts    Atributos del shortcode
-     * @return   string            HTML generado
-     */
-    public function render_incentives_shortcode($atts) {
-        return '<div class="worker-portal-section-placeholder">' . 
-            __('Sección de Incentivos (Próximamente)', 'worker-portal') . 
-            '</div>';
+/**
+ * Renderiza shortcode de incentivos
+ *
+ * @since    1.0.0
+ * @param    array    $atts    Atributos del shortcode
+ * @return   string            HTML generado
+ */
+public function render_incentives_shortcode($atts) {
+    // Si el usuario no está logueado, mostrar mensaje de error
+    if (!is_user_logged_in()) {
+        return '<div class="worker-portal-login-required">' . 
+            __('Debes iniciar sesión para ver tus incentivos.', 'worker-portal') . 
+            ' <a href="' . wp_login_url(get_permalink()) . '">' . 
+            __('Iniciar sesión', 'worker-portal') . 
+            '</a></div>';
     }
+    
+    // Cargar módulo de incentivos
+    require_once WORKER_PORTAL_PATH . 'modules/incentives/class-incentives.php';
+    $incentives_module = new Worker_Portal_Module_Incentives();
+    
+    // Atributos por defecto
+    $atts = shortcode_atts(
+        array(
+            'limit' => 10,     // Número de incentivos a mostrar
+            'type' => ''       // Tipo de incentivo a mostrar
+        ),
+        $atts,
+        'worker_incentives'
+    );
+    
+    // Obtener el usuario actual
+    $user_id = get_current_user_id();
+    
+    // Obtener los incentivos del usuario
+    $incentives = $incentives_module->get_user_incentives($user_id, $atts['limit'], 0, $atts['type']);
+    
+    // Obtener los tipos de incentivos disponibles
+    $incentive_types = get_option('worker_portal_incentive_types', array(
+        'excess_meters' => __('Plus de productividad por exceso de metros ejecutados', 'worker-portal'),
+        'quality' => __('Plus de calidad', 'worker-portal'),
+        'efficiency' => __('Plus de eficiencia', 'worker-portal'),
+        'other' => __('Otros', 'worker-portal')
+    ));
+    
+    // Iniciar buffer de salida
+    ob_start();
+    
+    // Incluir plantilla
+    include(WORKER_PORTAL_PATH . 'modules/incentives/templates/incentives-view.php');
+    
+    // Retornar el contenido
+    return ob_get_clean();
+}
 }

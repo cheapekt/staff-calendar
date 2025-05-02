@@ -39,6 +39,15 @@
         } else if (tab === "worksheets") {
           WorkerPortalAdminFrontend.loadWorksheets();
         }
+        if (tab === "incentives") {
+          // Initialize incentives module if it exists
+          if (
+            typeof WorkerPortalIncentives !== "undefined" &&
+            $("#incentives-list-container").length
+          ) {
+            WorkerPortalIncentives.loadAdminIncentives();
+          }
+        }
       });
 
       // Navegación entre sub-pestañas

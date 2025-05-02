@@ -662,12 +662,123 @@ if (!defined('ABSPATH')) {
             </div>
         </div>
         
-        <div id="tab-incentives" class="worker-portal-tab-content">
-            <h2><?php _e('Gestión de Incentivos', 'worker-portal'); ?></h2>
-            <div class="worker-portal-coming-soon">
-                <p><?php _e('La funcionalidad de gestión de incentivos estará disponible próximamente.', 'worker-portal'); ?></p>
+<!-- Content for tab-incentives in portal-content-admin.php -->
+<div id="tab-incentives" class="worker-portal-tab-content">
+    <h2><?php _e('Gestión de Incentivos', 'worker-portal'); ?></h2>
+    
+    <!-- Formulario para añadir incentivo manualmente -->
+    <div class="worker-portal-add-incentive-form">
+        <h3><?php _e('Añadir Incentivo', 'worker-portal'); ?></h3>
+        
+        <form id="add-incentive-form" class="worker-portal-form">
+            <div class="worker-portal-form-row">
+                <div class="worker-portal-form-group">
+                    <label for="incentive-user-id"><?php _e('Trabajador:', 'worker-portal'); ?></label>
+                    <select id="incentive-user-id" name="user_id" required>
+                        <option value=""><?php _e('Seleccionar trabajador', 'worker-portal'); ?></option>
+                        <?php 
+                        $workers = get_users(array('role__not_in' => array('administrator')));
+                        foreach ($workers as $worker): 
+                        ?>
+                            <option value="<?php echo esc_attr($worker->ID); ?>"><?php echo esc_html($worker->display_name); ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+                
+                <div class="worker-portal-form-group">
+                    <label for="incentive-type"><?php _e('Tipo de incentivo:', 'worker-portal'); ?></label>
+                    <select id="incentive-type" name="incentive_type">
+                        <?php 
+                        $incentive_types = get_option('worker_portal_incentive_types', array(
+                            'excess_meters' => __('Plus de productividad por exceso de metros ejecutados', 'worker-portal'),
+                            'quality' => __('Plus de calidad', 'worker-portal'),
+                            'efficiency' => __('Plus de eficiencia', 'worker-portal'),
+                            'other' => __('Otros', 'worker-portal')
+                        ));
+                        foreach ($incentive_types as $key => $label): 
+                        ?>
+                            <option value="<?php echo esc_attr($key); ?>"><?php echo esc_html($label); ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
             </div>
+            
+            <div class="worker-portal-form-row">
+                <div class="worker-portal-form-group">
+                    <label for="incentive-description"><?php _e('Descripción:', 'worker-portal'); ?></label>
+                    <textarea id="incentive-description" name="description" required></textarea>
+                </div>
+                
+                <div class="worker-portal-form-group">
+                    <label for="incentive-amount"><?php _e('Importe (€):', 'worker-portal'); ?></label>
+                    <input type="number" id="incentive-amount" name="amount" min="0.01" step="0.01" required>
+                </div>
+            </div>
+            
+            <input type="hidden" id="incentive-worksheet-id" name="worksheet_id" value="0">
+            
+            <div class="worker-portal-form-actions">
+                <button type="submit" class="worker-portal-button worker-portal-button-primary">
+                    <i class="dashicons dashicons-plus"></i> <?php _e('Añadir Incentivo', 'worker-portal'); ?>
+                </button>
+            </div>
+        </form>
+    </div>
+    
+    <!-- Filtros de incentivos -->
+    <div class="worker-portal-admin-filters">
+        <form id="admin-incentives-filter-form" class="worker-portal-admin-filter-form">
+            <div class="worker-portal-admin-filter-row">
+                <div class="worker-portal-admin-filter-group">
+                    <label for="filter-worker-inc"><?php _e('Trabajador:', 'worker-portal'); ?></label>
+                    <select id="filter-worker-inc" name="user_id">
+                        <option value=""><?php _e('Todos', 'worker-portal'); ?></option>
+                        <?php foreach ($workers as $worker): ?>
+                            <option value="<?php echo esc_attr($worker->ID); ?>"><?php echo esc_html($worker->display_name); ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+                
+                <div class="worker-portal-admin-filter-group">
+                    <label for="filter-status-inc"><?php _e('Estado:', 'worker-portal'); ?></label>
+                    <select id="filter-status-inc" name="status">
+                        <option value=""><?php _e('Todos', 'worker-portal'); ?></option>
+                        <option value="pending"><?php _e('Pendientes', 'worker-portal'); ?></option>
+                        <option value="approved"><?php _e('Aprobados', 'worker-portal'); ?></option>
+                        <option value="rejected"><?php _e('Rechazados', 'worker-portal'); ?></option>
+                    </select>
+                </div>
+                
+                <div class="worker-portal-admin-filter-group">
+                    <label for="filter-date-from-inc"><?php _e('Desde:', 'worker-portal'); ?></label>
+                    <input type="date" id="filter-date-from-inc" name="date_from">
+                </div>
+                
+                <div class="worker-portal-admin-filter-group">
+                    <label for="filter-date-to-inc"><?php _e('Hasta:', 'worker-portal'); ?></label>
+                    <input type="date" id="filter-date-to-inc" name="date_to">
+                </div>
+            </div>
+            
+            <div class="worker-portal-admin-filter-actions">
+                <button type="submit" class="worker-portal-button worker-portal-button-secondary">
+                    <i class="dashicons dashicons-search"></i> <?php _e('Filtrar', 'worker-portal'); ?>
+                </button>
+                <button type="button" id="clear-filters-inc" class="worker-portal-button worker-portal-button-link">
+                    <?php _e('Limpiar filtros', 'worker-portal'); ?>
+                </button>
+            </div>
+        </form>
+    </div>
+    
+    <!-- Lista de incentivos (se cargará vía AJAX) -->
+    <div id="incentives-list-container" data-nonce="<?php echo wp_create_nonce('worker_portal_admin_nonce'); ?>">
+        <div class="worker-portal-loading">
+            <div class="worker-portal-spinner"></div>
+            <p><?php _e('Cargando incentivos...', 'worker-portal'); ?></p>
         </div>
+    </div>
+</div>
         
         <div id="tab-workers" class="worker-portal-tab-content">
             <h2><?php _e('Gestión de Trabajadores', 'worker-portal'); ?></h2>
