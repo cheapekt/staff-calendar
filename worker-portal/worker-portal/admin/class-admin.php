@@ -7,34 +7,6 @@
 class Worker_Portal_Admin {
 
     /**
-     * Registra las páginas de menú en el área de administración
-     *
-     * @since    1.0.0
-     */
-    public function register_admin_menu() {
-        // Página principal del portal
-        add_menu_page(
-            __('Portal del Trabajador', 'worker-portal'),
-            __('Portal del Trabajador', 'worker-portal'),
-            'manage_options',
-            'worker-portal',
-            array($this, 'render_dashboard'),
-            'dashicons-building',
-            30
-        );
-
-        // Submenú de Dashboard
-        add_submenu_page(
-            'worker-portal',
-            __('Dashboard', 'worker-portal'),
-            __('Dashboard', 'worker-portal'),
-            'manage_options',
-            'worker-portal',
-            array($this, 'render_dashboard')
-        );
-    }
-
-    /**
      * Carga de estilos para el área de administración
      *
      * @since    1.0.0
@@ -128,4 +100,84 @@ class Worker_Portal_Admin {
         
         return $sanitized_input;
     }
+
+    /**
+ * Registra los menús de administración
+ *
+ * @since    1.0.0
+ */
+public function register_admin_menu() {
+    // Menú principal
+    add_menu_page(
+        __('Portal del Trabajador', 'worker-portal'),
+        __('Portal Trabajador', 'worker-portal'),
+        'manage_options',
+        'worker-portal',
+        array($this, 'render_admin_dashboard'),
+        'dashicons-groups',
+        30
+    );
+    
+    // Submenú para documentos
+    add_submenu_page(
+        'worker-portal',
+        __('Documentos', 'worker-portal'),
+        __('Documentos', 'worker-portal'),
+        'manage_options',
+        'worker-portal-documents',
+        array($this, 'render_documents_page')
+    );
+    
+    // Otros submenús (gastos, hojas de trabajo, etc.)
+    add_submenu_page(
+        'worker-portal',
+        __('Gastos', 'worker-portal'),
+        __('Gastos', 'worker-portal'),
+        'manage_options',
+        'worker-portal-expenses',
+        array($this, 'render_expenses_page')
+    );
+    
+    add_submenu_page(
+        'worker-portal',
+        __('Hojas de Trabajo', 'worker-portal'),
+        __('Hojas de Trabajo', 'worker-portal'),
+        'manage_options',
+        'worker-portal-worksheets',
+        array($this, 'render_worksheets_page')
+    );
+    
+    add_submenu_page(
+        'worker-portal',
+        __('Incentivos', 'worker-portal'),
+        __('Incentivos', 'worker-portal'),
+        'manage_options',
+        'worker-portal-incentives',
+        array($this, 'render_incentives_page')
+    );
+    
+    add_submenu_page(
+        'worker-portal',
+        __('Configuración', 'worker-portal'),
+        __('Configuración', 'worker-portal'),
+        'manage_options',
+        'worker-portal-settings',
+        array($this, 'render_settings_page')
+    );
+}
+
+/**
+ * Renderiza la página de administración de documentos
+ *
+ * @since    1.0.0
+ */
+public function render_documents_page() {
+    // Verificar permisos
+    if (!current_user_can('manage_options')) {
+        return;
+    }
+    
+    // Incluir plantilla
+    include(WORKER_PORTAL_PATH . 'modules/documents/templates/admin-page.php');
+}
 }
