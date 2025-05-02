@@ -12,6 +12,7 @@
       this.setupExpensesModule();
       this.setupWorksheetModule();
       this.setupModals();
+      this.setupTimeclockModule();
     },
 
     // Configurar navegación entre pestañas
@@ -82,6 +83,151 @@
 
         const tab = $(this).data("tab");
         $('.worker-portal-tab-link[data-tab="' + tab + '"]').click();
+      });
+    },
+
+    setupTimeclockModule: function () {
+      // Filtros para fichajes
+      $("#admin-timeclock-filter-form").on("submit", function (e) {
+        e.preventDefault();
+        WorkerPortalAdminFrontend.loadTimeclockEntries();
+      });
+
+      // Limpiar filtros de fichajes
+      $("#clear-filters-timeclock").on("click", function () {
+        $("#admin-timeclock-filter-form")[0].reset();
+        WorkerPortalAdminFrontend.loadTimeclockEntries();
+      });
+
+      // Acciones para fichajes
+      $(document).on("click", ".edit-entry", function () {
+        const entryId = $(this).data("entry-id");
+        WorkerPortalAdminFrontend.editTimeclockEntry(entryId);
+      });
+
+      $(document).on("click", ".register-exit", function () {
+        const entryId = $(this).data("entry-id");
+        WorkerPortalAdminFrontend.registerExitForEntry(entryId);
+      });
+    },
+
+    // Cargar entradas de fichaje
+    loadTimeclockEntries: function () {
+      console.log("Cargando fichajes...");
+
+      // Mostrar indicador de carga
+      $("#timeclock-entries-container").html(
+        '<div class="worker-portal-loading">' +
+          '<div class="worker-portal-spinner"></div>' +
+          "<p>Cargando fichajes...</p>" +
+          "</div>"
+      );
+
+      // Obtener datos del formulario
+      var formData = new FormData($("#admin-timeclock-filter-form")[0]);
+      formData.append("action", "admin_load_timeclock_entries");
+      formData.append("nonce", $("#admin_nonce").val());
+
+      // Realizar petición AJAX
+      $.ajax({
+        url: ajaxurl,
+        type: "POST",
+        data: formData,
+        processData: false,
+        contentType: false,
+        success: function (response) {
+          if (response.success) {
+            $("#timeclock-entries-container").html(response.data);
+          } else {
+            $("#timeclock-entries-container").html(
+              '<div class="worker-portal-error">' +
+                (response.data || "Error al cargar fichajes") +
+                "</div>"
+            );
+          }
+        },
+        error: function () {
+          $("#timeclock-entries-container").html(
+            '<div class="worker-portal-error">' +
+              "Error de comunicación con el servidor. Por favor, inténtalo de nuevo." +
+              "</div>"
+          );
+        },
+      });
+    },
+
+    // Editar entrada de fichaje
+    editTimeclockEntry: function (entryId) {
+      $.ajax({
+        url: ajaxurl,
+        type: "POST",
+        data: {
+          action: "admin_get_timeclock_entry",
+          entry_id: entryId,
+          nonce: $("#admin_nonce").val(),
+        },
+        beforeSend: function () {
+          $("#timeclock-entry-details-content").html(
+            '<div class="worker-portal-loading">' +
+              '<div class="worker-portal-spinner"></div>' +
+              "<p>Cargando detalles...</p>" +
+              "</div>"
+          );
+
+          $("#timeclock-entry-details-modal").fadeIn(200);
+        },
+        success: function (response) {
+          if (response.success) {
+            $("#timeclock-entry-details-content").html(response.data);
+          } else {
+            $("#timeclock-entry-details-content").html(
+              '<div class="worker-portal-error">' +
+                (response.data || "Error al cargar detalles") +
+                "</div>"
+            );
+          }
+        },
+        error: function () {
+          $("#timeclock-entry-details-content").html(
+            '<div class="worker-portal-error">' +
+              "Error de comunicación con el servidor. Por favor, inténtalo de nuevo." +
+              "</div>"
+          );
+        },
+      });
+    },
+
+    // Registrar salida para una entrada
+    registerExitForEntry: function (entryId) {
+      if (
+        !confirm(
+          "¿Estás seguro de que deseas registrar la salida para este fichaje?"
+        )
+      ) {
+        return;
+      }
+
+      $.ajax({
+        url: ajaxurl,
+        type: "POST",
+        data: {
+          action: "admin_register_exit",
+          entry_id: entryId,
+          nonce: $("#admin_nonce").val(),
+        },
+        success: function (response) {
+          if (response.success) {
+            alert(response.data.message);
+            WorkerPortalAdminFrontend.loadTimeclockEntries();
+          } else {
+            alert(response.data || "Error al registrar la salida");
+          }
+        },
+        error: function () {
+          alert(
+            "Error de comunicación con el servidor. Por favor, inténtalo de nuevo."
+          );
+        },
       });
     },
 
@@ -689,6 +835,92 @@
       });
     },
   };
+
+  $(document).on("click", "#register-all-exits", function () {
+    if (
+      !confirm(
+        "¿Estás seguro de registrar la salida para TODOS los fichajes activos? Esta acción no se puede deshacer."
+      )
+    ) {
+      return;
+    }
+
+    $.ajax({
+      url: ajaxurl,
+      type: "POST",
+      data: {
+        action: "admin_register_all_exits",
+        nonce: $("#admin_nonce").val(),
+      },
+      success: function (response) {
+        if (response.success) {
+          alert(response.data.message);
+          WorkerPortalAdminFrontend.loadTimeclockEntries();
+        } else {
+          alert(response.data || "Error al registrar las salidas");
+        }
+      },
+      error: function () {
+        alert(
+          "Error de comunicación con el servidor. Por favor, inténtalo de nuevo."
+        );
+      },
+    });
+  });
+
+  // Manejar acción de exportar datos
+  $(document).on("click", "#export-timeclock-data", function () {
+    // Recoger los filtros actuales
+    var user_id = $("#filter-worker-timeclock").val() || "";
+    var date_from = $("#filter-date-from-timeclock").val() || "";
+    var date_to = $("#filter-date-to-timeclock").val() || "";
+
+    // Desactivar botón durante la exportación
+    $(this)
+      .prop("disabled", true)
+      .html(
+        '<i class="dashicons dashicons-update-alt spinning"></i> Exportando...'
+      );
+
+    // Realizar petición
+    $.ajax({
+      url: ajaxurl,
+      type: "POST",
+      data: {
+        action: "admin_export_timeclock_data",
+        nonce: $("#admin_nonce").val(),
+        user_id: user_id,
+        date_from: date_from,
+        date_to: date_to,
+      },
+      success: function (response) {
+        if (response.success) {
+          // Crear enlace para descargar
+          var link = document.createElement("a");
+          link.href = response.data.file_url;
+          link.download = response.data.filename;
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+        } else {
+          alert(response.data || "Error al exportar los datos");
+        }
+      },
+      error: function () {
+        alert(
+          "Error de comunicación con el servidor. Por favor, inténtalo de nuevo."
+        );
+      },
+      complete: function () {
+        // Restaurar botón
+        $("#export-timeclock-data")
+          .prop("disabled", false)
+          .html(
+            '<i class="dashicons dashicons-download"></i> Exportar a Excel'
+          );
+      },
+    });
+  });
 
   // Inicializar cuando el DOM esté listo
   $(function () {

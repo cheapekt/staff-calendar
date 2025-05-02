@@ -806,18 +806,172 @@ if (!defined('ABSPATH')) {
             </div>
         </div>
 
-        <!-- Fichajes -->
-        <div id="tab-timeclock" class="worker-portal-tab-content">
-            <h2><?php _e('Gestión de Fichajes', 'worker-portal'); ?></h2>
-            <div class="worker-portal-admin-timeclock-container">
-                <!-- Vista de administrador para fichajes -->
-                <?php 
-                if (shortcode_exists('wp_time_clock_history')) {
-                    echo do_shortcode('[wp_time_clock_history]');
-                } else {
-                    echo do_shortcode('[wp_time_clock]');
-                }
-                ?>
+        <!-- Pestaña de Fichajes - Mejora para el panel de administrador -->
+<div id="tab-timeclock" class="worker-portal-tab-content">
+    <h2><?php _e('Gestión de Fichajes', 'worker-portal'); ?></h2>
+    
+    <!-- Filtros para fichajes -->
+    <div class="worker-portal-admin-filters">
+        <form id="admin-timeclock-filter-form" class="worker-portal-admin-filter-form">
+            <div class="worker-portal-admin-filter-row">
+                <div class="worker-portal-admin-filter-group">
+                    <label for="filter-worker-timeclock"><?php _e('Trabajador:', 'worker-portal'); ?></label>
+                    <select id="filter-worker-timeclock" name="user_id">
+                        <option value=""><?php _e('Todos', 'worker-portal'); ?></option>
+                        <?php 
+                        $workers = get_users(array('role__not_in' => array('administrator')));
+                        foreach ($workers as $worker): 
+                        ?>
+                            <option value="<?php echo esc_attr($worker->ID); ?>"><?php echo esc_html($worker->display_name); ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+                
+                <div class="worker-portal-admin-filter-group">
+                    <label for="filter-status-timeclock"><?php _e('Estado:', 'worker-portal'); ?></label>
+                    <select id="filter-status-timeclock" name="status">
+                        <option value=""><?php _e('Todos', 'worker-portal'); ?></option>
+                        <option value="active"><?php _e('Activo', 'worker-portal'); ?></option>
+                        <option value="completed"><?php _e('Completado', 'worker-portal'); ?></option>
+                        <option value="edited"><?php _e('Editado', 'worker-portal'); ?></option>
+                    </select>
+                </div>
+                
+                <div class="worker-portal-admin-filter-group">
+                    <label for="filter-date-from-timeclock"><?php _e('Desde:', 'worker-portal'); ?></label>
+                    <input type="date" id="filter-date-from-timeclock" name="date_from">
+                </div>
+                
+                <div class="worker-portal-admin-filter-group">
+                    <label for="filter-date-to-timeclock"><?php _e('Hasta:', 'worker-portal'); ?></label>
+                    <input type="date" id="filter-date-to-timeclock" name="date_to">
+                </div>
+            </div>
+            
+            <div class="worker-portal-admin-filter-actions">
+                <button type="submit" class="worker-portal-button worker-portal-button-secondary">
+                    <i class="dashicons dashicons-search"></i> <?php _e('Filtrar', 'worker-portal'); ?>
+                </button>
+                <button type="button" id="clear-filters-timeclock" class="worker-portal-button worker-portal-button-link">
+                    <?php _e('Limpiar filtros', 'worker-portal'); ?>
+                </button>
+            </div>
+        </form>
+    </div>
+    
+    <!-- Panel de acciones rápidas -->
+    <div class="worker-portal-admin-action-panel">
+        <h3><?php _e('Acciones Rápidas', 'worker-portal'); ?></h3>
+        <div class="worker-portal-admin-action-buttons">
+            <button type="button" id="register-all-exits" class="worker-portal-button worker-portal-button-danger">
+                <i class="dashicons dashicons-exit"></i> <?php _e('Registrar salida para todos los activos', 'worker-portal'); ?>
+            </button>
+            <button type="button" id="export-timeclock-data" class="worker-portal-button worker-portal-button-secondary">
+                <i class="dashicons dashicons-download"></i> <?php _e('Exportar a Excel', 'worker-portal'); ?>
+            </button>
+        </div>
+    </div>
+
+    <!-- Resumen de Estadísticas -->
+    <div class="worker-portal-admin-stats worker-portal-timeclock-stats">
+        <div class="worker-portal-admin-stats-grid">
+            <!-- Estadísticas actuales -->
+            <div class="worker-portal-admin-stat-box worker-portal-stat-active">
+                <div class="worker-portal-admin-stat-icon">
+                    <i class="dashicons dashicons-marker"></i>
+                </div>
+                <div class="worker-portal-admin-stat-content">
+                    <div class="worker-portal-admin-stat-value" id="active-entries-count">
+                        <?php 
+                        global $wpdb;
+                        $active_count = $wpdb->get_var(
+                            "SELECT COUNT(*) FROM {$wpdb->prefix}time_clock_entries 
+                             WHERE clock_out IS NULL"
+                        );
+                        echo esc_html($active_count);
+                        ?>
+                    </div>
+                    <div class="worker-portal-admin-stat-label"><?php _e('Fichajes Activos', 'worker-portal'); ?></div>
+                </div>
+            </div>
+            
+            <!-- Fichajes de hoy -->
+            <div class="worker-portal-admin-stat-box worker-portal-stat-today">
+                <div class="worker-portal-admin-stat-icon">
+                    <i class="dashicons dashicons-calendar-alt"></i>
+                </div>
+                <div class="worker-portal-admin-stat-content">
+                    <div class="worker-portal-admin-stat-value" id="today-entries-count">
+                        <?php 
+                        $today = date('Y-m-d');
+                        $today_count = $wpdb->get_var(
+                            $wpdb->prepare(
+                                "SELECT COUNT(*) FROM {$wpdb->prefix}time_clock_entries 
+                                 WHERE DATE(clock_in) = %s",
+                                $today
+                            )
+                        );
+                        echo esc_html($today_count);
+                        ?>
+                    </div>
+                    <div class="worker-portal-admin-stat-label"><?php _e('Fichajes Hoy', 'worker-portal'); ?></div>
+                </div>
+            </div>
+            
+            <!-- Total horas este mes -->
+            <div class="worker-portal-admin-stat-box worker-portal-stat-hours">
+                <div class="worker-portal-admin-stat-icon">
+                    <i class="dashicons dashicons-clock"></i>
+                </div>
+                <div class="worker-portal-admin-stat-content">
+                    <div class="worker-portal-admin-stat-value" id="month-hours-count">
+                        <?php 
+                        $first_day = date('Y-m-01');
+                        $last_day = date('Y-m-t');
+                        
+                        $total_seconds = $wpdb->get_var(
+                            $wpdb->prepare(
+                                "SELECT SUM(TIMESTAMPDIFF(SECOND, clock_in, clock_out)) 
+                                 FROM {$wpdb->prefix}time_clock_entries 
+                                 WHERE clock_out IS NOT NULL 
+                                 AND clock_in BETWEEN %s AND %s",
+                                $first_day,
+                                $last_day
+                            )
+                        );
+                        
+                        $hours = floor($total_seconds / 3600);
+                        $minutes = floor(($total_seconds % 3600) / 60);
+                        echo sprintf('%d:%02d', $hours, $minutes);
+                        ?>
+                    </div>
+                    <div class="worker-portal-admin-stat-label"><?php _e('Horas este mes', 'worker-portal'); ?></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+            <!-- Contenedor de entradas de fichaje -->
+            <div id="timeclock-entries-container" class="worker-portal-admin-list-container">
+                <div class="worker-portal-loading">
+                    <div class="worker-portal-spinner"></div>
+                    <p><?php _e('Cargando fichajes...', 'worker-portal'); ?></p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal para editar entrada de fichaje -->
+        <div id="timeclock-entry-details-modal" class="worker-portal-modal">
+            <div class="worker-portal-modal-content">
+                <div class="worker-portal-modal-header">
+                    <h3><?php _e('Detalles del Fichaje', 'worker-portal'); ?></h3>
+                    <button type="button" class="worker-portal-modal-close">&times;</button>
+                </div>
+                <div class="worker-portal-modal-body">
+                    <div id="timeclock-entry-details-content">
+                        <!-- Contenido cargado por AJAX -->
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -1735,6 +1889,56 @@ jQuery(document).ready(function($) {
     $(window).on('click', function(e) {
         if ($(e.target).hasClass('worker-portal-modal')) {
             $('.worker-portal-modal').hide();
+        }
+    });
+});
+</script>
+
+<script>
+// Después de inicializar todo, cargamos los datos si estamos en la pestaña de fichajes
+jQuery(document).ready(function($) {
+    // Si estamos en la pestaña de fichajes, cargamos los datos
+    if ($('#tab-timeclock').hasClass('active')) {
+        // Cargamos los datos de fichajes
+        if (typeof WorkerPortalAdminFrontend !== 'undefined') {
+            WorkerPortalAdminFrontend.loadTimeclockEntries();
+        } else {
+            // Si WorkerPortalAdminFrontend no está disponible, cargar manualmente
+            $.ajax({
+                url: ajaxurl,
+                type: 'POST',
+                data: {
+                    action: 'admin_load_timeclock_entries',
+                    nonce: $('#admin_nonce').val()
+                },
+                success: function(response) {
+                    if (response.success) {
+                        $('#timeclock-entries-container').html(response.data);
+                    }
+                }
+            });
+        }
+    }
+    
+    // Cada vez que cambiamos a la pestaña de fichajes, cargamos los datos
+    $('.worker-portal-tab-link[data-tab="timeclock"]').on('click', function() {
+        if (typeof WorkerPortalAdminFrontend !== 'undefined') {
+            WorkerPortalAdminFrontend.loadTimeclockEntries();
+        } else {
+            // Si WorkerPortalAdminFrontend no está disponible, cargar manualmente
+            $.ajax({
+                url: ajaxurl,
+                type: 'POST',
+                data: {
+                    action: 'admin_load_timeclock_entries',
+                    nonce: $('#admin_nonce').val()
+                },
+                success: function(response) {
+                    if (response.success) {
+                        $('#timeclock-entries-container').html(response.data);
+                    }
+                }
+            });
         }
     });
 });

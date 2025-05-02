@@ -754,3 +754,154 @@
   padding: 8px 0;
   vertical-align: top;
 }
+
+/* Estilos para los fichajes en el panel del admin - añadir a admin-frontend-style.css */
+
+/* Estilos específicos para las estadísticas de fichaje */
+.worker-portal-stat-active .worker-portal-admin-stat-icon {
+  background-color: #e6f4fa;
+  color: #0078a7;
+}
+
+.worker-portal-stat-active .worker-portal-admin-stat-value {
+  color: #0078a7;
+}
+
+.worker-portal-stat-today .worker-portal-admin-stat-icon {
+  background-color: #edfaef;
+  color: #00701a;
+}
+
+.worker-portal-stat-today .worker-portal-admin-stat-value {
+  color: #00701a;
+}
+
+.worker-portal-stat-hours .worker-portal-admin-stat-icon {
+  background-color: #f9f0e6;
+  color: #a76200;
+}
+
+.worker-portal-stat-hours .worker-portal-admin-stat-value {
+  color: #a76200;
+}
+
+/* Panel de acciones rápidas */
+.worker-portal-admin-action-panel {
+  background-color: #fff;
+  border: 1px solid #ddd;
+  border-radius: 5px;
+  padding: 15px;
+  margin-bottom: 20px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.worker-portal-admin-action-panel h3 {
+  margin-top: 0;
+  margin-bottom: 15px;
+  font-size: 14px;
+  color: #333;
+}
+
+.worker-portal-admin-action-buttons {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+/* Tabla de fichajes */
+.worker-portal-timeclock-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 20px;
+}
+
+.worker-portal-timeclock-table th {
+  background-color: #f0f0f1;
+  padding: 10px;
+  text-align: left;
+  font-weight: 600;
+  border-bottom: 2px solid #c3c4c7;
+}
+
+.worker-portal-timeclock-table td {
+  padding: 10px;
+  border-bottom: 1px solid #e2e4e7;
+  vertical-align: middle;
+}
+
+.worker-portal-timeclock-table tr:hover {
+  background-color: #f9f9f9;
+}
+
+.worker-portal-timeclock-active {
+  color: #2271b1;
+  font-weight: 600;
+}
+
+.worker-portal-timeclock-duration {
+  font-family: monospace;
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.worker-portal-timeclock-note {
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.worker-portal-timeclock-note:hover {
+  white-space: normal;
+  overflow: visible;
+}
+
+/* Formulario de edición */
+.worker-portal-timeclock-edit-form {
+  max-width: 100%;
+}
+
+.worker-portal-timeclock-form-row {
+  margin-bottom: 15px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 15px;
+}
+
+.worker-portal-timeclock-form-group {
+  flex: 1;
+  min-width: 200px;
+}
+
+.worker-portal-timeclock-form-group label {
+  display: block;
+  margin-bottom: 5px;
+  font-weight: 600;
+  color: #333;
+}
+
+.worker-portal-timeclock-form-group input,
+.worker-portal-timeclock-form-group select,
+.worker-portal-timeclock-form-group textarea {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+.worker-portal-timeclock-form-group input:focus,
+.worker-portal-timeclock-form-group select:focus,
+.worker-portal-timeclock-form-group textarea:focus {
+  border-color: #2271b1;
+  box-shadow: 0 0 0 1px #2271b1;
+  outline: none;
+}
+
+.worker-portal-timeclock-form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 20px;
+  padding-top: 15px;
+  border-top: 1px solid #eee;
+}

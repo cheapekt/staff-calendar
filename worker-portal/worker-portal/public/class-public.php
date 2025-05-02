@@ -219,6 +219,718 @@ public function register_shortcodes() {
 }
 
 /**
+ * Carga las entradas de fichaje para el panel de administración
+ *
+ * @since    1.0.0
+ */
+public function ajax_admin_load_timeclock_entries() {
+    // Verificar nonce
+    check_ajax_referer('worker_portal_ajax_nonce', 'nonce');
+    
+    // Verificar que el usuario es administrador
+    if (!is_user_logged_in() || !Worker_Portal_Utils::is_portal_admin()) {
+        wp_send_json_error(__('No tienes permisos para realizar esta acción', 'worker-portal'));
+    }
+    
+    // Obtener parámetros de filtrado
+    $user_id = isset($_POST['user_id']) ? intval($_POST['user_id']) : 0;
+    $status = isset($_POST['status']) ? sanitize_text_field($_POST['status']) : '';
+    $date_from = isset($_POST['date_from']) ? sanitize_text_field($_POST['date_from']) : '';
+    $date_to = isset($_POST['date_to']) ? sanitize_text_field($_POST['date_to']) : '';
+    
+    // Construir la consulta
+    global $wpdb;
+    $table_entries = $wpdb->prefix . 'time_clock_entries';
+    
+    $query = "SELECT e.*, u.display_name 
+              FROM $table_entries e 
+              LEFT JOIN {$wpdb->users} u ON e.user_id = u.ID 
+              WHERE 1=1";
+    $params = array();
+    
+    // Filtro por usuario
+    if ($user_id > 0) {
+        $query .= " AND e.user_id = %d";
+        $params[] = $user_id;
+    }
+    
+    // Filtro por estado
+    if ($status === 'active') {
+        $query .= " AND e.clock_out IS NULL";
+    } elseif ($status === 'completed') {
+        $query .= " AND e.clock_out IS NOT NULL";
+    } elseif ($status === 'edited') {
+        $query .= " AND e.status = 'edited'";
+    }
+    
+    // Filtro por fecha desde
+    if (!empty($date_from)) {
+        $query .= " AND DATE(e.clock_in) >= %s";
+        $params[] = $date_from;
+    }
+    
+    // Filtro por fecha hasta
+    if (!empty($date_to)) {
+        $query .= " AND DATE(e.clock_in) <= %s";
+        $params[] = $date_to;
+    }
+    
+    // Ordenar por fecha de entrada (más reciente primero)
+    $query .= " ORDER BY e.clock_in DESC";
+    
+    // Limitar a 50 resultados
+    $query .= " LIMIT 50";
+    
+    // Ejecutar consulta
+    $entries = empty($params) ? 
+        $wpdb->get_results($query) : 
+        $wpdb->get_results($wpdb->prepare($query, $params));
+    
+    // Generar HTML
+    ob_start();
+    
+    if (empty($entries)):
+    ?>
+        <div class="worker-portal-no-items">
+            <p><?php _e('No hay fichajes con los criterios seleccionados.', 'worker-portal'); ?></p>
+        </div>
+    <?php else: ?>
+        <div class="worker-portal-table-responsive">
+            <table class="worker-portal-timeclock-table">
+                <thead>
+                    <tr>
+                        <th><?php _e('Usuario', 'worker-portal'); ?></th>
+                        <th><?php _e('Entrada', 'worker-portal'); ?></th>
+                        <th><?php _e('Salida', 'worker-portal'); ?></th>
+                        <th><?php _e('Duración', 'worker-portal'); ?></th>
+                        <th><?php _e('Estado', 'worker-portal'); ?></th>
+                        <th><?php _e('Nota', 'worker-portal'); ?></th>
+                        <th><?php _e('Acciones', 'worker-portal'); ?></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php foreach ($entries as $entry): 
+                        // Calcular duración
+                        $duration = '';
+                        if (!empty($entry->clock_out)) {
+                            $start_time = strtotime($entry->clock_in);
+                            $end_time = strtotime($entry->clock_out);
+                            $diff = $end_time - $start_time;
+                            
+                            $hours = floor($diff / 3600);
+                            $minutes = floor(($diff % 3600) / 60);
+                            $seconds = $diff % 60;
+                            
+                            $duration = sprintf('%02d:%02d:%02d', $hours, $minutes, $seconds);
+                        }
+                        
+                        // Determinar estado
+                        $status_text = '';
+                        $status_class = '';
+                        
+                        if (empty($entry->clock_out)) {
+                            $status_text = __('Activo', 'worker-portal');
+                            $status_class = 'worker-portal-badge-success';
+                        } elseif ($entry->status === 'edited') {
+                            $status_text = __('Editado', 'worker-portal');
+                            $status_class = 'worker-portal-badge-warning';
+                        } else {
+                            $status_text = __('Completado', 'worker-portal');
+                            $status_class = 'worker-portal-badge-secondary';
+                        }
+                    ?>
+                        <tr>
+                            <td><?php echo esc_html($entry->display_name); ?></td>
+                            <td><?php echo date_i18n(get_option('date_format') . ' ' . get_option('time_format'), strtotime($entry->clock_in)); ?></td>
+                            <td>
+                                <?php 
+                                if (!empty($entry->clock_out)) {
+                                    echo date_i18n(get_option('date_format') . ' ' . get_option('time_format'), strtotime($entry->clock_out));
+                                } else {
+                                    echo '<span class="worker-portal-timeclock-active">' . __('En curso', 'worker-portal') . '</span>';
+                                }
+                                ?>
+                            </td>
+                            <td class="worker-portal-timeclock-duration">
+                                <?php echo !empty($duration) ? esc_html($duration) : '-'; ?>
+                            </td>
+                            <td>
+                                <span class="worker-portal-badge <?php echo esc_attr($status_class); ?>">
+                                    <?php echo esc_html($status_text); ?>
+                                </span>
+                            </td>
+                            <td class="worker-portal-timeclock-note">
+                                <?php 
+                                $notes = array();
+                                
+                                if (!empty($entry->clock_in_note)) {
+                                    $notes[] = '<strong>' . __('Entrada:', 'worker-portal') . '</strong> ' . esc_html($entry->clock_in_note);
+                                }
+                                
+                                if (!empty($entry->clock_out_note)) {
+                                    $notes[] = '<strong>' . __('Salida:', 'worker-portal') . '</strong> ' . esc_html($entry->clock_out_note);
+                                }
+                                
+                                echo !empty($notes) ? implode('<br>', $notes) : '-';
+                                ?>
+                            </td>
+                            <td>
+                                <button type="button" class="worker-portal-button worker-portal-button-small worker-portal-button-secondary edit-entry" data-entry-id="<?php echo esc_attr($entry->id); ?>">
+                                    <i class="dashicons dashicons-edit"></i>
+                                </button>
+                                
+                                <?php if (empty($entry->clock_out)): ?>
+                                    <button type="button" class="worker-portal-button worker-portal-button-small worker-portal-button-danger register-exit" data-entry-id="<?php echo esc_attr($entry->id); ?>">
+                                        <i class="dashicons dashicons-exit"></i>
+                                    </button>
+                                <?php endif; ?>
+                            </td>
+                        </tr>
+                    <?php endforeach; ?>
+                </tbody>
+            </table>
+        </div>
+    <?php endif;
+    
+    $html = ob_get_clean();
+    wp_send_json_success($html);
+}
+
+/**
+ * Obtiene los detalles de una entrada de fichaje
+ *
+ * @since    1.0.0
+ */
+public function ajax_admin_get_timeclock_entry() {
+    // Verificar nonce
+    check_ajax_referer('worker_portal_ajax_nonce', 'nonce');
+    
+    // Verificar que el usuario es administrador
+    if (!is_user_logged_in() || !Worker_Portal_Utils::is_portal_admin()) {
+        wp_send_json_error(__('No tienes permisos para realizar esta acción', 'worker-portal'));
+    }
+    
+    // Obtener ID de la entrada
+    $entry_id = isset($_POST['entry_id']) ? intval($_POST['entry_id']) : 0;
+    
+    if ($entry_id <= 0) {
+        wp_send_json_error(__('ID de entrada no válido', 'worker-portal'));
+    }
+    
+    // Obtener datos de la entrada
+    global $wpdb;
+    $table_entries = $wpdb->prefix . 'time_clock_entries';
+    
+    $entry = $wpdb->get_row(
+        $wpdb->prepare(
+            "SELECT e.*, u.display_name 
+             FROM $table_entries e 
+             LEFT JOIN {$wpdb->users} u ON e.user_id = u.ID 
+             WHERE e.id = %d",
+            $entry_id
+        )
+    );
+    
+    if (!$entry) {
+        wp_send_json_error(__('Entrada no encontrada', 'worker-portal'));
+    }
+    
+    // Generar HTML
+    ob_start();
+    ?>
+    <form id="edit-timeclock-entry-form" class="worker-portal-timeclock-edit-form">
+        <input type="hidden" id="entry_id" name="entry_id" value="<?php echo esc_attr($entry_id); ?>">
+        
+        <div class="worker-portal-timeclock-form-row">
+            <div class="worker-portal-timeclock-form-group">
+                <label><?php _e('Usuario:', 'worker-portal'); ?></label>
+                <input type="text" value="<?php echo esc_attr($entry->display_name); ?>" readonly>
+            </div>
+        </div>
+        
+        <div class="worker-portal-timeclock-form-row">
+            <div class="worker-portal-timeclock-form-group">
+                <label for="clock_in"><?php _e('Hora de entrada:', 'worker-portal'); ?></label>
+                <input type="datetime-local" id="clock_in" name="clock_in" value="<?php echo date('Y-m-d\TH:i', strtotime($entry->clock_in)); ?>" required>
+            </div>
+            
+            <div class="worker-portal-timeclock-form-group">
+                <label for="clock_out"><?php _e('Hora de salida:', 'worker-portal'); ?></label>
+                <input type="datetime-local" id="clock_out" name="clock_out" value="<?php echo !empty($entry->clock_out) ? date('Y-m-d\TH:i', strtotime($entry->clock_out)) : ''; ?>">
+            </div>
+        </div>
+        
+        <div class="worker-portal-timeclock-form-row">
+            <div class="worker-portal-timeclock-form-group">
+                <label for="clock_in_note"><?php _e('Nota de entrada:', 'worker-portal'); ?></label>
+                <textarea id="clock_in_note" name="clock_in_note" rows="2"><?php echo esc_textarea($entry->clock_in_note ?? ''); ?></textarea>
+            </div>
+            
+            <div class="worker-portal-timeclock-form-group">
+                <label for="clock_out_note"><?php _e('Nota de salida:', 'worker-portal'); ?></label>
+                <textarea id="clock_out_note" name="clock_out_note" rows="2"><?php echo esc_textarea($entry->clock_out_note ?? ''); ?></textarea>
+            </div>
+        </div>
+        
+        <div class="worker-portal-timeclock-form-row">
+            <div class="worker-portal-timeclock-form-group">
+                <label for="status"><?php _e('Estado:', 'worker-portal'); ?></label>
+                <select id="status" name="status">
+                    <option value="active" <?php selected(empty($entry->status) || $entry->status === 'active'); ?>><?php _e('Activo', 'worker-portal'); ?></option>
+                    <option value="edited" <?php selected($entry->status, 'edited'); ?>><?php _e('Editado', 'worker-portal'); ?></option>
+                    <option value="approved" <?php selected($entry->status, 'approved'); ?>><?php _e('Aprobado', 'worker-portal'); ?></option>
+                    <option value="rejected" <?php selected($entry->status, 'rejected'); ?>><?php _e('Rechazado', 'worker-portal'); ?></option>
+                </select>
+            </div>
+            
+            <div class="worker-portal-timeclock-form-group">
+                <label for="admin_note"><?php _e('Nota administrativa:', 'worker-portal'); ?></label>
+                <textarea id="admin_note" name="admin_note" rows="2"><?php echo esc_textarea($entry->admin_note ?? ''); ?></textarea>
+            </div>
+        </div>
+        
+        <div class="worker-portal-timeclock-form-actions">
+            <button type="button" class="worker-portal-button worker-portal-button-link worker-portal-modal-cancel">
+                <?php _e('Cancelar', 'worker-portal'); ?>
+            </button>
+            <button type="submit" class="worker-portal-button worker-portal-button-primary">
+                <?php _e('Guardar Cambios', 'worker-portal'); ?>
+            </button>
+        </div>
+    </form>
+    
+    <script>
+        jQuery(document).ready(function($) {
+            $('#edit-timeclock-entry-form').on('submit', function(e) {
+                e.preventDefault();
+                
+                var formData = new FormData(this);
+                formData.append('action', 'admin_update_timeclock_entry');
+                formData.append('nonce', $('#admin_nonce').val());
+                
+                $.ajax({
+                    url: ajaxurl,
+                    type: 'POST',
+                    data: formData,
+                    processData: false,
+                    contentType: false,
+                    success: function(response) {
+                        if (response.success) {
+                            alert(response.data.message);
+                            $('#timeclock-entry-details-modal').fadeOut(200);
+                            WorkerPortalAdminFrontend.loadTimeclockEntries();
+                        } else {
+                            alert(response.data || 'Error al actualizar la entrada');
+                        }
+                    },
+                    error: function() {
+                        alert('Error de comunicación con el servidor. Por favor, inténtalo de nuevo.');
+                    }
+                });
+            });
+        });
+    </script>
+    <?php
+    $html = ob_get_clean();
+    wp_send_json_success($html);
+}
+
+/**
+ * Actualiza una entrada de fichaje
+ *
+ * @since    1.0.0
+ */
+public function ajax_admin_update_timeclock_entry() {
+    // Verificar nonce
+    check_ajax_referer('worker_portal_ajax_nonce', 'nonce');
+    
+    // Verificar que el usuario es administrador
+    if (!is_user_logged_in() || !Worker_Portal_Utils::is_portal_admin()) {
+        wp_send_json_error(__('No tienes permisos para realizar esta acción', 'worker-portal'));
+    }
+    
+    // Obtener datos del formulario
+    $entry_id = isset($_POST['entry_id']) ? intval($_POST['entry_id']) : 0;
+    $clock_in = isset($_POST['clock_in']) ? sanitize_text_field($_POST['clock_in']) : '';
+    $clock_out = isset($_POST['clock_out']) ? sanitize_text_field($_POST['clock_out']) : '';
+    $clock_in_note = isset($_POST['clock_in_note']) ? sanitize_textarea_field($_POST['clock_in_note']) : '';
+    $clock_out_note = isset($_POST['clock_out_note']) ? sanitize_textarea_field($_POST['clock_out_note']) : '';
+    $status = isset($_POST['status']) ? sanitize_text_field($_POST['status']) : 'active';
+    $admin_note = isset($_POST['admin_note']) ? sanitize_textarea_field($_POST['admin_note']) : '';
+    
+    // Validar datos
+    if ($entry_id <= 0) {
+        wp_send_json_error(__('ID de entrada no válido', 'worker-portal'));
+    }
+    
+    if (empty($clock_in)) {
+        wp_send_json_error(__('La hora de entrada es obligatoria', 'worker-portal'));
+    }
+    
+    // Verificar que la entrada existe
+    global $wpdb;
+    $table_entries = $wpdb->prefix . 'time_clock_entries';
+    
+    $entry = $wpdb->get_row(
+        $wpdb->prepare(
+            "SELECT * FROM $table_entries WHERE id = %d",
+            $entry_id
+        )
+    );
+    
+    if (!$entry) {
+        wp_send_json_error(__('Entrada no encontrada', 'worker-portal'));
+    }
+    
+    // Formatear fechas para MySQL
+    $clock_in_formatted = date('Y-m-d H:i:s', strtotime($clock_in));
+    $clock_out_formatted = !empty($clock_out) ? date('Y-m-d H:i:s', strtotime($clock_out)) : null;
+    
+    // Preparar datos para actualización
+    $data = array(
+        'clock_in' => $clock_in_formatted,
+        'clock_in_note' => $clock_in_note,
+        'status' => $status,
+        'edited_by' => get_current_user_id(),
+        'edited_at' => current_time('mysql'),
+        'admin_note' => $admin_note
+    );
+    
+    $format = array('%s', '%s', '%s', '%d', '%s', '%s');
+    
+    // Si hay hora de salida, añadirla
+    if (!empty($clock_out_formatted)) {
+        $data['clock_out'] = $clock_out_formatted;
+        $data['clock_out_note'] = $clock_out_note;
+        $format[] = '%s';
+        $format[] = '%s';
+    } else {
+        // Si no hay hora de salida, asegurarse de que se establece a NULL
+        $data['clock_out'] = null;
+        $format[] = null;
+    }
+    
+    // Actualizar entrada
+    $updated = $wpdb->update(
+        $table_entries,
+        $data,
+        array('id' => $entry_id),
+        $format,
+        array('%d')
+    );
+    
+    if ($updated === false) {
+        wp_send_json_error(__('Error al actualizar la entrada. Por favor, inténtalo de nuevo.', 'worker-portal'));
+    }
+    
+    // Respuesta exitosa
+    wp_send_json_success(array(
+        'message' => __('Entrada actualizada correctamente', 'worker-portal')
+    ));
+}
+
+/**
+ * Registra la salida para una entrada de fichaje
+ *
+ * @since    1.0.0
+ */
+public function ajax_admin_register_exit() {
+    // Verificar nonce
+    check_ajax_referer('worker_portal_ajax_nonce', 'nonce');
+    
+    // Verificar que el usuario es administrador
+    if (!is_user_logged_in() || !Worker_Portal_Utils::is_portal_admin()) {
+        wp_send_json_error(__('No tienes permisos para realizar esta acción', 'worker-portal'));
+    }
+    
+    // Obtener ID de la entrada
+    $entry_id = isset($_POST['entry_id']) ? intval($_POST['entry_id']) : 0;
+    
+    if ($entry_id <= 0) {
+        wp_send_json_error(__('ID de entrada no válido', 'worker-portal'));
+    }
+    
+    // Verificar que la entrada existe y no tiene salida
+    global $wpdb;
+    $table_entries = $wpdb->prefix . 'time_clock_entries';
+    
+    $entry = $wpdb->get_row(
+        $wpdb->prepare(
+            "SELECT * FROM $table_entries WHERE id = %d AND clock_out IS NULL",
+            $entry_id
+        )
+    );
+    
+    if (!$entry) {
+        wp_send_json_error(__('Entrada no encontrada o ya tiene registrada la salida', 'worker-portal'));
+    }
+    
+    // Registrar salida
+    $updated = $wpdb->update(
+        $table_entries,
+        array(
+            'clock_out' => current_time('mysql'),
+            'status' => 'edited',
+            'edited_by' => get_current_user_id(),
+            'edited_at' => current_time('mysql'),
+            'admin_note' => __('Salida registrada por administrador', 'worker-portal')
+        ),
+        array('id' => $entry_id),
+        array('%s', '%s', '%d', '%s', '%s'),
+        array('%d')
+    );
+    
+    if ($updated === false) {
+        wp_send_json_error(__('Error al registrar la salida. Por favor, inténtalo de nuevo.', 'worker-portal'));
+    }
+    
+    // Respuesta exitosa
+    wp_send_json_success(array(
+        'message' => __('Salida registrada correctamente', 'worker-portal')
+    ));
+}
+
+/**
+ * Registra la salida para todas las entradas activas
+ *
+ * @since    1.0.0
+ */
+public function ajax_admin_register_all_exits() {
+    // Verificar nonce
+    check_ajax_referer('worker_portal_ajax_nonce', 'nonce');
+    
+    // Verificar que el usuario es administrador
+    if (!is_user_logged_in() || !Worker_Portal_Utils::is_portal_admin()) {
+        wp_send_json_error(__('No tienes permisos para realizar esta acción', 'worker-portal'));
+    }
+    
+    // Registrar salida para todas las entradas activas
+    global $wpdb;
+    $table_entries = $wpdb->prefix . 'time_clock_entries';
+    
+    $updated = $wpdb->update(
+        $table_entries,
+        array(
+            'clock_out' => current_time('mysql'),
+            'status' => 'edited',
+            'edited_by' => get_current_user_id(),
+            'edited_at' => current_time('mysql'),
+            'admin_note' => __('Salida masiva registrada por administrador', 'worker-portal')
+        ),
+        array('clock_out' => null),
+        array('%s', '%s', '%d', '%s', '%s'),
+        array(null)
+    );
+    
+    if ($updated === false) {
+        wp_send_json_error(__('Error al registrar las salidas. Por favor, inténtalo de nuevo.', 'worker-portal'));
+    }
+    
+    // Respuesta exitosa
+    wp_send_json_success(array(
+        'message' => sprintf(__('Se han registrado salidas para %d fichajes', 'worker-portal'), $updated),
+        'count' => $updated
+    ));
+}
+
+/**
+ * Exporta datos de fichajes a Excel
+ *
+ * @since    1.0.0
+ */
+public function ajax_admin_export_timeclock_data() {
+    // Verificar nonce
+    check_ajax_referer('worker_portal_ajax_nonce', 'nonce');
+    
+    // Verificar que el usuario es administrador
+    if (!is_user_logged_in() || !Worker_Portal_Utils::is_portal_admin()) {
+        wp_send_json_error(__('No tienes permisos para realizar esta acción', 'worker-portal'));
+    }
+    
+    // Obtener parámetros de filtrado
+    $user_id = isset($_POST['user_id']) ? intval($_POST['user_id']) : 0;
+    $date_from = isset($_POST['date_from']) ? sanitize_text_field($_POST['date_from']) : '';
+    $date_to = isset($_POST['date_to']) ? sanitize_text_field($_POST['date_to']) : '';
+    
+    // Si no hay fechas, usar el mes actual
+    if (empty($date_from)) {
+        $date_from = date('Y-m-01');
+    }
+    
+    if (empty($date_to)) {
+        $date_to = date('Y-m-t');
+    }
+    
+    // Obtener datos
+    global $wpdb;
+    $table_entries = $wpdb->prefix . 'time_clock_entries';
+    
+    $query = "SELECT e.*, u.display_name 
+              FROM $table_entries e 
+              LEFT JOIN {$wpdb->users} u ON e.user_id = u.ID 
+              WHERE DATE(e.clock_in) BETWEEN %s AND %s";
+    $params = array($date_from, $date_to);
+    
+    if ($user_id > 0) {
+        $query .= " AND e.user_id = %d";
+        $params[] = $user_id;
+    }
+    
+    $query .= " ORDER BY e.clock_in ASC";
+    
+    $entries = $wpdb->get_results(
+        $wpdb->prepare($query, $params)
+    );
+    
+    if (empty($entries)) {
+        wp_send_json_error(__('No hay datos para exportar con los criterios seleccionados', 'worker-portal'));
+    }
+    
+    // Verificar si está instalada la librería PhpSpreadsheet
+    if (!class_exists('PhpOffice\PhpSpreadsheet\Spreadsheet')) {
+        // Si no está instalada, crear un CSV manualmente
+        $filename = 'fichajes_' . date('Y-m-d') . '.csv';
+        $upload_dir = wp_upload_dir();
+        $filepath = $upload_dir['path'] . '/' . $filename;
+        
+        $fp = fopen($filepath, 'w');
+        
+        // Encabezados
+        $headers = array(
+            'ID',
+            __('Usuario', 'worker-portal'),
+            __('Entrada', 'worker-portal'),
+            __('Salida', 'worker-portal'),
+            __('Duración (horas)', 'worker-portal'),
+            __('Nota Entrada', 'worker-portal'),
+            __('Nota Salida', 'worker-portal'),
+            __('Estado', 'worker-portal'),
+            __('Nota Admin', 'worker-portal')
+        );
+        
+        fputcsv($fp, $headers);
+        
+        // Datos
+        foreach ($entries as $entry) {
+            // Calcular duración
+            $duration = '';
+            if (!empty($entry->clock_out)) {
+                $start_time = strtotime($entry->clock_in);
+                $end_time = strtotime($entry->clock_out);
+                $diff = $end_time - $start_time;
+                
+                $duration = round($diff / 3600, 2); // Horas con 2 decimales
+            }
+            
+            $row = array(
+                $entry->id,
+                $entry->display_name,
+                $entry->clock_in,
+                $entry->clock_out,
+                $duration,
+                $entry->clock_in_note,
+                $entry->clock_out_note,
+                $entry->status,
+                $entry->admin_note
+            );
+            
+            fputcsv($fp, $row);
+        }
+        
+        fclose($fp);
+        
+        // Generar URL para descargar
+        $file_url = $upload_dir['url'] . '/' . $filename;
+        
+        // Respuesta exitosa
+        wp_send_json_success(array(
+            'file_url' => $file_url,
+            'filename' => $filename
+        ));
+    } else {
+        // Si está instalada PhpSpreadsheet, crear Excel completo
+        require_once WORKER_PORTAL_PATH . 'vendor/autoload.php';
+        
+        $spreadsheet = new \PhpOffice\PhpSpreadsheet\Spreadsheet();
+        $sheet = $spreadsheet->getActiveSheet();
+        
+        // Configurar encabezados
+        $sheet->setCellValue('A1', 'ID');
+        $sheet->setCellValue('B1', __('Usuario', 'worker-portal'));
+        $sheet->setCellValue('C1', __('Entrada', 'worker-portal'));
+        $sheet->setCellValue('D1', __('Salida', 'worker-portal'));
+        $sheet->setCellValue('E1', __('Duración (horas)', 'worker-portal'));
+        $sheet->setCellValue('F1', __('Nota Entrada', 'worker-portal'));
+        $sheet->setCellValue('G1', __('Nota Salida', 'worker-portal'));
+        $sheet->setCellValue('H1', __('Estado', 'worker-portal'));
+        $sheet->setCellValue('I1', __('Nota Admin', 'worker-portal'));
+        
+        // Dar formato a la fila de encabezados
+        $sheet->getStyle('A1:I1')->getFont()->setBold(true);
+        $sheet->getStyle('A1:I1')->getFill()->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID);
+        $sheet->getStyle('A1:I1')->getFill()->getStartColor()->setARGB('FF5DADE2');
+        
+        // Rellenar datos
+        $row = 2;
+        foreach ($entries as $entry) {
+            // Calcular duración
+            $duration = '';
+            if (!empty($entry->clock_out)) {
+                $start_time = strtotime($entry->clock_in);
+                $end_time = strtotime($entry->clock_out);
+                $diff = $end_time - $start_time;
+                
+                $duration = round($diff / 3600, 2); // Horas con 2 decimales
+            }
+            
+            $sheet->setCellValue('A' . $row, $entry->id);
+            $sheet->setCellValue('B' . $row, $entry->display_name);
+            $sheet->setCellValue('C' . $row, $entry->clock_in);
+            $sheet->setCellValue('D' . $row, $entry->clock_out);
+            $sheet->setCellValue('E' . $row, $duration);
+            $sheet->setCellValue('F' . $row, $entry->clock_in_note);
+            $sheet->setCellValue('G' . $row, $entry->clock_out_note);
+            $sheet->setCellValue('H' . $row, $entry->status);
+            $sheet->setCellValue('I' . $row, $entry->admin_note);
+            
+            $row++;
+        }
+        
+        // Ajustar anchos de columna automáticamente
+        foreach (range('A', 'I') as $column) {
+            $sheet->getColumnDimension($column)->setAutoSize(true);
+        }
+        
+        // Guardar archivo
+        $filename = 'fichajes_' . date('Y-m-d') . '.xlsx';
+        $upload_dir = wp_upload_dir();
+        $filepath = $upload_dir['path'] . '/' . $filename;
+        
+        $writer = new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($spreadsheet);
+        $writer->save($filepath);
+        
+        // Generar URL para descargar
+        $file_url = $upload_dir['url'] . '/' . $filename;
+        
+        // Respuesta exitosa
+        wp_send_json_success(array(
+            'file_url' => $file_url,
+            'filename' => $filename
+        ));
+    }
+}
+
+
+
+
+
+
+
+
+
+
+
+/**
  * Renderiza shortcode de calendario
  *
  * @since    1.0.0
@@ -297,6 +1009,15 @@ public function add_ajax_hooks() {
     add_action('wp_ajax_admin_delete_document', array($this, 'ajax_admin_delete_document'));
     add_action('wp_ajax_admin_get_document_details', array($this, 'ajax_admin_get_document_details'));
     add_action('wp_ajax_admin_save_document_settings', array($this, 'ajax_admin_save_document_settings'));
+
+
+// Hooks para la gestión de fichajes en el frontend
+add_action('wp_ajax_admin_load_timeclock_entries', array($this, 'ajax_admin_load_timeclock_entries'));
+add_action('wp_ajax_admin_get_timeclock_entry', array($this, 'ajax_admin_get_timeclock_entry'));
+add_action('wp_ajax_admin_update_timeclock_entry', array($this, 'ajax_admin_update_timeclock_entry'));
+add_action('wp_ajax_admin_register_exit', array($this, 'ajax_admin_register_exit'));
+add_action('wp_ajax_admin_register_all_exits', array($this, 'ajax_admin_register_all_exits'));
+add_action('wp_ajax_admin_export_timeclock_data', array($this, 'ajax_admin_export_timeclock_data'));
 
     // Registrar el manejador AJAX para documentos
     require_once WORKER_PORTAL_PATH . 'modules/documents/documents-ajax-handler.php';
