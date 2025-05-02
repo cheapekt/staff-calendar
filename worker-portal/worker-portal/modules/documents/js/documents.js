@@ -14,6 +14,7 @@
       this.setupPagination();
       this.setupDocumentActions();
       this.setupModals();
+      this.setupFormSubmission(); // Nueva función añadida
     },
 
     /**
@@ -228,6 +229,96 @@
           $(".worker-portal-modal").fadeOut();
         }
       });
+    },
+
+    /**
+     * Configurar el envío del formulario de documentos
+     * NUEVA FUNCIÓN PARA SOLUCIONAR EL PROBLEMA DE SUBIDA DE DOCUMENTOS
+     */
+    setupFormSubmission: function () {
+      // Asegurarnos de que el formulario existe antes de añadir el handler
+      if ($("#upload-document-form").length > 0) {
+        $("#upload-document-form").on("submit", function (e) {
+          e.preventDefault();
+
+          var formData = new FormData(this);
+          formData.append("action", "admin_upload_document");
+
+          // Asegurar que estamos usando el nonce correcto
+          var nonce = $(this).find("input[name='nonce']").val();
+          if (!nonce) {
+            // Alternativa si el nonce del formulario no está disponible
+            nonce =
+              $("#documents-list-container").data("nonce") ||
+              workerPortalDocuments.nonce;
+          }
+          formData.append("nonce", nonce);
+
+          // Verificar que se ha seleccionado un archivo
+          if (!$("#document-file")[0].files.length) {
+            alert("Por favor, selecciona un archivo PDF.");
+            return;
+          }
+
+          // Verificar que se ha seleccionado al menos un usuario
+          var users = $("#document-users").val();
+          if (!users || users.length === 0) {
+            alert("Por favor, selecciona al menos un destinatario.");
+            return;
+          }
+
+          $.ajax({
+            url: workerPortalDocuments.ajax_url,
+            type: "POST",
+            data: formData,
+            contentType: false,
+            processData: false,
+            beforeSend: function () {
+              $(this)
+                .find("button[type=submit]")
+                .prop("disabled", true)
+                .html(
+                  '<i class="dashicons dashicons-update-alt spinning"></i> Subiendo...'
+                );
+            }.bind(this),
+            success: function (response) {
+              if (response.success) {
+                alert(
+                  response.data.message || "Documento subido correctamente"
+                );
+                this.reset();
+
+                // Cambiar a la pestaña de lista de documentos si estamos en vista de admin
+                if (
+                  $('.worker-portal-subtab-link[data-subtab="doc-list"]').length
+                ) {
+                  $(
+                    '.worker-portal-subtab-link[data-subtab="doc-list"]'
+                  ).click();
+                } else {
+                  // Recargar la página actual para mostrar el nuevo documento
+                  window.location.reload();
+                }
+              } else {
+                alert(response.data || "Error al subir el documento");
+              }
+            }.bind(this),
+            error: function () {
+              alert(
+                "Ha ocurrido un error al subir el documento. Por favor, inténtalo de nuevo."
+              );
+            },
+            complete: function () {
+              $(this)
+                .find("button[type=submit]")
+                .prop("disabled", false)
+                .html(
+                  '<i class="dashicons dashicons-upload"></i> Subir Documento'
+                );
+            }.bind(this),
+          });
+        });
+      }
     },
   };
 
