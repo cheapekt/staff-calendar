@@ -600,7 +600,7 @@ class Worker_Portal_Module_Incentives {
      */
     public function ajax_admin_add_incentive() {
         // Verificar nonce
-        if (!isset($_POST['nonce']) || !wp_verify_nonce($_POST['nonce'], 'worker_portal_admin_nonce')) {
+        if (!isset($_POST['nonce']) || !wp_verify_nonce($_POST['nonce'], 'worker_portal_incentives_nonce')) {
             wp_send_json_error(__('Error de seguridad. Por favor, recarga la página.', 'worker-portal'));
         }
         

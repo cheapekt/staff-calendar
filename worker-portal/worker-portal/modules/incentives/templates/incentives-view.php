@@ -36,6 +36,7 @@ $is_admin = Worker_Portal_Utils::is_portal_admin();
             <h3><?php _e('Añadir Incentivo', 'worker-portal'); ?></h3>
             
             <form id="add-incentive-form" class="worker-portal-form">
+                    <input type="hidden" id="incentive_nonce" name="nonce" value="<?php echo wp_create_nonce('worker_portal_incentives_nonce'); ?>">
                 <div class="worker-portal-form-row">
                     <div class="worker-portal-form-group">
                         <label for="incentive-user-id"><?php _e('Trabajador:', 'worker-portal'); ?></label>
@@ -75,6 +76,7 @@ $is_admin = Worker_Portal_Utils::is_portal_admin();
                 <input type="hidden" id="incentive-worksheet-id" name="worksheet_id" value="0">
                 
                 <div class="worker-portal-form-actions">
+                    <input type="hidden" name="nonce" value="<?php echo wp_create_nonce('worker_portal_incentives_nonce'); ?>">
                     <button type="submit" class="worker-portal-button worker-portal-button-primary">
                         <i class="dashicons dashicons-plus"></i> <?php _e('Añadir Incentivo', 'worker-portal'); ?>
                     </button>

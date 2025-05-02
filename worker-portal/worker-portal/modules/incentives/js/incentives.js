@@ -164,7 +164,18 @@
       // Obtener datos del formulario
       const formData = new FormData(form[0]);
       formData.append("action", "admin_add_incentive");
-      formData.append("nonce", $("#admin_nonce").val());
+
+      // Asegurarse de que el nonce está incluido
+      if (!formData.has("nonce")) {
+        // Si no existe en el formData, intentar obtenerlo del elemento específico
+        const nonce = $("#incentive_nonce").val();
+        if (nonce) {
+          formData.append("nonce", nonce);
+        } else {
+          // Si aún no hay nonce, intentar usar el nonce general
+          formData.append("nonce", workerPortalIncentives.nonce);
+        }
+      }
 
       // Enviar datos
       $.ajax({

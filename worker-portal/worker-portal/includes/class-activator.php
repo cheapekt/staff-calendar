@@ -95,21 +95,22 @@ class Worker_Portal_Activator {
         
         // Tabla de incentivos
         $table_incentives = $wpdb->prefix . 'worker_incentives';
-        $sql_incentives = "CREATE TABLE IF NOT EXISTS $table_incentives (
-            id bigint(20) NOT NULL AUTO_INCREMENT,
-            user_id bigint(20) NOT NULL,
-            worksheet_id bigint(20) DEFAULT NULL,
-            calculation_date datetime DEFAULT CURRENT_TIMESTAMP,
-            description text NOT NULL,
-            amount decimal(10,2) NOT NULL,
-            status varchar(20) DEFAULT 'pending',
-            approved_by bigint(20) DEFAULT NULL,
-            approved_date datetime DEFAULT NULL,
-            PRIMARY KEY  (id),
-            KEY user_id (user_id),
-            KEY worksheet_id (worksheet_id),
-            KEY status (status)
-        ) $charset_collate;";
+       $sql_incentives = "CREATE TABLE IF NOT EXISTS $table_incentives (
+        id bigint(20) NOT NULL AUTO_INCREMENT,
+        user_id bigint(20) NOT NULL,
+        worksheet_id bigint(20) DEFAULT NULL,
+        incentive_type varchar(50) DEFAULT NULL,
+        calculation_date datetime DEFAULT CURRENT_TIMESTAMP,
+        description text NOT NULL,
+        amount decimal(10,2) NOT NULL,
+        status varchar(20) DEFAULT 'pending',
+        approved_by bigint(20) DEFAULT NULL,
+        approved_date datetime DEFAULT NULL,
+        PRIMARY KEY  (id),
+        KEY user_id (user_id),
+        KEY worksheet_id (worksheet_id),
+        KEY status (status)
+    ) $charset_collate;";
         
         // Tabla de proyectos
         $table_projects = $wpdb->prefix . 'worker_projects';
