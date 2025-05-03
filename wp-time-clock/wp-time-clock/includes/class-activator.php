@@ -32,6 +32,7 @@ class WP_Time_Clock_Activator {
             edited_by bigint(20) DEFAULT NULL,
             edited_at datetime DEFAULT NULL,
             created_at datetime DEFAULT CURRENT_TIMESTAMP,
+            admin_note text DEFAULT NULL,
             PRIMARY KEY  (id),
             KEY user_id (user_id)
         ) $charset_collate;";
