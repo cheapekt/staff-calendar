@@ -686,7 +686,7 @@ Saludos,
                 wp_mail($email, $subject, $message);
             }
         }
-        // Enviar notificación al administrador si está habilitado
+ // Enviar notificación al administrador si está habilitado
         if ($notify_user && get_option('worker_portal_notify_on_profile_update', '1') === '1') {
             $admin_email = get_option('worker_portal_admin_email', get_option('admin_email'));
             
@@ -694,4 +694,355 @@ Saludos,
             
             $message = sprintf(
                 __('Hola,
-%s ha actualizado el perfil del trabajador %s (%s).
+
+Un administrador ha actualizado el perfil del trabajador %s (%s).
+
+Datos actualizados:
+- Nombre: %s %s
+- Email: %s
+- Teléfono: %s
+- Rol: %s
+
+Saludos,
+%s', 'worker-portal'),
+                $user->display_name,
+                $email,
+                $first_name,
+                $last_name,
+                $email,
+                $phone,
+                $role === 'supervisor' ? __('Supervisor', 'worker-portal') : __('Trabajador', 'worker-portal'),
+                get_bloginfo('name')
+            );
+            
+            wp_mail($admin_email, $subject, $message);
+        }
+        
+        wp_send_json_success(array(
+            'message' => __('Datos del trabajador actualizados correctamente.', 'worker-portal')
+        ));
+    }
+    
+    /**
+     * Cambia el estado de un trabajador (activo/inactivo)
+     */
+    public function change_worker_status() {
+        // Verificar nonce
+        check_ajax_referer('worker_admin_nonce', 'nonce');
+        
+        // Verificar permisos
+        if (!Worker_Portal_Utils::is_portal_admin()) {
+            wp_send_json_error(__('No tienes permisos para realizar esta acción.', 'worker-portal'));
+        }
+        
+        // Obtener datos
+        $user_id = isset($_POST['user_id']) ? intval($_POST['user_id']) : 0;
+        $status = isset($_POST['status']) ? sanitize_text_field($_POST['status']) : '';
+        
+        if ($user_id <= 0) {
+            wp_send_json_error(__('ID de usuario no válido.', 'worker-portal'));
+        }
+        
+        if (!in_array($status, array('activate', 'deactivate'))) {
+            wp_send_json_error(__('Estado no válido.', 'worker-portal'));
+        }
+        
+        // Obtener datos del usuario
+        $user = get_userdata($user_id);
+        
+        if (!$user) {
+            wp_send_json_error(__('Usuario no encontrado.', 'worker-portal'));
+        }
+        
+        // Cambiar estado
+        $new_status = $status === 'activate' ? 'active' : 'inactive';
+        update_user_meta($user_id, 'worker_status', $new_status);
+        
+        // Enviar notificación al usuario
+        $subject = sprintf(
+            __('[%s] Tu cuenta ha sido %s', 'worker-portal'),
+            get_bloginfo('name'),
+            $new_status === 'active' ? __('activada', 'worker-portal') : __('desactivada', 'worker-portal')
+        );
+        
+        $message = sprintf(
+            __('Hola %s,
+
+Tu cuenta en el Portal del Trabajador ha sido %s por un administrador.
+
+%s
+
+Saludos,
+%s', 'worker-portal'),
+            $user->display_name,
+            $new_status === 'active' ? __('activada', 'worker-portal') : __('desactivada', 'worker-portal'),
+            $new_status === 'active' ? 
+                __('Ahora puedes acceder normalmente al portal.', 'worker-portal') : 
+                __('Ya no podrás acceder al portal hasta que tu cuenta sea reactivada.', 'worker-portal'),
+            get_bloginfo('name')
+        );
+        
+        wp_mail($user->user_email, $subject, $message);
+        
+        wp_send_json_success(array(
+            'message' => sprintf(
+                __('El trabajador ha sido %s correctamente.', 'worker-portal'),
+                $new_status === 'active' ? __('activado', 'worker-portal') : __('desactivado', 'worker-portal')
+            )
+        ));
+    }
+    
+    /**
+     * Guarda la configuración de trabajadores
+     */
+    public function save_worker_settings() {
+        // Verificar nonce
+        check_ajax_referer('worker_admin_nonce', 'nonce');
+        
+        // Verificar permisos
+        if (!Worker_Portal_Utils::is_portal_admin()) {
+            wp_send_json_error(__('No tienes permisos para realizar esta acción.', 'worker-portal'));
+        }
+        
+        // Obtener y guardar datos
+        $default_role = isset($_POST['default_role']) ? sanitize_text_field($_POST['default_role']) : 'subscriber';
+        $admin_email = isset($_POST['admin_email']) ? sanitize_email($_POST['admin_email']) : '';
+        $notify_on_registration = isset($_POST['notify_on_registration']) && $_POST['notify_on_registration'] === '1' ? '1' : '0';
+        $notify_on_password_change = isset($_POST['notify_on_password_change']) && $_POST['notify_on_password_change'] === '1' ? '1' : '0';
+        $enforce_strong_passwords = isset($_POST['enforce_strong_passwords']) && $_POST['enforce_strong_passwords'] === '1' ? '1' : '0';
+        $password_expiry = isset($_POST['password_expiry']) ? intval($_POST['password_expiry']) : 90;
+        
+        // Validar email
+        if (!empty($admin_email) && !is_email($admin_email)) {
+            wp_send_json_error(__('El email de notificación no es válido.', 'worker-portal'));
+        }
+        
+        // Actualizar opciones
+        update_option('worker_portal_default_role', $default_role);
+        update_option('worker_portal_admin_email', $admin_email);
+        update_option('worker_portal_notify_on_registration', $notify_on_registration);
+        update_option('worker_portal_notify_on_password_change', $notify_on_password_change);
+        update_option('worker_portal_enforce_strong_passwords', $enforce_strong_passwords);
+        update_option('worker_portal_password_expiry', $password_expiry);
+        
+        wp_send_json_success(array(
+            'message' => __('Configuración guardada correctamente.', 'worker-portal')
+        ));
+    }
+    
+    /**
+     * Exporta datos de trabajadores a Excel
+     */
+    public function export_workers() {
+        // Verificar nonce
+        check_ajax_referer('worker_admin_nonce', 'nonce');
+        
+        // Verificar permisos
+        if (!Worker_Portal_Utils::is_portal_admin()) {
+            wp_send_json_error(__('No tienes permisos para realizar esta acción.', 'worker-portal'));
+        }
+        
+        // Obtener filtros
+        $search = isset($_POST['search']) ? sanitize_text_field($_POST['search']) : '';
+        $role = isset($_POST['role']) ? sanitize_text_field($_POST['role']) : '';
+        $status = isset($_POST['status']) ? sanitize_text_field($_POST['status']) : '';
+        
+        // Obtener trabajadores
+        $args = array(
+            'role__not_in' => array('administrator'),
+            'orderby' => 'display_name',
+            'order' => 'ASC',
+            'fields' => 'all_with_meta'
+        );
+        
+        // Aplicar filtro de rol
+        if (!empty($role)) {
+            $args['role'] = $role;
+        }
+        
+        $workers = get_users($args);
+        
+        // Filtrar por búsqueda y estado
+        if (!empty($search) || !empty($status)) {
+            foreach ($workers as $key => $worker) {
+                $worker_data = array(
+                    'username' => $worker->user_login,
+                    'email' => $worker->user_email,
+                    'display_name' => $worker->display_name,
+                    'first_name' => $worker->first_name,
+                    'last_name' => $worker->last_name
+                );
+                
+                // Filtrar por búsqueda
+                if (!empty($search)) {
+                    $found = false;
+                    foreach ($worker_data as $field) {
+                        if (stripos($field, $search) !== false) {
+                            $found = true;
+                            break;
+                        }
+                    }
+                    
+                    if (!$found) {
+                        unset($workers[$key]);
+                        continue;
+                    }
+                }
+                
+                // Filtrar por estado
+                if (!empty($status)) {
+                    $worker_status = get_user_meta($worker->ID, 'worker_status', true);
+                    if (empty($worker_status)) {
+                        $worker_status = 'active'; // Por defecto activo
+                    }
+                    
+                    if (($status === 'active' && $worker_status !== 'active') ||
+                        ($status === 'inactive' && $worker_status !== 'inactive')) {
+                        unset($workers[$key]);
+                    }
+                }
+            }
+        }
+        
+        // Si no hay trabajadores, mostrar error
+        if (empty($workers)) {
+            wp_send_json_error(__('No hay trabajadores con los criterios seleccionados.', 'worker-portal'));
+        }
+        
+        // Crear archivo CSV
+        $filename = 'trabajadores_' . date('Y-m-d') . '.csv';
+        $upload_dir = wp_upload_dir();
+        $filepath = $upload_dir['path'] . '/' . $filename;
+        
+        $fp = fopen($filepath, 'w');
+        
+        // Encabezados
+        fputcsv($fp, array(
+            __('NIF/NIE', 'worker-portal'),
+            __('Nombre', 'worker-portal'),
+            __('Apellidos', 'worker-portal'),
+            __('Email', 'worker-portal'),
+            __('Teléfono', 'worker-portal'),
+            __('Dirección', 'worker-portal'),
+            __('Rol', 'worker-portal'),
+            __('Estado', 'worker-portal'),
+            __('Fecha de registro', 'worker-portal'),
+            __('Último acceso', 'worker-portal')
+        ));
+        
+        // Datos
+        foreach ($workers as $worker) {
+            $status = get_user_meta($worker->ID, 'worker_status', true);
+            if (empty($status)) {
+                $status = 'active'; // Por defecto activo
+            }
+            
+            $role = in_array('supervisor', $worker->roles) ? __('Supervisor', 'worker-portal') : __('Trabajador', 'worker-portal');
+            
+            $registration_date = get_user_meta($worker->ID, 'registration_date', true);
+            if (empty($registration_date)) {
+                $registration_date = $worker->user_registered;
+            }
+            
+            $last_login = get_user_meta($worker->ID, 'last_login', true);
+            
+            fputcsv($fp, array(
+                get_user_meta($worker->ID, 'nif', true),
+                $worker->first_name,
+                $worker->last_name,
+                $worker->user_email,
+                get_user_meta($worker->ID, 'phone', true),
+                get_user_meta($worker->ID, 'address', true),
+                $role,
+                $status === 'active' ? __('Activo', 'worker-portal') : __('Inactivo', 'worker-portal'),
+                $registration_date,
+                $last_login
+            ));
+        }
+        
+        fclose($fp);
+        
+        // Devolver URL del archivo
+        wp_send_json_success(array(
+            'file_url' => $upload_dir['url'] . '/' . $filename,
+            'filename' => $filename
+        ));
+    }
+    
+    /**
+     * Restablece la contraseña de un trabajador
+     */
+    public function reset_worker_password() {
+        // Verificar nonce
+        check_ajax_referer('worker_admin_nonce', 'nonce');
+        
+        // Verificar permisos
+        if (!Worker_Portal_Utils::is_portal_admin()) {
+            wp_send_json_error(__('No tienes permisos para realizar esta acción.', 'worker-portal'));
+        }
+        
+        // Obtener datos
+        $user_id = isset($_POST['user_id']) ? intval($_POST['user_id']) : 0;
+        $password = isset($_POST['password']) ? $_POST['password'] : '';
+        
+        if ($user_id <= 0) {
+            wp_send_json_error(__('ID de usuario no válido.', 'worker-portal'));
+        }
+        
+        if (empty($password)) {
+            wp_send_json_error(__('La contraseña no puede estar vacía.', 'worker-portal'));
+        }
+        
+        // Obtener datos del usuario
+        $user = get_userdata($user_id);
+        
+        if (!$user) {
+            wp_send_json_error(__('Usuario no encontrado.', 'worker-portal'));
+        }
+        
+        // Validar fortaleza de contraseña si está habilitado
+        if (get_option('worker_portal_enforce_strong_passwords', '1') === '1') {
+            if (strlen($password) < 8 || 
+                !preg_match('/[A-Z]/', $password) || 
+                !preg_match('/[a-z]/', $password) || 
+                !preg_match('/[0-9]/', $password) || 
+                !preg_match('/[!,%,&,@,#,$,^,*,?,_,~]/', $password)) {
+                
+                wp_send_json_error(__('La contraseña debe tener al menos 8 caracteres e incluir mayúsculas, minúsculas, números y símbolos.', 'worker-portal'));
+            }
+        }
+        
+        // Actualizar contraseña
+        wp_set_password($password, $user_id);
+        
+        // Enviar notificación al usuario si está habilitado
+        if (get_option('worker_portal_notify_on_password_change', '1') === '1') {
+            $subject = sprintf(__('[%s] Tu contraseña ha sido restablecida', 'worker-portal'), get_bloginfo('name'));
+            
+            $message = sprintf(
+                __('Hola %s,
+
+Un administrador ha restablecido tu contraseña en el Portal del Trabajador.
+
+Tu nueva contraseña es: %s
+
+Te recomendamos cambiarla por una de tu elección la próxima vez que inicies sesión.
+
+Saludos,
+%s', 'worker-portal'),
+                $user->display_name,
+                $password,
+                get_bloginfo('name')
+            );
+            
+            wp_mail($user->user_email, $subject, $message);
+        }
+        
+        // Registrar fecha de cambio de contraseña
+        update_user_meta($user_id, 'password_changed_date', current_time('mysql'));
+        
+        wp_send_json_success(array(
+            'message' => __('Contraseña restablecida correctamente.', 'worker-portal')
+        ));
+    }
+}       
