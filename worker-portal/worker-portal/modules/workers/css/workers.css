@@ -1,0 +1,341 @@
+/* Estilos para el perfil del trabajador */
+.worker-portal-profile {
+  margin-bottom: 30px;
+}
+
+.worker-portal-profile-section {
+  margin-bottom: 30px;
+  background-color: #fff;
+  border-radius: 5px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+}
+
+.worker-portal-profile-section h3 {
+  padding: 15px 20px;
+  margin: 0;
+  background-color: #f8f8f8;
+  border-bottom: 1px solid #e2e4e7;
+  font-size: 16px;
+  display: flex;
+  align-items: center;
+}
+
+.worker-portal-profile-section h3 .dashicons {
+  margin-right: 10px;
+  color: #2271b1;
+}
+
+.worker-portal-profile-card {
+  padding: 20px;
+}
+
+.worker-portal-profile-header {
+  display: flex;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.worker-portal-profile-avatar {
+  margin-right: 30px;
+}
+
+.worker-portal-profile-avatar img {
+  border-radius: 50%;
+  border: 4px solid #f0f0f0;
+}
+
+.worker-portal-profile-info h4 {
+  margin: 0 0 5px 0;
+  font-size: 24px;
+  font-weight: 600;
+  color: #2271b1;
+}
+
+.worker-portal-profile-role {
+  margin: 0 0 10px 0;
+  padding: 3px 10px;
+  display: inline-block;
+  background-color: #f0f6fc;
+  color: #2271b1;
+  border-radius: 15px;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.worker-portal-profile-email {
+  display: flex;
+  align-items: center;
+  margin: 0;
+  color: #666;
+}
+
+.worker-portal-profile-email .dashicons {
+  margin-right: 5px;
+  font-size: 16px;
+  width: 16px;
+  height: 16px;
+}
+
+.worker-portal-profile-details {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 15px;
+  margin-bottom: 20px;
+}
+
+.worker-portal-profile-detail-item {
+  border-bottom: 1px solid #f0f0f0;
+  padding-bottom: 10px;
+}
+
+.worker-portal-profile-detail-label {
+  font-weight: 600;
+  color: #555;
+  display: inline-block;
+  width: 100px;
+}
+
+.worker-portal-profile-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+/* Estadísticas */
+.worker-portal-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 20px;
+  padding: 20px;
+}
+
+.worker-portal-stat-card {
+  display: flex;
+  background-color: #fff;
+  border-radius: 5px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  border: 1px solid #e2e4e7;
+  padding: 15px;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.worker-portal-stat-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.worker-portal-stat-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 50px;
+  height: 50px;
+  border-radius: 10px;
+  margin-right: 15px;
+}
+
+.worker-portal-stat-icon .dashicons {
+  font-size: 24px;
+  width: 24px;
+  height: 24px;
+  color: white;
+}
+
+.worker-portal-stat-icon.documents-icon {
+  background-color: #4b66a0;
+}
+
+.worker-portal-stat-icon.expenses-icon {
+  background-color: #996800;
+}
+/* Estilos para la gestión de trabajadores */
+
+/* Tabla de trabajadores */
+.worker-portal-worker-info {
+  display: flex;
+  align-items: center;
+}
+
+.worker-portal-worker-info img {
+  border-radius: 50%;
+  margin-right: 10px;
+}
+
+.worker-portal-worker-name {
+  display: flex;
+  flex-direction: column;
+}
+
+.worker-portal-worker-fullname {
+  font-size: 12px;
+  color: #666;
+}
+
+.worker-portal-text-muted {
+  color: #999;
+  font-style: italic;
+}
+
+/* Fila de trabajador inactivo */
+.worker-inactive {
+  background-color: #f9f9f9;
+  opacity: 0.7;
+}
+
+.worker-inactive:hover {
+  opacity: 0.9;
+}
+
+/* Mejoras para el perfil del trabajador */
+.worker-portal-profile-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 20px;
+  margin-bottom: 20px;
+}
+
+.worker-portal-profile-stat {
+  background-color: #fff;
+  border-radius: 5px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  padding: 15px;
+  text-align: center;
+}
+
+.worker-portal-profile-stat-value {
+  font-size: 24px;
+  font-weight: 600;
+  color: #2271b1;
+  margin-bottom: 5px;
+}
+
+.worker-portal-profile-stat-label {
+  color: #666;
+  font-size: 14px;
+}
+
+/* Mejoras para las fichas de actividad */
+.worker-portal-activity-card {
+  background-color: #fff;
+  border-radius: 5px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  margin-bottom: 15px;
+  padding: 15px;
+}
+
+.worker-portal-activity-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+  border-bottom: 1px solid #f0f0f0;
+  padding-bottom: 10px;
+}
+
+.worker-portal-activity-title {
+  font-weight: 600;
+  color: #2271b1;
+  margin: 0;
+}
+
+.worker-portal-activity-date {
+  color: #666;
+  font-size: 13px;
+}
+
+.worker-portal-activity-content {
+  color: #333;
+}
+
+.worker-portal-activity-content p:last-child {
+  margin-bottom: 0;
+}
+
+.worker-portal-activity-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-top: 1px solid #f0f0f0;
+  margin-top: 10px;
+  padding-top: 10px;
+  font-size: 13px;
+  color: #666;
+}
+
+/* Columna lateral en detalle de trabajador */
+.worker-portal-worker-detail-grid {
+  display: grid;
+  grid-template-columns: 3fr 2fr;
+  gap: 20px;
+}
+
+@media (max-width: 768px) {
+  .worker-portal-worker-detail-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.worker-portal-worker-sidebar {
+  background-color: #f9f9f9;
+  border-radius: 5px;
+  padding: 15px;
+}
+
+.worker-portal-worker-sidebar h3 {
+  margin-top: 0;
+  border-bottom: 1px solid #e2e4e7;
+  padding-bottom: 10px;
+  font-size: 16px;
+}
+
+/* Indicador de fortaleza de contraseña */
+.password-strength-meter {
+  margin-top: 5px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+/* Medidores y gráficos */
+.worker-portal-stat-chart {
+  margin-top: 15px;
+  height: 200px;
+  position: relative;
+}
+
+/* Estilos específicos para las tarjetas de estadísticas */
+.worker-portal-stat-icon.documents-icon {
+  background-color: #4b66a0;
+}
+
+.worker-portal-stat-icon.expenses-icon {
+  background-color: #996800;
+}
+
+.worker-portal-stat-icon.worksheets-icon {
+  background-color: #0078a7;
+}
+
+.worker-portal-stat-icon.incentives-icon {
+  background-color: #a05a90;
+}
+
+/* Estilos para las acciones de la tabla de trabajadores */
+.worker-portal-actions {
+  display: flex;
+  gap: 5px;
+}
+
+/* Botones de acción */
+.worker-portal-button-success {
+  background-color: #46b450;
+  border-color: #46b450;
+  color: #fff;
+}
+
+.worker-portal-button-success:hover {
+  background-color: #389e41;
+  border-color: #389e41;
+  color: #fff;
+}
