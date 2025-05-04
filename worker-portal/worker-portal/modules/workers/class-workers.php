@@ -48,7 +48,8 @@ class Worker_Portal_Module_Workers {
         add_action('wp_enqueue_scripts', array($this, 'enqueue_scripts'));
         
         // Registrar shortcodes
-        add_shortcode('worker_profile', array($this, 'render_profile_shortcode'));
+       add_shortcode('worker_profile', array($this, 'render_profile_shortcode'));
+        add_shortcode('worker_admin_panel', array($this, 'render_admin_panel_shortcode')); 
         
         // Añadir panel de administración
         if (is_admin()) {
@@ -175,5 +176,30 @@ class Worker_Portal_Module_Workers {
      */
     public function record_user_login($user_login, $user) {
         update_user_meta($user->ID, 'last_login', current_time('mysql'));
+    }
+
+    /**
+     * Renderiza el panel de administración de trabajadores
+     *
+     * @since    1.0.0
+     * @param    array    $atts    Atributos del shortcode
+     * @return   string            HTML generado
+     */
+    public function render_admin_panel_shortcode($atts) {
+        // Verificar permisos
+        if (!Worker_Portal_Utils::is_portal_admin()) {
+            return '<div class="worker-portal-error">' . 
+                __('No tienes permisos para gestionar trabajadores.', 'worker-portal') . 
+                '</div>';
+        }
+        
+        // Iniciar buffer de salida
+        ob_start();
+        
+        // Incluir plantilla
+        include(plugin_dir_path(__FILE__) . 'templates/admin-page.php');
+        
+        // Retornar contenido
+        return ob_get_clean();
     }
 }

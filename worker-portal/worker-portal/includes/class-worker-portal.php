@@ -71,7 +71,8 @@ class Worker_Portal {
             'documents',
             'expenses',
             'worksheets',
-            'incentives'
+            'incentives',
+            'workers'
         );
 
         foreach ($modules as $module) {

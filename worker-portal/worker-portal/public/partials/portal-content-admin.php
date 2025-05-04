@@ -794,9 +794,10 @@ if (!defined('ABSPATH')) {
         
         <div id="tab-workers" class="worker-portal-tab-content">
             <h2><?php _e('Gestión de Trabajadores', 'worker-portal'); ?></h2>
-            <div class="worker-portal-coming-soon">
-                <p><?php _e('La funcionalidad completa de gestión de trabajadores estará disponible próximamente.', 'worker-portal'); ?></p>
-            </div>
+            <?php 
+            // Cargar el contenido del módulo de trabajadores mediante un shortcode
+    include(WORKER_PORTAL_PATH . 'modules/workers/templates/admin-page.php');
+            ?>
         </div>
         <!-- Calendario -->
         <div id="tab-calendar" class="worker-portal-tab-content">
