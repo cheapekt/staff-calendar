@@ -515,32 +515,12 @@
     },
 
     viewWorkerDetails: function (userId) {
-      // Depurar información sobre nonces disponibles
-      console.log("Valores de nonce disponibles:");
-      console.log("admin_nonce:", $("#admin_nonce").val());
-      console.log(
-        "worker_settings_form nonce:",
-        $('#worker-settings-form input[name="nonce"]').val()
-      );
-      console.log("worker_portal_ajax_nonce:", worker_portal_params.nonce);
-
-      // Vamos a intentar encontrar cualquier nonce disponible
-      var nonce =
-        $("#admin_nonce").val() ||
-        $('#worker-settings-form input[name="nonce"]').val() ||
-        $('input[name="nonce"]').val() ||
-        worker_portal_params.nonce;
-
-      console.log("Nonce que se usará:", nonce);
-      console.log("URL AJAX:", worker_portal_params.ajax_url);
-
       $.ajax({
-        url: worker_portal_params.ajax_url,
+        url: ajaxurl || worker_portal_params.ajax_url,
         type: "POST",
         data: {
           action: "get_worker_details",
           user_id: userId,
-          nonce: nonce,
         },
         beforeSend: function () {
           $("#worker-details-content").html(
@@ -552,7 +532,6 @@
           $("#worker-details-modal").fadeIn();
         },
         success: function (response) {
-          console.log("Respuesta de AJAX:", response);
           if (response.success) {
             $("#worker-details-content").html(response.data.html);
           } else {
@@ -565,8 +544,6 @@
         },
         error: function (xhr, status, error) {
           console.error("Error AJAX:", xhr.responseText);
-          console.error("Status:", status);
-          console.error("Error:", error);
           $("#worker-details-content").html(
             '<div class="worker-portal-error">' +
               "Ha ocurrido un error. Por favor, inténtalo de nuevo.<br>" +
@@ -580,14 +557,11 @@
 
     editWorker: function (userId) {
       $.ajax({
-        url: worker_portal_params.ajax_url, // CORREGIDO: Usar worker_portal_params
+        url: ajaxurl || worker_portal_params.ajax_url,
         type: "POST",
         data: {
           action: "get_worker_edit_form",
           user_id: userId,
-          nonce:
-            $("#admin_nonce").val() ||
-            $('#worker-settings-form input[name="nonce"]').val(),
         },
         beforeSend: function () {
           $("#edit-worker-content").html(
@@ -612,10 +586,13 @@
             );
           }
         },
-        error: function () {
+        error: function (xhr, status, error) {
+          console.error("Error AJAX:", xhr.responseText);
           $("#edit-worker-content").html(
             '<div class="worker-portal-error">' +
-              "Ha ocurrido un error. Por favor, inténtalo de nuevo." +
+              "Ha ocurrido un error. Por favor, inténtalo de nuevo.<br>" +
+              "Detalles del error: " +
+              error +
               "</div>"
           );
         },

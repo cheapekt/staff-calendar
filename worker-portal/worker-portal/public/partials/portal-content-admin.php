@@ -1037,6 +1037,7 @@ if (!defined('ABSPATH')) {
 </div>
 
 <input type="hidden" id="admin_nonce" value="<?php echo wp_create_nonce('worker_portal_ajax_nonce'); ?>">
+<input type="hidden" id="worker_portal_nonce" value="<?php echo wp_create_nonce('worker_portal_ajax_nonce'); ?>">
 
 <script type="text/javascript">
 var ajaxurl = "<?php echo admin_url('admin-ajax.php'); ?>";
@@ -1942,4 +1943,7 @@ jQuery(document).ready(function($) {
         }
     });
 });
+</script>
+<script type="text/javascript">
+var ajaxurl = "<?php echo admin_url('admin-ajax.php'); ?>";
 </script>

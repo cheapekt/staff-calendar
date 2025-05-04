@@ -55,6 +55,8 @@ function run_worker_portal() {
     $plugin->run();
         // Cargar integraciones
     require_once WORKER_PORTAL_PATH . 'includes/integrations.php';
+        require_once WORKER_PORTAL_PATH . 'modules/workers/workers-ajax-handler.php';
+            new Worker_Portal_Worker_Ajax_Handler();
 }
 
 require_once WORKER_PORTAL_PATH . 'includes/integrations/calendario-sync.php';
