@@ -51,6 +51,15 @@ class Worker_Portal_Public {
                 WORKER_PORTAL_VERSION,
                 'all'
             );
+
+            // Cargar estilos del módulo de trabajadores
+            wp_enqueue_style(
+                'worker-portal-workers',
+                WORKER_PORTAL_URL . 'modules/workers/css/workers.css',
+                array('worker-portal-public'),
+                WORKER_PORTAL_VERSION,
+                'all'
+            );
         }
     }
 
@@ -59,164 +68,231 @@ class Worker_Portal_Public {
      *
      * @since    1.0.0
      */
-public function enqueue_scripts() {
-    // Cargar utilidades
-    require_once WORKER_PORTAL_PATH . 'includes/class-utils.php';
-    
-    // Cargar librería jQuery si no está cargada
-    wp_enqueue_script('jquery');
-    
-    // Cargar dashicons
-    wp_enqueue_style('dashicons');
-    
-    // Scripts generales del portal
-    wp_enqueue_script(
-        'worker-portal-public',
-        WORKER_PORTAL_URL . 'public/js/public-script.js',
-        array('jquery'),
-        WORKER_PORTAL_VERSION,
-        true
-    );
-    
-    // Localizar script de portal
-    wp_localize_script(
-        'worker-portal-public',
-        'worker_portal_params',
-        array(
-            'ajax_url' => admin_url('admin-ajax.php'),
-            'nonce' => wp_create_nonce('worker_portal_ajax_nonce')
-        )
-    );
-    
-    // Scripts específicos según el rol
-    if (Worker_Portal_Utils::is_portal_admin()) {
-        // Scripts para la interfaz de administrador
+    public function enqueue_scripts() {
+        // Cargar utilidades
+        require_once WORKER_PORTAL_PATH . 'includes/class-utils.php';
+        
+        // Cargar librería jQuery si no está cargada
+        wp_enqueue_script('jquery');
+        
+        // Cargar dashicons
+        wp_enqueue_style('dashicons');
+        
+        // Scripts generales del portal
         wp_enqueue_script(
-            'worker-portal-admin-frontend',
-            WORKER_PORTAL_URL . 'public/js/admin-frontend-script.js',
-            array('jquery', 'worker-portal-public'),
+            'worker-portal-public',
+            WORKER_PORTAL_URL . 'public/js/public-script.js',
+            array('jquery'),
             WORKER_PORTAL_VERSION,
             true
         );
         
-        // MOVER A AQUÍ: Localizar script de admin frontend (después de registrarlo)
+        // Localizar script de portal
         wp_localize_script(
-            'worker-portal-admin-frontend',
+            'worker-portal-public',
             'worker_portal_params',
             array(
                 'ajax_url' => admin_url('admin-ajax.php'),
                 'nonce' => wp_create_nonce('worker_portal_ajax_nonce')
             )
         );
-    } else {
-        // Scripts específicos para trabajadores
-        wp_enqueue_script(
-            'worker-portal-expenses',
-            WORKER_PORTAL_URL . 'modules/expenses/js/expenses.js',
-            array('jquery'),
-            WORKER_PORTAL_VERSION,
-            true
-        );
         
-        // Localizar script de gastos
-        wp_localize_script(
-            'worker-portal-expenses',
-            'workerPortalExpenses',
-            array(
-                'ajax_url' => admin_url('admin-ajax.php'),
-                'nonce' => wp_create_nonce('worker_portal_expenses_nonce'),
-                'i18n' => array(
-                    'confirm_delete' => __('¿Estás seguro de que deseas eliminar este gasto?', 'worker-portal'),
-                    'error' => __('Ha ocurrido un error. Por favor, inténtalo de nuevo.', 'worker-portal'),
-                    'success' => __('Operación completada con éxito.', 'worker-portal')
+        // Scripts específicos según el rol
+        if (Worker_Portal_Utils::is_portal_admin()) {
+            // Scripts para la interfaz de administrador
+            wp_enqueue_script(
+                'worker-portal-admin-frontend',
+                WORKER_PORTAL_URL . 'public/js/admin-frontend-script.js',
+                array('jquery', 'worker-portal-public'),
+                WORKER_PORTAL_VERSION,
+                true
+            );
+            
+            // Localizar script de admin frontend con nombre diferente
+            wp_localize_script(
+                'worker-portal-admin-frontend',
+                'worker_portal_admin_params', // Nombre cambiado para evitar conflictos
+                array(
+                    'ajax_url' => admin_url('admin-ajax.php'),
+                    'nonce' => wp_create_nonce('worker_portal_ajax_nonce')
                 )
-            )
-        );
-    }
-    
-    // Si estamos en la página del portal y el módulo de documentos está activo
-    if (is_page('portal-del-trabajador') || has_shortcode(get_the_content(), 'worker_portal')) {
-        // Registrar estilos y scripts de documentos
-        wp_enqueue_style(
-            'worker-portal-documents',
-            WORKER_PORTAL_URL . 'modules/documents/css/documents.css',
-            array('worker-portal-public'),
-            WORKER_PORTAL_VERSION
-        );
-        
-        wp_enqueue_script(
-            'worker-portal-documents',
-            WORKER_PORTAL_URL . 'modules/documents/js/documents.js',
-            array('jquery'),
-            WORKER_PORTAL_VERSION,
-            true
-        );
-        
-        // Localizar script con variables necesarias
-        wp_localize_script(
-            'worker-portal-documents',
-            'workerPortalDocuments',
-            array(
-                'ajax_url' => admin_url('admin-ajax.php'),
-                'nonce' => wp_create_nonce('worker_portal_documents_nonce'),
-                'is_admin' => Worker_Portal_Utils::is_portal_admin() ? 'true' : 'false',
-                'i18n' => array(
-                    'error' => __('Ha ocurrido un error. Por favor, inténtalo de nuevo.', 'worker-portal'),
-                    'success' => __('Operación completada con éxito.', 'worker-portal'),
-                    'loading' => __('Cargando...', 'worker-portal'),
-                    'no_documents' => __('No hay documentos disponibles.', 'worker-portal'),
-                    'confirm_delete' => __('¿Estás seguro de eliminar este documento? Esta acción no se puede deshacer.', 'worker-portal')
+            );
+            
+            // Cargar script del módulo de trabajadores
+            wp_enqueue_script(
+                'worker-portal-workers',
+                WORKER_PORTAL_URL . 'modules/workers/js/workers.js',
+                array('jquery', 'worker-portal-admin-frontend'),
+                WORKER_PORTAL_VERSION,
+                true
+            );
+            
+            // Localizar script de trabajadores
+            wp_localize_script(
+                'worker-portal-workers',
+                'worker_portal_workers_params',
+                array(
+                    'ajax_url' => admin_url('admin-ajax.php'),
+                    'nonce' => wp_create_nonce('worker_portal_workers_nonce')
                 )
-            )
-        );
-    }
-    // Cargar scripts y estilos para el calendario si está activo
-    if (shortcode_exists('staff_calendar')) {
-        // Vamos a cargar los scripts del calendario cuando se necesiten
-        add_action('wp_footer', function() {
+            );
+        } else {
+            // Scripts específicos para trabajadores
+            wp_enqueue_script(
+                'worker-portal-expenses',
+                WORKER_PORTAL_URL . 'modules/expenses/js/expenses.js',
+                array('jquery'),
+                WORKER_PORTAL_VERSION,
+                true
+            );
+            
+            // Localizar script de gastos
+            wp_localize_script(
+                'worker-portal-expenses',
+                'workerPortalExpenses',
+                array(
+                    'ajax_url' => admin_url('admin-ajax.php'),
+                    'nonce' => wp_create_nonce('worker_portal_expenses_nonce'),
+                    'i18n' => array(
+                        'confirm_delete' => __('¿Estás seguro de que deseas eliminar este gasto?', 'worker-portal'),
+                        'error' => __('Ha ocurrido un error. Por favor, inténtalo de nuevo.', 'worker-portal'),
+                        'success' => __('Operación completada con éxito.', 'worker-portal')
+                    )
+                )
+            );
+        }
+        
+        // Si estamos en la página del portal y el módulo de documentos está activo
+        if (is_page('portal-del-trabajador') || has_shortcode(get_the_content(), 'worker_portal')) {
+            // Registrar estilos y scripts de documentos
+            wp_enqueue_style(
+                'worker-portal-documents',
+                WORKER_PORTAL_URL . 'modules/documents/css/documents.css',
+                array('worker-portal-public'),
+                WORKER_PORTAL_VERSION
+            );
+            
+            wp_enqueue_script(
+                'worker-portal-documents',
+                WORKER_PORTAL_URL . 'modules/documents/js/documents.js',
+                array('jquery'),
+                WORKER_PORTAL_VERSION,
+                true
+            );
+            
+            // Localizar script con variables necesarias
+            wp_localize_script(
+                'worker-portal-documents',
+                'workerPortalDocuments',
+                array(
+                    'ajax_url' => admin_url('admin-ajax.php'),
+                    'nonce' => wp_create_nonce('worker_portal_documents_nonce'),
+                    'is_admin' => Worker_Portal_Utils::is_portal_admin() ? 'true' : 'false',
+                    'i18n' => array(
+                        'error' => __('Ha ocurrido un error. Por favor, inténtalo de nuevo.', 'worker-portal'),
+                        'success' => __('Operación completada con éxito.', 'worker-portal'),
+                        'loading' => __('Cargando...', 'worker-portal'),
+                        'no_documents' => __('No hay documentos disponibles.', 'worker-portal'),
+                        'confirm_delete' => __('¿Estás seguro de eliminar este documento? Esta acción no se puede deshacer.', 'worker-portal')
+                    )
+                )
+            );
+        }
+        
+        // Cargar scripts y estilos para el calendario si está activo
+        if (shortcode_exists('staff_calendar')) {
+            // Vamos a cargar los scripts del calendario cuando se necesiten
+            add_action('wp_footer', function() {
+                echo '<script>
+                    if (window.location.hash === "#calendar-section" || document.querySelector("#calendar-section:not([style*=\'display: none\'])")) {
+                        // Verificar jQuery
+                        if (typeof jQuery === "undefined") {
+                            console.log("jQuery no está disponible para el calendario");
+                        }
+                        // Disparar evento para que los scripts del calendario se inicialicen
+                        setTimeout(function() {
+                            const event = new Event("staff_calendar_init");
+                            document.dispatchEvent(event);
+                        }, 200);
+                    }
+                </script>';
+            });
+        }
+        
+        // Cargar scripts y estilos para el fichaje si está activo
+        if (shortcode_exists('wp_time_clock')) {
+            // Vamos a cargar los scripts del fichaje cuando se necesiten
+            add_action('wp_footer', function() {
+                echo '<script>
+                    if (window.location.hash === "#timeclock-section" || document.querySelector("#timeclock-section:not([style*=\'display: none\'])")) {
+                        // Verificar jQuery
+                        if (typeof jQuery === "undefined") {
+                            console.log("jQuery no está disponible para el fichaje");
+                        }
+                        // Disparar evento para que los scripts del fichaje se inicialicen
+                        setTimeout(function() {
+                            const event = new Event("wp_time_clock_init");
+                            document.dispatchEvent(event);
+                        }, 200);
+                    }
+                </script>';
+            });
+        }
+        
+        // Añadir script para detectar problemas de jQuery
+        add_action('wp_head', function() {
             echo '<script>
-                if (window.location.hash === "#calendar-section" || document.querySelector("#calendar-section:not([style*=\'display: none\'])")) {
-                    // Disparar evento para que los scripts del calendario se inicialicen
-                    setTimeout(function() {
-                        const event = new Event("staff_calendar_init");
-                        document.dispatchEvent(event);
-                    }, 200);
-                }
+                document.addEventListener("DOMContentLoaded", function() {
+                    if (typeof jQuery === "undefined") {
+                        console.error("jQuery no está disponible en el documento cargado");
+                    } else {
+                        console.log("jQuery versión: " + jQuery.fn.jquery + " cargado correctamente");
+                    }
+                });
             </script>';
         });
     }
-    
-    // Cargar scripts y estilos para el fichaje si está activo
-    if (shortcode_exists('wp_time_clock')) {
-        // Vamos a cargar los scripts del fichaje cuando se necesiten
-        add_action('wp_footer', function() {
-            echo '<script>
-                if (window.location.hash === "#timeclock-section" || document.querySelector("#timeclock-section:not([style*=\'display: none\'])")) {
-                    // Disparar evento para que los scripts del fichaje se inicialicen
-                    setTimeout(function() {
-                        const event = new Event("wp_time_clock_init");
-                        document.dispatchEvent(event);
-                    }, 200);
-                }
-            </script>';
-        });
-    }
-}
 
     /**
      * Registra shortcodes para el portal
      *
      * @since    1.0.0
      */
-public function register_shortcodes() {
-    add_shortcode('worker_portal', array($this, 'render_portal_shortcode'));
-    add_shortcode('worker_expenses', array($this, 'render_expenses_shortcode'));
-    add_shortcode('worker_documents', array($this, 'render_documents_shortcode'));
-    add_shortcode('worker_worksheets', array($this, 'render_worksheets_shortcode'));
-    add_shortcode('worker_incentives', array($this, 'render_incentives_shortcode'));
-    add_shortcode('worker_calendar', array($this, 'render_calendar_shortcode')); // Nuevo
-    add_shortcode('worker_timeclock', array($this, 'render_timeclock_shortcode')); // Nuevo
-}
+    public function register_shortcodes() {
+        add_shortcode('worker_portal', array($this, 'render_portal_shortcode'));
+        add_shortcode('worker_expenses', array($this, 'render_expenses_shortcode'));
+        add_shortcode('worker_documents', array($this, 'render_documents_shortcode'));
+        add_shortcode('worker_worksheets', array($this, 'render_worksheets_shortcode'));
+        add_shortcode('worker_incentives', array($this, 'render_incentives_shortcode'));
+        add_shortcode('worker_calendar', array($this, 'render_calendar_shortcode'));
+        add_shortcode('worker_timeclock', array($this, 'render_timeclock_shortcode'));
+        add_shortcode('worker_admin_panel', array($this, 'render_admin_panel_shortcode'));
+    }
+
+    /**
+     * Renderiza el shortcode del panel de administración de trabajadores
+     *
+     * @since    1.0.0
+     * @param    array    $atts    Atributos del shortcode
+     * @return   string            HTML generado
+     */
+    public function render_admin_panel_shortcode($atts) {
+        // Verificar permisos
+        if (!Worker_Portal_Utils::is_portal_admin()) {
+            return '<div class="worker-portal-error">' . 
+                __('No tienes permisos para gestionar trabajadores.', 'worker-portal') . 
+                '</div>';
+        }
+        
+        // Iniciar buffer de salida
+        ob_start();
+        
+        // Incluir plantilla
+        include(WORKER_PORTAL_PATH . 'modules/workers/templates/admin-page.php');
+        
+        // Retornar contenido
+        return ob_get_clean();
+    }
 
 /**
  * Carga las entradas de fichaje para el panel de administración
