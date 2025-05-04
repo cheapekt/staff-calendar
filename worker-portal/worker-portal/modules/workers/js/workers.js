@@ -1,5 +1,5 @@
 /**
- * JavaScript para el módulo de trabajadores del Portal del Trabajador
+ * JavaScript corregido para el módulo de trabajadores del Portal del Trabajador
  *
  * Maneja todas las interacciones del usuario en el perfil de trabajador
  * y en la gestión de trabajadores desde el panel de administración.
@@ -223,7 +223,7 @@
       const formData = new FormData(form);
 
       $.ajax({
-        url: worker_portal_workers.ajax_url,
+        url: worker_portal_params.ajax_url, // CORREGIDO: Usar worker_portal_params
         type: "POST",
         data: formData,
         processData: false,
@@ -271,7 +271,7 @@
       const formData = new FormData(form);
 
       $.ajax({
-        url: worker_portal_workers.ajax_url,
+        url: worker_portal_params.ajax_url, // CORREGIDO: Usar worker_portal_params
         type: "POST",
         data: formData,
         processData: false,
@@ -393,7 +393,7 @@
       const formData = new FormData(form);
 
       $.ajax({
-        url: worker_portal_workers.ajax_url,
+        url: worker_portal_params.ajax_url, // CORREGIDO: Usar worker_portal_params
         type: "POST",
         data: formData,
         processData: false,
@@ -435,7 +435,7 @@
       const formData = new FormData(form);
 
       $.ajax({
-        url: worker_portal_workers.ajax_url,
+        url: worker_portal_params.ajax_url, // CORREGIDO: Usar worker_portal_params
         type: "POST",
         data: formData,
         processData: false,
@@ -478,7 +478,7 @@
         );
 
       $.ajax({
-        url: worker_portal_workers.ajax_url,
+        url: worker_portal_params.ajax_url, // CORREGIDO: Usar worker_portal_params
         type: "POST",
         data: {
           action: "export_workers",
@@ -515,13 +515,32 @@
     },
 
     viewWorkerDetails: function (userId) {
+      // Depurar información sobre nonces disponibles
+      console.log("Valores de nonce disponibles:");
+      console.log("admin_nonce:", $("#admin_nonce").val());
+      console.log(
+        "worker_settings_form nonce:",
+        $('#worker-settings-form input[name="nonce"]').val()
+      );
+      console.log("worker_portal_ajax_nonce:", worker_portal_params.nonce);
+
+      // Vamos a intentar encontrar cualquier nonce disponible
+      var nonce =
+        $("#admin_nonce").val() ||
+        $('#worker-settings-form input[name="nonce"]').val() ||
+        $('input[name="nonce"]').val() ||
+        worker_portal_params.nonce;
+
+      console.log("Nonce que se usará:", nonce);
+      console.log("URL AJAX:", worker_portal_params.ajax_url);
+
       $.ajax({
-        url: worker_portal_workers.ajax_url,
+        url: worker_portal_params.ajax_url,
         type: "POST",
         data: {
           action: "get_worker_details",
           user_id: userId,
-          nonce: $('#worker-settings-form input[name="nonce"]').val(),
+          nonce: nonce,
         },
         beforeSend: function () {
           $("#worker-details-content").html(
@@ -533,6 +552,7 @@
           $("#worker-details-modal").fadeIn();
         },
         success: function (response) {
+          console.log("Respuesta de AJAX:", response);
           if (response.success) {
             $("#worker-details-content").html(response.data.html);
           } else {
@@ -543,10 +563,15 @@
             );
           }
         },
-        error: function () {
+        error: function (xhr, status, error) {
+          console.error("Error AJAX:", xhr.responseText);
+          console.error("Status:", status);
+          console.error("Error:", error);
           $("#worker-details-content").html(
             '<div class="worker-portal-error">' +
-              "Ha ocurrido un error. Por favor, inténtalo de nuevo." +
+              "Ha ocurrido un error. Por favor, inténtalo de nuevo.<br>" +
+              "Detalles del error: " +
+              error +
               "</div>"
           );
         },
@@ -555,12 +580,14 @@
 
     editWorker: function (userId) {
       $.ajax({
-        url: worker_portal_workers.ajax_url,
+        url: worker_portal_params.ajax_url, // CORREGIDO: Usar worker_portal_params
         type: "POST",
         data: {
           action: "get_worker_edit_form",
           user_id: userId,
-          nonce: $('#worker-settings-form input[name="nonce"]').val(),
+          nonce:
+            $("#admin_nonce").val() ||
+            $('#worker-settings-form input[name="nonce"]').val(),
         },
         beforeSend: function () {
           $("#edit-worker-content").html(
@@ -626,7 +653,7 @@
         const formData = new FormData(this);
 
         $.ajax({
-          url: worker_portal_workers.ajax_url,
+          url: worker_portal_params.ajax_url, // CORREGIDO: Usar worker_portal_params
           type: "POST",
           data: formData,
           processData: false,
@@ -672,13 +699,15 @@
       }
 
       $.ajax({
-        url: worker_portal_workers.ajax_url,
+        url: worker_portal_params.ajax_url, // CORREGIDO: Usar worker_portal_params
         type: "POST",
         data: {
           action: "change_worker_status",
           user_id: userId,
           status: action,
-          nonce: $('#worker-settings-form input[name="nonce"]').val(),
+          nonce:
+            $("#admin_nonce").val() ||
+            $('#worker-settings-form input[name="nonce"]').val(),
         },
         success: function (response) {
           if (response.success) {
@@ -725,13 +754,15 @@
       }
 
       $.ajax({
-        url: worker_portal_workers.ajax_url,
+        url: worker_portal_params.ajax_url, // CORREGIDO: Usar worker_portal_params
         type: "POST",
         data: {
           action: "reset_worker_password",
           user_id: userId,
           password: newPassword,
-          nonce: $('#worker-settings-form input[name="nonce"]').val(),
+          nonce:
+            $("#admin_nonce").val() ||
+            $('#worker-settings-form input[name="nonce"]').val(),
         },
         success: function (response) {
           if (response.success) {

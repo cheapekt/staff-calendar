@@ -332,27 +332,59 @@ Saludos,
      * Obtiene los detalles de un trabajador
      */
     public function get_worker_details() {
-        // Verificar nonce
-        check_ajax_referer('worker_admin_nonce', 'nonce');
+   // Verificar nonce - usando una verificación más flexible
+    $valid_nonce = false;
+    
+    // Comprobar diferentes tipos de nonce
+    if (isset($_POST['nonce'])) {
+        // Intentar verificar diferentes posibles nonces
+        $nonce = sanitize_text_field($_POST['nonce']);
         
-        // Verificar permisos
-        if (!Worker_Portal_Utils::is_portal_admin()) {
-            wp_send_json_error(__('No tienes permisos para realizar esta acción.', 'worker-portal'));
+        if (wp_verify_nonce($nonce, 'worker_admin_nonce')) {
+            $valid_nonce = true;
+        } elseif (wp_verify_nonce($nonce, 'worker_portal_ajax_nonce')) {
+            $valid_nonce = true;
+        } elseif (wp_verify_nonce($nonce, 'worker_profile_nonce')) {
+            $valid_nonce = true;
         }
-        
-        // Obtener ID del trabajador
-        $user_id = isset($_POST['user_id']) ? intval($_POST['user_id']) : 0;
-        
-        if ($user_id <= 0) {
-            wp_send_json_error(__('ID de usuario no válido.', 'worker-portal'));
+    }
+    
+    if (!$valid_nonce) {
+        // Si falla la verificación de nonce, devolver error
+        wp_send_json_error(__('Error de seguridad. Por favor, recarga la página.', 'worker-portal'));
+        return;
+    }
+    
+    // Verificar que el usuario está logueado
+    if (!is_user_logged_in()) {
+        wp_send_json_error(__('No estás autorizado para realizar esta acción.', 'worker-portal'));
+        return;
+    }
+    
+    // Verificar permisos si no es un administrador
+    if (!Worker_Portal_Utils::is_portal_admin()) {
+        // Si no es admin, solo permitir ver sus propios datos
+        if (!isset($_POST['user_id']) || intval($_POST['user_id']) !== get_current_user_id()) {
+            wp_send_json_error(__('No tienes permisos para ver detalles de este usuario.', 'worker-portal'));
+            return;
         }
-        
-        // Obtener datos del usuario
-        $user = get_userdata($user_id);
-        
-        if (!$user) {
-            wp_send_json_error(__('Usuario no encontrado.', 'worker-portal'));
-        }
+    }
+    
+    // Obtener ID del trabajador
+    $user_id = isset($_POST['user_id']) ? intval($_POST['user_id']) : 0;
+    
+    if ($user_id <= 0) {
+        wp_send_json_error(__('ID de usuario no válido.', 'worker-portal'));
+        return;
+    }
+    
+    // Obtener datos del usuario
+    $user = get_userdata($user_id);
+    
+    if (!$user) {
+        wp_send_json_error(__('Usuario no encontrado.', 'worker-portal'));
+        return;
+    }
         
         // Obtener metadatos
         $phone = get_user_meta($user_id, 'phone', true);

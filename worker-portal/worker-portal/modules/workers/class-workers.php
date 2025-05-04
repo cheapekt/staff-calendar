@@ -97,10 +97,10 @@ class Worker_Portal_Module_Workers {
             // Localizar script
             wp_localize_script(
                 'worker-portal-workers',
-                'worker_portal_workers',
+                'worker_portal_params',
                 array(
                     'ajax_url' => admin_url('admin-ajax.php'),
-                    'nonce' => wp_create_nonce('worker_profile_nonce')
+                    'nonce' => wp_create_nonce('worker_portal_ajax_nonce')
                 )
             );
         }
