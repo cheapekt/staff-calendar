@@ -78,6 +78,12 @@ if (!defined('ABSPATH')) {
                     <?php _e('Fichajes', 'worker-portal'); ?>
                 </a>
             </li>
+             <li>
+            <a href="#" class="worker-portal-tab-link" data-tab="vehiculos">
+                <i class="dashicons dashicons-car"></i> 
+                <?php _e('Vehículos', 'worker-portal'); ?>
+            </a>
+        </li>
         </ul>
     </div>
     
@@ -985,6 +991,10 @@ if (!defined('ABSPATH')) {
         </div>
     </div>
 </div>
+
+    <div id="tab-vehiculos" class="worker-portal-tab-content">
+        <?php echo do_shortcode('[staff_vehicles]'); ?>
+    </div>
 
 <!-- Modales para la interfaz de administrador -->
 <div id="expense-details-modal" class="worker-portal-modal">
