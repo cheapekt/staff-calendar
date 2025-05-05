@@ -2,110 +2,113 @@
 /**
  * AJAX Handler for Documents Module
  * 
- * This file handles all AJAX requests for the documents module,
- * including both worker and admin requests.
+ * Este archivo maneja todas las solicitudes AJAX para el módulo de documentos,
+ * incluyendo tanto solicitudes de usuarios como de administradores.
  * 
  * @since      1.0.0
  */
 
-// If this file is called directly, abort
+// Si este archivo es llamado directamente, abortar
 if (!defined('ABSPATH')) {
     exit;
 }
 
 /**
- * Class Document_Ajax_Handler
+ * Clase Document_Ajax_Handler
  */
 class Worker_Portal_Document_Ajax_Handler {
     
     /**
-     * Constructor - Initialize hooks
+     * Constructor - Inicializa los hooks
      */
     public function __construct() {
-        // Register AJAX handlers for workers
+        // Registrar manejadores AJAX para usuarios
         add_action('wp_ajax_filter_documents', array($this, 'ajax_filter_documents'));
         add_action('wp_ajax_download_document', array($this, 'ajax_download_document'));
         add_action('wp_ajax_get_document_details', array($this, 'ajax_get_document_details'));
         
-        // Register AJAX handlers for admins
+        // Registrar manejadores AJAX para administradores
         add_action('wp_ajax_admin_upload_document', array($this, 'ajax_admin_upload_document'));
         add_action('wp_ajax_admin_delete_document', array($this, 'ajax_admin_delete_document'));
         add_action('wp_ajax_admin_get_document_details', array($this, 'ajax_admin_get_document_details'));
         add_action('wp_ajax_admin_save_document_settings', array($this, 'ajax_admin_save_document_settings'));
-        
-        // Register form handler for document uploads
-        add_action('admin_post_admin_upload_document', array($this, 'handle_document_upload'));
     }
     
     /**
-     * Filter documents via AJAX
+     * Filtrar documentos vía AJAX
+     * Esta función maneja las solicitudes tanto de usuarios como de administradores
      */
     public function ajax_filter_documents() {
-        // Verify nonce
-        if (!isset($_POST['nonce']) || !wp_verify_nonce($_POST['nonce'], 'worker_portal_documents_nonce')) {
-            wp_send_json_error(__('Error de seguridad. Por favor, recarga la página.', 'worker-portal'));
+        // Registrar evento para depuración
+        if (WP_DEBUG) {
+            error_log('filter_documents AJAX recibido: ' . print_r($_POST, true));
         }
         
-        // Verify user is logged in
+        // Verificar nonce con mayor flexibilidad
+        $nonce_verified = false;
+        if (isset($_POST['nonce'])) {
+            if (wp_verify_nonce($_POST['nonce'], 'worker_portal_documents_nonce')) {
+                $nonce_verified = true;
+            } elseif (wp_verify_nonce($_POST['nonce'], 'worker_portal_ajax_nonce')) {
+                $nonce_verified = true;
+            }
+        }
+        
+        if (!$nonce_verified) {
+            if (WP_DEBUG) {
+                error_log('Verificación de nonce fallida en filter_documents');
+            }
+            wp_send_json_error(__('Error de seguridad. Por favor, recarga la página.', 'worker-portal'));
+            return;
+        }
+        
+        // Verificar que el usuario está logueado
         if (!is_user_logged_in()) {
             wp_send_json_error(__('Debes iniciar sesión para ver tus documentos.', 'worker-portal'));
+            return;
         }
         
-        // Check if user is admin
+        // Determinar si el usuario es administrador
         $is_admin = Worker_Portal_Utils::is_portal_admin();
         
-        // Get parameters
+        // Parámetros de paginación
         $page = isset($_POST['page']) ? intval($_POST['page']) : 1;
         $per_page = isset($_POST['per_page']) ? intval($_POST['per_page']) : 10;
         $offset = ($page - 1) * $per_page;
         
+        // Parámetros de filtrado
         $category = isset($_POST['category']) ? sanitize_text_field($_POST['category']) : '';
         $search = isset($_POST['search']) ? sanitize_text_field($_POST['search']) : '';
         $date_from = isset($_POST['date_from']) ? sanitize_text_field($_POST['date_from']) : '';
         $date_to = isset($_POST['date_to']) ? sanitize_text_field($_POST['date_to']) : '';
         
-        // Get user ID - if admin and user_id is provided, use that
+        // Obtener user_id (para usuarios normales será su propio ID, para admin puede ser cualquiera)
         $user_id = get_current_user_id();
         if ($is_admin && isset($_POST['user_id']) && !empty($_POST['user_id'])) {
             $user_id = intval($_POST['user_id']);
         } elseif ($is_admin && (!isset($_POST['user_id']) || empty($_POST['user_id']))) {
-            $user_id = 0; // Admin can see all documents
+            $user_id = 0; // Admin puede ver todos los documentos
         }
         
-        // Load database class
-        if (!class_exists('Worker_Portal_Database')) {
-            require_once WORKER_PORTAL_PATH . 'includes/class-database.php';
-        }
-        $database = Worker_Portal_Database::get_instance();
+        // Crear instancia de la clase principal
+        require_once WORKER_PORTAL_PATH . 'modules/documents/class-documents.php';
+        $documents_module = new Worker_Portal_Module_Documents();
         
-        // Get documents
-        if (empty($search) && empty($date_from) && empty($date_to)) {
-            $documents = $database->get_user_documents($user_id, $per_page, $offset, $category);
-            $total_items = $database->get_total_items('worker_documents', 
-                           ($user_id > 0 ? 'user_id = %d AND ' : '') . 'status = "active"' . 
-                           ($category ? ' AND category = %s' : ''),
-                           array_filter([$user_id, $category]));
-        } else {
-            // Load documents module to use filtering methods
-            require_once WORKER_PORTAL_PATH . 'modules/documents/class-documents.php';
-            $documents_module = new Worker_Portal_Module_Documents();
-            
-            // Use the module's filtering method
-            $documents = $documents_module->get_filtered_documents(
-                $user_id, $category, $search, $date_from, $date_to, $per_page, $offset
-            );
-            
-            $total_items = $documents_module->get_total_filtered_documents(
-                $user_id, $category, $search, $date_from, $date_to
-            );
-        }
+        // Obtener documentos filtrados
+        $documents = $documents_module->get_filtered_documents(
+            $user_id, $category, $search, $date_from, $date_to, $per_page, $offset
+        );
         
+        // Obtener total para paginación
+        $total_items = $documents_module->get_total_filtered_documents(
+            $user_id, $category, $search, $date_from, $date_to
+        );
         $total_pages = ceil($total_items / $per_page);
         
-        // Generate HTML
+        // Generar HTML
         ob_start();
         
-        // Get document categories
+        // Obtener categorías de documentos
         $categories = get_option('worker_portal_document_categories', array(
             'payroll' => __('Nóminas', 'worker-portal'),
             'contract' => __('Contratos', 'worker-portal'),
@@ -114,7 +117,7 @@ class Worker_Portal_Document_Ajax_Handler {
         ));
         
         if (empty($documents)): ?>
-            <p class="worker-portal-no-data"><?php _e('No hay documentos disponibles.', 'worker-portal'); ?></p>
+            <p class="worker-portal-no-data"><?php _e('No hay documentos disponibles con los criterios seleccionados.', 'worker-portal'); ?></p>
         <?php else: ?>
             <div class="worker-portal-table-responsive">
                 <table class="worker-portal-table worker-portal-documents-table">
@@ -133,14 +136,7 @@ class Worker_Portal_Document_Ajax_Handler {
                         </tr>
                     </thead>
                     <tbody>
-                        <?php foreach ($documents as $document): 
-                            // Get username for admin view
-                            $username = '';
-                            if ($is_admin) {
-                                $user = get_userdata($document['user_id']);
-                                $username = $user ? $user->display_name : __('Usuario desconocido', 'worker-portal');
-                            }
-                        ?>
+                        <?php foreach ($documents as $document): ?>
                             <tr data-document-id="<?php echo esc_attr($document['id']); ?>">
                                 <?php if ($is_admin): ?>
                                     <td><?php echo esc_html($document['id']); ?></td>
@@ -155,7 +151,7 @@ class Worker_Portal_Document_Ajax_Handler {
                                     ?>
                                 </td>
                                 <?php if ($is_admin): ?>
-                                    <td><?php echo esc_html($username); ?></td>
+                                    <td><?php echo esc_html($document['display_name']); ?></td>
                                 <?php endif; ?>
                                 <td>
                                     <a href="#" class="worker-portal-button worker-portal-button-small worker-portal-button-outline worker-portal-download-document" data-document-id="<?php echo esc_attr($document['id']); ?>">
@@ -200,7 +196,7 @@ class Worker_Portal_Document_Ajax_Handler {
                         <?php endif; ?>
                         
                         <?php 
-                        // Show page numbers
+                        // Mostrar números de página
                         for ($i = 1; $i <= $total_pages; $i++):
                             $class = ($i === $page) ? 'worker-portal-pagination-current' : '';
                         ?>
@@ -221,7 +217,7 @@ class Worker_Portal_Document_Ajax_Handler {
         
         $html = ob_get_clean();
         
-        // Return response
+        // Devolver respuesta
         wp_send_json_success(array(
             'html' => $html,
             'total_items' => $total_items,
@@ -231,17 +227,28 @@ class Worker_Portal_Document_Ajax_Handler {
     }
     
     /**
-     * Download document via AJAX
+     * Descargar documento vía AJAX
      */
     public function ajax_download_document() {
-        // Verify nonce
-        if (!isset($_POST['nonce']) || !wp_verify_nonce($_POST['nonce'], 'worker_portal_documents_nonce')) {
-            wp_send_json_error(__('Error de seguridad. Por favor, recarga la página.', 'worker-portal'));
+        // Verificar nonce con mayor flexibilidad
+        $nonce_verified = false;
+        if (isset($_POST['nonce'])) {
+            if (wp_verify_nonce($_POST['nonce'], 'worker_portal_documents_nonce')) {
+                $nonce_verified = true;
+            } elseif (wp_verify_nonce($_POST['nonce'], 'worker_portal_ajax_nonce')) {
+                $nonce_verified = true;
+            }
         }
         
-        // Verify user is logged in
+        if (!$nonce_verified) {
+            wp_send_json_error(__('Error de seguridad. Por favor, recarga la página.', 'worker-portal'));
+            return;
+        }
+        
+        // Verificar que el usuario está logueado
         if (!is_user_logged_in()) {
             wp_send_json_error(__('Debes iniciar sesión para descargar documentos.', 'worker-portal'));
+            return;
         }
         
         $user_id = get_current_user_id();
@@ -249,32 +256,36 @@ class Worker_Portal_Document_Ajax_Handler {
         
         if ($document_id <= 0) {
             wp_send_json_error(__('ID de documento no válido', 'worker-portal'));
+            return;
         }
         
-        // Load documents module
+        // Cargar módulo de documentos
         require_once WORKER_PORTAL_PATH . 'modules/documents/class-documents.php';
         $documents_module = new Worker_Portal_Module_Documents();
         
-        // Get document details
+        // Obtener detalles del documento
         $document = $documents_module->get_document_details($document_id);
         
         if (empty($document)) {
             wp_send_json_error(__('El documento no existe', 'worker-portal'));
+            return;
         }
         
-        // Check if user has permission (admin or document owner)
+        // Comprobar permisos (usuario propietario o administrador)
         if ($document['user_id'] != $user_id && !Worker_Portal_Utils::is_portal_admin()) {
             wp_send_json_error(__('No tienes permiso para descargar este documento', 'worker-portal'));
+            return;
         }
         
-        // Check if file exists
+        // Comprobar que el archivo existe
         $file_path = wp_upload_dir()['basedir'] . '/' . $document['file_path'];
         
         if (!file_exists($file_path)) {
             wp_send_json_error(__('El archivo no existe en el servidor', 'worker-portal'));
+            return;
         }
         
-        // Return download URL
+        // Devolver URL de descarga
         $download_url = wp_upload_dir()['baseurl'] . '/' . $document['file_path'];
         
         wp_send_json_success(array(
@@ -284,17 +295,28 @@ class Worker_Portal_Document_Ajax_Handler {
     }
     
     /**
-     * Get document details via AJAX
+     * Obtener detalles de un documento vía AJAX
      */
     public function ajax_get_document_details() {
-        // Verify nonce
-        if (!isset($_POST['nonce']) || !wp_verify_nonce($_POST['nonce'], 'worker_portal_documents_nonce')) {
-            wp_send_json_error(__('Error de seguridad. Por favor, recarga la página.', 'worker-portal'));
+        // Verificar nonce con mayor flexibilidad
+        $nonce_verified = false;
+        if (isset($_POST['nonce'])) {
+            if (wp_verify_nonce($_POST['nonce'], 'worker_portal_documents_nonce')) {
+                $nonce_verified = true;
+            } elseif (wp_verify_nonce($_POST['nonce'], 'worker_portal_ajax_nonce')) {
+                $nonce_verified = true;
+            }
         }
         
-        // Verify user is logged in
+        if (!$nonce_verified) {
+            wp_send_json_error(__('Error de seguridad. Por favor, recarga la página.', 'worker-portal'));
+            return;
+        }
+        
+        // Verificar que el usuario está logueado
         if (!is_user_logged_in()) {
             wp_send_json_error(__('Debes iniciar sesión para ver detalles de documentos.', 'worker-portal'));
+            return;
         }
         
         $user_id = get_current_user_id();
@@ -302,25 +324,28 @@ class Worker_Portal_Document_Ajax_Handler {
         
         if ($document_id <= 0) {
             wp_send_json_error(__('ID de documento no válido', 'worker-portal'));
+            return;
         }
         
-        // Load documents module
+        // Cargar módulo de documentos
         require_once WORKER_PORTAL_PATH . 'modules/documents/class-documents.php';
         $documents_module = new Worker_Portal_Module_Documents();
         
-        // Get document details
+        // Obtener detalles del documento
         $document = $documents_module->get_document_details($document_id);
         
         if (empty($document)) {
             wp_send_json_error(__('El documento no existe', 'worker-portal'));
+            return;
         }
         
-        // Check if user has permission (admin or document owner)
+        // Comprobar permisos (usuario propietario o administrador)
         if ($document['user_id'] != $user_id && !Worker_Portal_Utils::is_portal_admin()) {
             wp_send_json_error(__('No tienes permiso para ver este documento', 'worker-portal'));
+            return;
         }
         
-        // Return document details
+        // Devolver detalles del documento
         wp_send_json_success(array(
             'id' => $document['id'],
             'title' => $document['title'],
@@ -329,37 +354,50 @@ class Worker_Portal_Document_Ajax_Handler {
     }
     
     /**
-     * Admin: Get document details via AJAX
+     * Admin: Obtener detalles de un documento vía AJAX
      */
     public function ajax_admin_get_document_details() {
-        // Verify nonce
-        if (!isset($_POST['nonce']) || !wp_verify_nonce($_POST['nonce'], 'worker_portal_documents_nonce')) {
-            wp_send_json_error(__('Error de seguridad. Por favor, recarga la página.', 'worker-portal'));
+        // Verificar nonce con mayor flexibilidad
+        $nonce_verified = false;
+        if (isset($_POST['nonce'])) {
+            if (wp_verify_nonce($_POST['nonce'], 'worker_portal_documents_nonce')) {
+                $nonce_verified = true;
+            } elseif (wp_verify_nonce($_POST['nonce'], 'worker_portal_ajax_nonce')) {
+                $nonce_verified = true;
+            }
         }
         
-        // Verify user has admin permission
+        if (!$nonce_verified) {
+            wp_send_json_error(__('Error de seguridad. Por favor, recarga la página.', 'worker-portal'));
+            return;
+        }
+        
+        // Verificar que el usuario es administrador
         if (!Worker_Portal_Utils::is_portal_admin()) {
             wp_send_json_error(__('No tienes permisos para realizar esta acción', 'worker-portal'));
+            return;
         }
         
         $document_id = isset($_POST['document_id']) ? intval($_POST['document_id']) : 0;
         
         if ($document_id <= 0) {
             wp_send_json_error(__('ID de documento no válido', 'worker-portal'));
+            return;
         }
         
-        // Load documents module
+        // Cargar módulo de documentos
         require_once WORKER_PORTAL_PATH . 'modules/documents/class-documents.php';
         $documents_module = new Worker_Portal_Module_Documents();
         
-        // Get document details
+        // Obtener detalles del documento
         $document = $documents_module->get_document_details($document_id);
         
         if (empty($document)) {
             wp_send_json_error(__('El documento no existe', 'worker-portal'));
+            return;
         }
         
-        // Get additional information
+        // Obtener información adicional
         $user = get_userdata($document['user_id']);
         $categories = get_option('worker_portal_document_categories', array(
             'payroll' => __('Nóminas', 'worker-portal'),
@@ -388,43 +426,58 @@ class Worker_Portal_Document_Ajax_Handler {
     }
     
     /**
-     * Admin: Delete document via AJAX
+     * Admin: Eliminar un documento vía AJAX
      */
     public function ajax_admin_delete_document() {
-        // Verify nonce
-        if (!isset($_POST['nonce']) || !wp_verify_nonce($_POST['nonce'], 'worker_portal_documents_nonce')) {
-            wp_send_json_error(__('Error de seguridad. Por favor, recarga la página.', 'worker-portal'));
+        // Verificar nonce con mayor flexibilidad
+        $nonce_verified = false;
+        if (isset($_POST['nonce'])) {
+            if (wp_verify_nonce($_POST['nonce'], 'worker_portal_documents_nonce')) {
+                $nonce_verified = true;
+            } elseif (wp_verify_nonce($_POST['nonce'], 'worker_portal_ajax_nonce')) {
+                $nonce_verified = true;
+            }
         }
         
-        // Verify user has admin permission
+        if (!$nonce_verified) {
+            wp_send_json_error(__('Error de seguridad. Por favor, recarga la página.', 'worker-portal'));
+            return;
+        }
+        
+        // Verificar que el usuario es administrador
         if (!Worker_Portal_Utils::is_portal_admin()) {
             wp_send_json_error(__('No tienes permisos para realizar esta acción', 'worker-portal'));
+            return;
         }
         
         $document_id = isset($_POST['document_id']) ? intval($_POST['document_id']) : 0;
         
         if ($document_id <= 0) {
             wp_send_json_error(__('ID de documento no válido', 'worker-portal'));
+            return;
         }
         
-        // Load documents module
+        // Cargar módulo de documentos
         require_once WORKER_PORTAL_PATH . 'modules/documents/class-documents.php';
         $documents_module = new Worker_Portal_Module_Documents();
         
-        // Get document details
+        // Obtener detalles del documento
         $document = $documents_module->get_document_details($document_id);
         
         if (empty($document)) {
             wp_send_json_error(__('El documento no existe', 'worker-portal'));
+            return;
         }
         
-        // Update document status to 'deleted'
+        // Marcar documento como inactivo (eliminación lógica)
         global $wpdb;
         $table_name = $wpdb->prefix . 'worker_documents';
         
         $result = $wpdb->update(
             $table_name,
-            array('status' => 'deleted'),
+            array(
+                'status' => 'deleted'
+            ),
             array('id' => $document_id),
             array('%s'),
             array('%d')
@@ -432,65 +485,81 @@ class Worker_Portal_Document_Ajax_Handler {
         
         if ($result === false) {
             wp_send_json_error(__('Error al eliminar el documento', 'worker-portal'));
+            return;
         }
         
         wp_send_json_success(__('Documento eliminado correctamente', 'worker-portal'));
     }
     
     /**
-     * Admin: Upload document via AJAX
+     * Admin: Subir documento vía AJAX
      */
     public function ajax_admin_upload_document() {
-        // Verify nonce
-        if (!isset($_POST['nonce']) || !wp_verify_nonce($_POST['nonce'], 'worker_portal_admin_nonce')) {
-            wp_send_json_error(__('Error de seguridad. Por favor, recarga la página.', 'worker-portal'));
+        // Verificar nonce con mayor flexibilidad
+        $nonce_verified = false;
+        if (isset($_POST['nonce'])) {
+            if (wp_verify_nonce($_POST['nonce'], 'worker_portal_admin_nonce')) {
+                $nonce_verified = true;
+            } elseif (wp_verify_nonce($_POST['nonce'], 'worker_portal_ajax_nonce')) {
+                $nonce_verified = true;
+            }
         }
         
-        // Verify user has admin permission
+        if (!$nonce_verified) {
+            wp_send_json_error(__('Error de seguridad. Por favor, recarga la página.', 'worker-portal'));
+            return;
+        }
+        
+        // Verificar que el usuario es administrador
         if (!Worker_Portal_Utils::is_portal_admin()) {
             wp_send_json_error(__('No tienes permisos para realizar esta acción', 'worker-portal'));
+            return;
         }
         
-        // Check if file has been uploaded
+        // Verificar que se ha enviado un archivo
         if (empty($_FILES['document']) || $_FILES['document']['error'] !== UPLOAD_ERR_OK) {
             wp_send_json_error(__('No se ha seleccionado un archivo válido', 'worker-portal'));
+            return;
         }
         
-        // Verify file type (PDF only)
+        // Verificar tipo de archivo (solo PDF)
         $file_type = wp_check_filetype(basename($_FILES['document']['name']), array('pdf' => 'application/pdf'));
         
         if ($file_type['type'] !== 'application/pdf') {
             wp_send_json_error(__('Solo se permiten archivos PDF', 'worker-portal'));
+            return;
         }
         
-        // Get form data
+        // Obtener datos del formulario
         $title = isset($_POST['title']) ? sanitize_text_field($_POST['title']) : '';
         $description = isset($_POST['description']) ? sanitize_textarea_field($_POST['description']) : '';
         $category = isset($_POST['category']) ? sanitize_text_field($_POST['category']) : 'other';
         $users = isset($_POST['users']) ? array_map('intval', (array)$_POST['users']) : array();
         
-        // Verify minimum data
+        // Verificar datos mínimos
         if (empty($title) || empty($users)) {
             wp_send_json_error(__('Faltan campos obligatorios (título y destinatarios)', 'worker-portal'));
+            return;
         }
         
-        // Load documents module
+        // Cargar módulo de documentos
         require_once WORKER_PORTAL_PATH . 'modules/documents/class-documents.php';
         $documents_module = new Worker_Portal_Module_Documents();
         
-        // Upload file
+        // Procesar subida de archivo
         $upload = $documents_module->upload_document_file($_FILES['document']);
         
         if (is_wp_error($upload)) {
             wp_send_json_error($upload->get_error_message());
+            return;
         }
         
-        // Save document in database for each user
+        // Guardar documento en la base de datos para cada usuario
         $uploaded_documents = array();
         
-        // If all users selected
+        // Si se seleccionaron todos los usuarios
         if (in_array('all', $users)) {
-            // Get all non-admin users
+            // Obtener todos los usuarios no administradores
             $all_users = get_users(array(
                 'role__not_in' => array('administrator'),
                 'fields' => 'ID'
@@ -505,7 +574,7 @@ class Worker_Portal_Document_Ajax_Handler {
             if ($document_id) {
                 $uploaded_documents[] = $document_id;
                 
-                // Send notification to user if requested
+                // Enviar notificación al usuario si se solicitó
                 if (isset($_POST['notify']) && $_POST['notify'] == 1) {
                     $documents_module->send_document_notification($document_id);
                 }
@@ -514,6 +583,7 @@ class Worker_Portal_Document_Ajax_Handler {
         
         if (empty($uploaded_documents)) {
             wp_send_json_error(__('Error al guardar el documento en la base de datos', 'worker-portal'));
+            return;
         }
         
         wp_send_json_success(array(
@@ -531,34 +601,47 @@ class Worker_Portal_Document_Ajax_Handler {
     }
     
     /**
-     * Admin: Save document settings via AJAX
+     * Admin: Guardar configuración de documentos vía AJAX
      */
     public function ajax_admin_save_document_settings() {
-        // Verify nonce
-        if (!isset($_POST['nonce']) || !wp_verify_nonce($_POST['nonce'], 'worker_portal_admin_nonce')) {
-            wp_send_json_error(__('Error de seguridad. Por favor, recarga la página.', 'worker-portal'));
+        // Verificar nonce con mayor flexibilidad
+        $nonce_verified = false;
+        if (isset($_POST['nonce'])) {
+            if (wp_verify_nonce($_POST['nonce'], 'worker_portal_admin_nonce')) {
+                $nonce_verified = true;
+            } elseif (wp_verify_nonce($_POST['nonce'], 'worker_portal_ajax_nonce')) {
+                $nonce_verified = true;
+            }
         }
         
-        // Verify user has admin permission
+        if (!$nonce_verified) {
+            wp_send_json_error(__('Error de seguridad. Por favor, recarga la página.', 'worker-portal'));
+            return;
+        }
+        
+        // Verificar que el usuario es administrador
         if (!Worker_Portal_Utils::is_portal_admin()) {
             wp_send_json_error(__('No tienes permisos para realizar esta acción', 'worker-portal'));
+            return;
         }
         
-        // Process categories data
+        // Procesar datos de categorías
         if (isset($_POST['categories']) && is_array($_POST['categories'])) {
             $keys = isset($_POST['categories']['keys']) ? array_map('sanitize_key', $_POST['categories']['keys']) : array();
             $labels = isset($_POST['categories']['labels']) ? array_map('sanitize_text_field', $_POST['categories']['labels']) : array();
             
             if (count($keys) !== count($labels)) {
                 wp_send_json_error(__('Error en los datos de categorías', 'worker-portal'));
+                return;
             }
             
-            // Ensure at least one category
+            // Asegurar que hay al menos una categoría
             if (empty($keys)) {
                 wp_send_json_error(__('Debe existir al menos una categoría', 'worker-portal'));
+                return;
             }
             
-            // Combine keys and labels
+            // Combinar claves y etiquetas
             $categories = array();
             foreach ($keys as $index => $key) {
                 if (!empty($key)) {
@@ -566,11 +649,11 @@ class Worker_Portal_Document_Ajax_Handler {
                 }
             }
             
-            // Update option
+            // Actualizar opción
             update_option('worker_portal_document_categories', $categories);
         }
         
-        // Save notification email
+        // Guardar email de notificación
         if (isset($_POST['notification_email']) && is_email($_POST['notification_email'])) {
             update_option('worker_portal_document_notification_email', sanitize_email($_POST['notification_email']));
         }
@@ -579,107 +662,4 @@ class Worker_Portal_Document_Ajax_Handler {
             'message' => __('Configuración guardada correctamente', 'worker-portal')
         ));
     }
-    
-    /**
-     * Handle form submission for document upload
-     * This is for non-AJAX form submission
-     */
-    public function handle_document_upload() {
-        if (!isset($_POST['nonce']) || !wp_verify_nonce($_POST['nonce'], 'worker_portal_admin_nonce')) {
-            wp_die(__('Error de seguridad. Por favor, recarga la página.', 'worker-portal'));
-        }
-        
-        if (!Worker_Portal_Utils::is_portal_admin()) {
-            wp_die(__('No tienes permisos para realizar esta acción', 'worker-portal'));
-        }
-        
-        // Check if file has been uploaded
-        if (empty($_FILES['document']) || $_FILES['document']['error'] !== UPLOAD_ERR_OK) {
-            wp_die(__('No se ha seleccionado un archivo válido', 'worker-portal'));
-        }
-        
-        // Verify file type (PDF only)
-        $file_type = wp_check_filetype(basename($_FILES['document']['name']), array('pdf' => 'application/pdf'));
-        
-        if ($file_type['type'] !== 'application/pdf') {
-            wp_die(__('Solo se permiten archivos PDF', 'worker-portal'));
-        }
-        
-        // Get form data
-        $title = isset($_POST['title']) ? sanitize_text_field($_POST['title']) : '';
-        $description = isset($_POST['description']) ? sanitize_textarea_field($_POST['description']) : '';
-        $category = isset($_POST['category']) ? sanitize_text_field($_POST['category']) : 'other';
-        $users = isset($_POST['users']) ? array_map('intval', (array)$_POST['users']) : array();
-        
-        // Verify minimum data
-        if (empty($title) || empty($users)) {
-            wp_die(__('Faltan campos obligatorios (título y destinatarios)', 'worker-portal'));
-        }
-        
-        // Load documents module
-        require_once WORKER_PORTAL_PATH . 'modules/documents/class-documents.php';
-        $documents_module = new Worker_Portal_Module_Documents();
-        
-        // Upload file
-        $upload = $documents_module->upload_document_file($_FILES['document']);
-        
-        if (is_wp_error($upload)) {
-            wp_die($upload->get_error_message());
-        }
-        
-        // Save document in database for each user
-        $uploaded_documents = array();
-        
-        // If all users selected
-        if (in_array('all', $users)) {
-            // Get all non-admin users
-            $all_users = get_users(array(
-                'role__not_in' => array('administrator'),
-                'fields' => 'ID'
-            ));
-            
-            $users = $all_users;
-        }
-        
-        foreach ($users as $user_id) {
-            $document_id = $documents_module->save_document($user_id, $title, $description, $category, $upload['file_path']);
-            
-            if ($document_id) {
-                $uploaded_documents[] = $document_id;
-                
-                // Send notification to user if requested
-                if (isset($_POST['notify']) && $_POST['notify'] == 1) {
-                    $documents_module->send_document_notification($document_id);
-                }
-            }
-        }
-        
-        if (empty($uploaded_documents)) {
-            wp_die(__('Error al guardar el documento en la base de datos', 'worker-portal'));
-        }
-        
-        $message = sprintf(
-            _n(
-                'Documento subido correctamente para %d usuario',
-                'Documento subido correctamente para %d usuarios',
-                count($uploaded_documents),
-                'worker-portal'
-            ),
-            count($uploaded_documents)
-        );
-        
-        // Redirect back to documents page with success message
-        wp_redirect(add_query_arg(
-            array(
-                'page' => 'worker-portal-documents',
-                'tab' => 'all',
-                'message' => urlencode($message)
-            ),
-            admin_url('admin.php')
-        ));
-        exit;
-    }
 }
-
-// Initialize the handler
-new Worker_Portal_Document_Ajax_Handler();
