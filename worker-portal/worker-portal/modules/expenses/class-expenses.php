@@ -1200,80 +1200,82 @@ Para ver todos tus gastos, accede al portal del trabajador: %s', 'worker-portal'
         wp_send_json_success(__('Gasto rechazado correctamente.', 'worker-portal'));
     }
 
-    /**
- * Estas funciones deben agregarse a la clase Worker_Portal_Module_Expenses 
- * en el archivo modules/expenses/class-expenses.php
+ 
+/**
+ * Maneja la petición AJAX para filtrar gastos
+ *
+ * @since    1.0.0
  */
-
-    /**
-     * Maneja la petición AJAX para filtrar gastos
-     *
-     * @since    1.0.0
-     */
-    public function ajax_filter_expenses() {
-        // Verificar nonce
-        if (!isset($_POST['nonce']) || !wp_verify_nonce($_POST['nonce'], 'worker_portal_expenses_nonce')) {
-            wp_send_json_error(__('Error de seguridad. Por favor, recarga la página.', 'worker-portal'));
-        }
-        
-        // Verificar que el usuario está logueado
-        if (!is_user_logged_in()) {
-            wp_send_json_error(__('Debes iniciar sesión para ver tus gastos.', 'worker-portal'));
-        }
-        
-        $user_id = get_current_user_id();
-        
-        // Obtener parámetros de filtrado
-        $date_from = isset($_POST['date_from']) ? sanitize_text_field($_POST['date_from']) : '';
-        $date_to = isset($_POST['date_to']) ? sanitize_text_field($_POST['date_to']) : '';
-        $expense_type = isset($_POST['expense_type']) ? sanitize_text_field($_POST['expense_type']) : '';
-        $status = isset($_POST['status']) ? sanitize_text_field($_POST['status']) : '';
-        $search = isset($_POST['search']) ? sanitize_text_field($_POST['search']) : '';
-        
-        // Página actual y elementos por página
-        $current_page = isset($_POST['page']) ? intval($_POST['page']) : 1;
-        $per_page = 10;
-        $offset = ($current_page - 1) * $per_page;
-        
-        // Obtener los gastos filtrados
-        $expenses = $this->get_filtered_expenses(
-            $user_id,
-            $date_from,
-            $date_to,
-            $expense_type,
-            $status,
-            $search,
-            $per_page,
-            $offset
-        );
-        
-        // Obtener el total de gastos para la paginación
-        $total_items = $this->get_total_filtered_expenses(
-            $user_id,
-            $date_from,
-            $date_to,
-            $expense_type,
-            $status,
-            $search
-        );
-        
-        $total_pages = ceil($total_items / $per_page);
-        
-        // Obtener los tipos de gastos disponibles
-        $expense_types = get_option('worker_portal_expense_types', array(
-            'km' => __('Kilometraje', 'worker-portal'),
-            'hours' => __('Horas de desplazamiento', 'worker-portal'),
-            'meal' => __('Dietas', 'worker-portal'),
-            'other' => __('Otros', 'worker-portal')
-        ));
-        
-        // Si no hay gastos
-        if (empty($expenses)) {
-            wp_send_json_success('<p class="worker-portal-no-data">' . __('No se encontraron gastos con los filtros seleccionados.', 'worker-portal') . '</p>');
-            return;
-        }
-        
-        // Generar HTML de la tabla
+public function ajax_filter_expenses() {
+    // Verificar nonce
+    if (!isset($_POST['nonce']) || !wp_verify_nonce($_POST['nonce'], 'worker_portal_expenses_nonce')) {
+        wp_send_json_error(__('Error de seguridad. Por favor, recarga la página.', 'worker-portal'));
+    }
+    
+    // Verificar que el usuario está logueado
+    if (!is_user_logged_in()) {
+        wp_send_json_error(__('Debes iniciar sesión para ver tus gastos.', 'worker-portal'));
+    }
+    
+    $user_id = get_current_user_id();
+    
+    // Obtener parámetros de filtrado
+    $date_from = isset($_POST['date_from']) ? sanitize_text_field($_POST['date_from']) : '';
+    $date_to = isset($_POST['date_to']) ? sanitize_text_field($_POST['date_to']) : '';
+    $expense_type = isset($_POST['expense_type']) ? sanitize_text_field($_POST['expense_type']) : '';
+    $status = isset($_POST['status']) ? sanitize_text_field($_POST['status']) : '';
+    $search = isset($_POST['search']) ? sanitize_text_field($_POST['search']) : '';
+    
+    // Check if we're filtering for pending only
+    $show_pending_only = isset($_POST['show_pending_only']) && $_POST['show_pending_only'] == '1';
+    if ($show_pending_only) {
+        $status = 'pending'; // Override any status selection if pending only is checked
+    }
+    
+    // Página actual y elementos por página
+    $current_page = isset($_POST['page']) ? intval($_POST['page']) : 1;
+    $per_page = 10;
+    $offset = ($current_page - 1) * $per_page;
+    
+    // Obtener los gastos filtrados
+    $expenses = $this->get_filtered_expenses(
+        $user_id,
+        $date_from,
+        $date_to,
+        $expense_type,
+        $status,
+        $search,
+        $per_page,
+        $offset
+    );
+    
+    // Obtener el total de gastos para la paginación
+    $total_items = $this->get_total_filtered_expenses(
+        $user_id,
+        $date_from,
+        $date_to,
+        $expense_type,
+        $status,
+        $search
+    );
+    
+    $total_pages = ceil($total_items / $per_page);
+    
+    // Obtener los tipos de gastos disponibles
+    $expense_types = get_option('worker_portal_expense_types', array(
+        'km' => __('Kilometraje', 'worker-portal'),
+        'hours' => __('Horas de desplazamiento', 'worker-portal'),
+        'meal' => __('Dietas', 'worker-portal'),
+        'other' => __('Otros', 'worker-portal')
+    ));
+    
+    // Si no hay gastos
+    if (empty($expenses)) {
+        wp_send_json_success('<p class="worker-portal-no-data">' . __('No se encontraron gastos con los filtros seleccionados.', 'worker-portal') . '</p>');
+        return;
+    }
+    
+       // Generar HTML de la tabla
         ob_start();
         ?>
         <div class="worker-portal-table-responsive">
@@ -1405,71 +1407,71 @@ Para ver todos tus gastos, accede al portal del trabajador: %s', 'worker-portal'
         
         $html = ob_get_clean();
         wp_send_json_success($html);
-    }
+}
 
-    /**
-     * Obtiene gastos filtrados de un usuario
-     *
-     * @since    1.0.0
-     * @param    int       $user_id      ID del usuario
-     * @param    string    $date_from    Fecha inicial
-     * @param    string    $date_to      Fecha final
-     * @param    string    $expense_type Tipo de gasto
-     * @param    string    $status       Estado del gasto
-     * @param    string    $search       Término de búsqueda
-     * @param    int       $limit        Límite de resultados
-     * @param    int       $offset       Offset para paginación
-     * @return   array                   Lista de gastos
-     */
-    private function get_filtered_expenses($user_id, $date_from = '', $date_to = '', $expense_type = '', $status = '', $search = '', $limit = 10, $offset = 0) {
-        global $wpdb;
-        
-        $table_name = $wpdb->prefix . 'worker_expenses';
-        
-        $query = "SELECT * FROM $table_name WHERE user_id = %d";
-        $params = array($user_id);
-        
-        // Filtro por fecha desde
-        if (!empty($date_from)) {
-            $query .= " AND expense_date >= %s";
-            $params[] = $date_from;
-        }
-        
-        // Filtro por fecha hasta
-        if (!empty($date_to)) {
-            $query .= " AND expense_date <= %s";
-            $params[] = $date_to;
-        }
-        
-        // Filtro por tipo de gasto
-        if (!empty($expense_type)) {
-            $query .= " AND expense_type = %s";
-            $params[] = $expense_type;
-        }
-        
-        // Filtro por estado
-        if (!empty($status)) {
-            $query .= " AND status = %s";
-            $params[] = $status;
-        }
-        
-        // Filtro por término de búsqueda
-        if (!empty($search)) {
-            $query .= " AND (description LIKE %s OR amount LIKE %s)";
-            $search_term = '%' . $wpdb->esc_like($search) . '%';
-            $params[] = $search_term;
-            $params[] = $search_term;
-        }
-        
-        $query .= " ORDER BY report_date DESC LIMIT %d OFFSET %d";
-        $params[] = $limit;
-        $params[] = $offset;
-        
-        return $wpdb->get_results(
-            $wpdb->prepare($query, $params),
-            ARRAY_A
-        );
+/**
+ * Obtiene gastos filtrados de un usuario
+ *
+ * @since    1.0.0
+ * @param    int       $user_id      ID del usuario
+ * @param    string    $date_from    Fecha inicial
+ * @param    string    $date_to      Fecha final
+ * @param    string    $expense_type Tipo de gasto
+ * @param    string    $status       Estado del gasto
+ * @param    string    $search       Término de búsqueda
+ * @param    int       $limit        Límite de resultados
+ * @param    int       $offset       Offset para paginación
+ * @return   array                   Lista de gastos
+ */
+private function get_filtered_expenses($user_id, $date_from = '', $date_to = '', $expense_type = '', $status = '', $search = '', $limit = 10, $offset = 0) {
+    global $wpdb;
+    
+    $table_name = $wpdb->prefix . 'worker_expenses';
+    
+    $query = "SELECT * FROM $table_name WHERE user_id = %d";
+    $params = array($user_id);
+    
+    // Filtro por fecha desde
+    if (!empty($date_from)) {
+        $query .= " AND expense_date >= %s";
+        $params[] = $date_from;
     }
+    
+    // Filtro por fecha hasta
+    if (!empty($date_to)) {
+        $query .= " AND expense_date <= %s";
+        $params[] = $date_to;
+    }
+    
+    // Filtro por tipo de gasto
+    if (!empty($expense_type)) {
+        $query .= " AND expense_type = %s";
+        $params[] = $expense_type;
+    }
+    
+    // Filtro por estado
+    if (!empty($status)) {
+        $query .= " AND status = %s";
+        $params[] = $status;
+    }
+    
+    // Filtro por término de búsqueda
+    if (!empty($search)) {
+        $query .= " AND (description LIKE %s OR amount LIKE %s)";
+        $search_term = '%' . $wpdb->esc_like($search) . '%';
+        $params[] = $search_term;
+        $params[] = $search_term;
+    }
+    
+    $query .= " ORDER BY report_date DESC LIMIT %d OFFSET %d";
+    $params[] = $limit;
+    $params[] = $offset;
+    
+    return $wpdb->get_results(
+        $wpdb->prepare($query, $params),
+        ARRAY_A
+    );
+}
 
     /**
      * Obtiene el total de gastos filtrados

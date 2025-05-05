@@ -89,7 +89,7 @@ if (!current_user_can('wp_worker_manage_expenses')) {
     <div class="worker-portal-expenses-list-container">
         <h3><?php _e('Gastos Comunicados', 'worker-portal'); ?></h3>
         
-        <!-- Filtros de gastos -->
+        <!-- Filter form modification -->
         <div class="worker-portal-filters">
             <form id="expenses-filter-form" class="worker-portal-filter-form">
                 <div class="worker-portal-filter-row">
@@ -127,6 +127,11 @@ if (!current_user_can('wp_worker_manage_expenses')) {
                         <label for="filter-search"><?php _e('Buscar:', 'worker-portal'); ?></label>
                         <input type="text" id="filter-search" name="search" placeholder="<?php _e('Buscar en motivo...', 'worker-portal'); ?>">
                     </div>
+                </div>
+                
+                <div class="worker-portal-filter-group checkbox-filter">
+                    <input type="checkbox" id="show-pending-only" name="show_pending_only" value="1">
+                    <label for="show-pending-only"><?php _e('Mostrar solo gastos pendientes', 'worker-portal'); ?></label>
                 </div>
                 
                 <div class="worker-portal-filter-actions">

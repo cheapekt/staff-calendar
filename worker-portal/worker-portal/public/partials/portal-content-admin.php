@@ -313,57 +313,66 @@ if (!defined('ABSPATH')) {
         <div id="tab-pending-expenses" class="worker-portal-tab-content">
             <h2><?php _e('Gastos Pendientes', 'worker-portal'); ?></h2>
             
-            <!-- Filtros de gastos -->
-            <div class="worker-portal-admin-filters">
-                <form id="admin-expenses-filter-form" class="worker-portal-admin-filter-form">
-                    <div class="worker-portal-admin-filter-row">
-                        <div class="worker-portal-admin-filter-group">
-                            <label for="filter-worker"><?php _e('Trabajador:', 'worker-portal'); ?></label>
-                            <select id="filter-worker" name="user_id">
-                                <option value=""><?php _e('Todos', 'worker-portal'); ?></option>
-                                <?php 
-                                $workers = get_users(array('role__not_in' => array('administrator')));
-                                foreach ($workers as $worker): 
-                                ?>
-                                    <option value="<?php echo esc_attr($worker->ID); ?>"><?php echo esc_html($worker->display_name); ?></option>
-                                <?php endforeach; ?>
-                            </select>
-                        </div>
-                        
-                        <div class="worker-portal-admin-filter-group">
-                            <label for="filter-type"><?php _e('Tipo:', 'worker-portal'); ?></label>
-                            <select id="filter-type" name="expense_type">
-                                <option value=""><?php _e('Todos', 'worker-portal'); ?></option>
-                                <?php 
-                                $expense_types = get_option('worker_portal_expense_types', array());
-                                foreach ($expense_types as $key => $label): 
-                                ?>
-                                    <option value="<?php echo esc_attr($key); ?>"><?php echo esc_html($label); ?></option>
-                                <?php endforeach; ?>
-                            </select>
-                        </div>
-                        
-                        <div class="worker-portal-admin-filter-group">
-                            <label for="filter-date-from"><?php _e('Desde:', 'worker-portal'); ?></label>
-                            <input type="date" id="filter-date-from" name="date_from">
-                        </div>
-                        
-                        <div class="worker-portal-admin-filter-group">
-                            <label for="filter-date-to"><?php _e('Hasta:', 'worker-portal'); ?></label>
-                            <input type="date" id="filter-date-to" name="date_to">
-                        </div>
+        <!-- Filtros de gastos -->
+        <div class="worker-portal-admin-filters">
+            <form id="admin-expenses-filter-form" class="worker-portal-admin-filter-form">
+                <div class="worker-portal-admin-filter-row">
+                    <div class="worker-portal-admin-filter-group">
+                        <label for="filter-worker"><?php _e('Trabajador:', 'worker-portal'); ?></label>
+                        <select id="filter-worker" name="user_id">
+                            <option value=""><?php _e('Todos', 'worker-portal'); ?></option>
+                            <?php 
+                            $workers = get_users(array('role__not_in' => array('administrator')));
+                            foreach ($workers as $worker): 
+                            ?>
+                                <option value="<?php echo esc_attr($worker->ID); ?>"><?php echo esc_html($worker->display_name); ?></option>
+                            <?php endforeach; ?>
+                        </select>
                     </div>
                     
-                    <div class="worker-portal-admin-filter-actions">
-                        <button type="submit" class="worker-portal-button worker-portal-button-secondary">
-                            <i class="dashicons dashicons-search"></i> <?php _e('Filtrar', 'worker-portal'); ?>
-                        </button>
-                        <button type="button" id="clear-filters-expenses" class="worker-portal-button worker-portal-button-link">
-                            <?php _e('Limpiar filtros', 'worker-portal'); ?>
-                        </button>
+                    <div class="worker-portal-admin-filter-group">
+                        <label for="filter-type"><?php _e('Tipo:', 'worker-portal'); ?></label>
+                        <select id="filter-type" name="expense_type">
+                            <option value=""><?php _e('Todos', 'worker-portal'); ?></option>
+                            <?php 
+                            $expense_types = get_option('worker_portal_expense_types', array());
+                            foreach ($expense_types as $key => $label): 
+                            ?>
+                                <option value="<?php echo esc_attr($key); ?>"><?php echo esc_html($label); ?></option>
+                            <?php endforeach; ?>
+                        </select>
                     </div>
-                </form>
-            </div>
+                    
+                    <div class="worker-portal-admin-filter-group">
+                        <label for="filter-date-from"><?php _e('Desde:', 'worker-portal'); ?></label>
+                        <input type="date" id="filter-date-from" name="date_from">
+                    </div>
+                    
+                    <div class="worker-portal-admin-filter-group">
+                        <label for="filter-date-to"><?php _e('Hasta:', 'worker-portal'); ?></label>
+                        <input type="date" id="filter-date-to" name="date_to">
+                    </div>
+                </div>
+                
+                <!-- Aquí añadimos el checkbox estilizado -->
+                <div class="worker-portal-admin-filter-group worker-portal-checkbox-container">
+                    <label class="worker-portal-checkbox-label">
+                        <input type="checkbox" id="show-pending-only" name="show_pending_only" value="1" checked class="worker-portal-checkbox">
+                        <span class="worker-portal-checkbox-custom"></span>
+                        <span class="worker-portal-checkbox-text"><?php _e('Mostrar solo gastos pendientes', 'worker-portal'); ?></span>
+                    </label>
+                </div>
+                                
+                <div class="worker-portal-admin-filter-actions">
+                    <button type="submit" class="worker-portal-button worker-portal-button-secondary">
+                        <i class="dashicons dashicons-search"></i> <?php _e('Filtrar', 'worker-portal'); ?>
+                    </button>
+                    <button type="button" id="clear-filters-expenses" class="worker-portal-button worker-portal-button-link">
+                        <?php _e('Limpiar filtros', 'worker-portal'); ?>
+                    </button>
+                </div>
+            </form>
+        </div>
             
             <!-- Acciones masivas -->
             <div class="worker-portal-admin-bulk-actions">
@@ -1112,7 +1121,7 @@ jQuery(document).ready(function($) {
         $('.worker-portal-tab-link[data-tab="' + tab + '"]').click();
     });
     
-    // Función para cargar gastos pendientes
+    // Modificar la función loadPendingExpenses para añadir el manejo del checkbox
     function loadPendingExpenses() {
         console.log('Cargando gastos pendientes...');
         
@@ -1120,6 +1129,14 @@ jQuery(document).ready(function($) {
         var formData = new FormData(document.getElementById('admin-expenses-filter-form'));
         formData.append('action', 'admin_load_pending_expenses');
         formData.append('nonce', $('#admin_nonce').val());
+        
+        // Verificar el estado del checkbox
+        var showPendingOnly = $('#show-pending-only').is(':checked');
+        
+        // Si el checkbox está marcado, forzar el filtro de pendientes
+        if (showPendingOnly) {
+            formData.set('status', 'pending');
+        }
         
         // Mostrar indicador de carga
         $('#pending-expenses-list-container').html(
@@ -1155,6 +1172,25 @@ jQuery(document).ready(function($) {
             }
         });
     }
+
+// Añadir estos handlers al jQuery.ready o a la función que inicializa los eventos
+$(document).ready(function() {
+    // Añadir al final de la función de inicialización existente
+    
+    // Manejar cambio en el checkbox de mostrar solo pendientes
+    $('#show-pending-only').on('change', function() {
+        // Cargar los gastos inmediatamente al cambiar el checkbox
+        loadPendingExpenses();
+    });
+    
+    // Asegurar que se resetea el checkbox al limpiar filtros
+    $('#clear-filters-expenses').on('click', function() {
+        $('#admin-expenses-filter-form')[0].reset();
+        // Volver a marcar el checkbox por defecto
+        $('#show-pending-only').prop('checked', true);
+        loadPendingExpenses();
+    });
+});
     
     // Función para cargar hojas de trabajo
     function loadWorksheets() {

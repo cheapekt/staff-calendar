@@ -1166,6 +1166,15 @@ add_action('wp_ajax_admin_export_timeclock_data', array($this, 'ajax_admin_expor
         $expense_type = isset($_POST['expense_type']) ? sanitize_text_field($_POST['expense_type']) : '';
         $date_from = isset($_POST['date_from']) ? sanitize_text_field($_POST['date_from']) : '';
         $date_to = isset($_POST['date_to']) ? sanitize_text_field($_POST['date_to']) : '';
+        $status = isset($_POST['status']) ? sanitize_text_field($_POST['status']) : '';
+        
+        // Verificar si el checkbox "mostrar solo pendientes" está marcado
+        $show_pending_only = isset($_POST['show_pending_only']) && $_POST['show_pending_only'] === '1';
+        
+        // Si está marcado, forzar el status a "pending" independientemente de otros filtros
+        if ($show_pending_only) {
+            $status = 'pending';
+        }
         
         // Obtener gastos pendientes
         global $wpdb;
@@ -1173,8 +1182,13 @@ add_action('wp_ajax_admin_export_timeclock_data', array($this, 'ajax_admin_expor
         $query = "SELECT e.*, u.display_name 
                 FROM {$wpdb->prefix}worker_expenses e 
                 LEFT JOIN {$wpdb->users} u ON e.user_id = u.ID 
-                WHERE e.status = 'pending'";
+                WHERE 1=1";
         $params = array();
+        
+        // Si status es pendiente, aplicar ese filtro
+        if ($status === 'pending') {
+            $query .= " AND e.status = 'pending'";
+        }
         
         // Filtro por usuario
         if ($user_id > 0) {

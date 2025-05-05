@@ -905,3 +905,74 @@
   padding-top: 15px;
   border-top: 1px solid #eee;
 }
+
+/* Estilos para checkbox personalizado */
+.worker-portal-checkbox-container {
+  margin: 15px 0;
+  padding: 10px 15px;
+  background-color: #f9f9f9;
+  border: 1px solid #e5e5e5;
+  border-radius: 4px;
+  box-shadow: 0 1px 1px rgba(0, 0, 0, 0.04);
+}
+
+.worker-portal-checkbox-label {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  position: relative;
+  font-weight: 500;
+  color: #444;
+}
+
+.worker-portal-checkbox {
+  position: absolute;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.worker-portal-checkbox-custom {
+  position: relative;
+  display: inline-block;
+  width: 18px;
+  height: 18px;
+  margin-right: 10px;
+  background-color: #fff;
+  border: 2px solid #2271b1;
+  border-radius: 3px;
+  transition: all 0.2s ease-in-out;
+}
+
+.worker-portal-checkbox:checked ~ .worker-portal-checkbox-custom {
+  background-color: #2271b1;
+  border-color: #2271b1;
+}
+
+.worker-portal-checkbox-custom:after {
+  content: "";
+  position: absolute;
+  display: none;
+  left: 5px;
+  top: 1px;
+  width: 5px;
+  height: 10px;
+  border: solid white;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+
+.worker-portal-checkbox:checked ~ .worker-portal-checkbox-custom:after {
+  display: block;
+}
+
+.worker-portal-checkbox-text {
+  font-size: 14px;
+}
+
+.worker-portal-checkbox:focus ~ .worker-portal-checkbox-custom {
+  box-shadow: 0 0 0 2px rgba(34, 113, 177, 0.25);
+}
+
+.worker-portal-checkbox-label:hover .worker-portal-checkbox-custom {
+  border-color: #135e96;
+}

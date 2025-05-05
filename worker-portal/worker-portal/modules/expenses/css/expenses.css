@@ -571,3 +571,29 @@
     align-items: flex-start;
   }
 }
+
+/* Add this to the expenses.css file */
+
+.checkbox-filter {
+  display: flex;
+  align-items: center;
+  margin: 10px 0;
+}
+
+.checkbox-filter input[type="checkbox"] {
+  margin-right: 8px;
+}
+
+.checkbox-filter label {
+  font-weight: 500;
+  color: #333;
+  margin-bottom: 0;
+  cursor: pointer;
+}
+
+/* Optional: Add some highlighting for better visibility */
+.checkbox-filter:hover {
+  background-color: #f9f9f9;
+  padding: 5px;
+  border-radius: 4px;
+}

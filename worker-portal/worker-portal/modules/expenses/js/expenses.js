@@ -478,6 +478,81 @@
         });
       });
     },
+    // Add to setupFilters function in the WorkerPortalPublicExpenses object
+    setupFilters: function () {
+      // Enviar formulario de filtros
+      $("#expenses-filter-form").on("submit", function (e) {
+        e.preventDefault();
+        WorkerPortalExpenses.loadFilteredExpenses(1);
+      });
+
+      // Limpiar filtros
+      $("#clear-filters").on("click", function () {
+        $("#expenses-filter-form")[0].reset();
+        // Ensure the pending checkbox is reset too
+        $("#show-pending-only").prop("checked", false);
+        WorkerPortalExpenses.loadFilteredExpenses(1);
+      });
+
+      // Handle the pending checkbox change
+      $("#show-pending-only").on("change", function () {
+        // If checked, we set the status dropdown to pending and disable it
+        if ($(this).is(":checked")) {
+          $("#filter-status").val("pending").prop("disabled", true);
+        } else {
+          // If unchecked, enable the status dropdown again
+          $("#filter-status").prop("disabled", false);
+        }
+
+        // Apply the filter immediately when checkbox changes
+        WorkerPortalExpenses.loadFilteredExpenses(1);
+      });
+    },
+
+    // Modify the loadFilteredExpenses function
+    loadFilteredExpenses: function (page) {
+      // Mostrar indicador de carga
+      $("#expenses-list-content").html(
+        '<div class="worker-portal-loading"><div class="worker-portal-spinner"></div></div>'
+      );
+
+      // Obtener datos del formulario
+      const formData = new FormData($("#expenses-filter-form")[0]);
+
+      // Check the pending checkbox status and override status if needed
+      if ($("#show-pending-only").is(":checked")) {
+        formData.set("status", "pending");
+      }
+
+      formData.append("action", "filter_expenses");
+      formData.append("nonce", workerPortalExpenses.nonce);
+      formData.append("page", page);
+
+      // Realizar petición AJAX
+      $.ajax({
+        url: workerPortalExpenses.ajax_url,
+        type: "POST",
+        data: formData,
+        processData: false,
+        contentType: false,
+        success: function (response) {
+          if (response.success) {
+            $("#expenses-list-content").html(response.data);
+          } else {
+            $("#expenses-list-content").html(
+              '<p class="worker-portal-no-data">' + response.data + "</p>"
+            );
+          }
+        },
+        error: function () {
+          $("#expenses-list-content").html(
+            '<p class="worker-portal-no-data">' +
+              workerPortalExpenses.i18n.error +
+              "</p>"
+          );
+        },
+      });
+    },
   };
 
   // Inicializar cuando el DOM esté listo
