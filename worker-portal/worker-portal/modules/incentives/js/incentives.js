@@ -31,6 +31,18 @@
         $("#incentives-filter-form")[0].reset();
         WorkerPortalIncentives.loadFilteredIncentives(1);
       });
+
+      // Filtros para administrador
+      $("#admin-incentives-filter-form").on("submit", function (e) {
+        e.preventDefault();
+        WorkerPortalIncentives.loadAdminIncentives();
+      });
+
+      // Limpiar filtros de administrador
+      $("#clear-filters-inc").on("click", function () {
+        $("#admin-incentives-filter-form")[0].reset();
+        WorkerPortalIncentives.loadAdminIncentives();
+      });
     },
 
     /**
@@ -42,7 +54,9 @@
       $("#incentives-list-content").html(
         '<div class="worker-portal-loading">' +
           '<div class="worker-portal-spinner"></div>' +
-          "<p>Cargando incentivos...</p>" +
+          "<p>" +
+          workerPortalIncentives.i18n.loading +
+          "</p>" +
           "</div>"
       );
 
@@ -130,7 +144,7 @@
       });
 
       // Calcular incentivo desde hoja de trabajo
-      $("#calculate-incentive-button").on("click", function () {
+      $(document).on("click", "#calculate-incentive-button", function () {
         const worksheetId = $(this).data("worksheet-id");
         WorkerPortalIncentives.calculateWorksheetIncentive(worksheetId);
       });
@@ -167,14 +181,8 @@
 
       // Asegurarse de que el nonce está incluido
       if (!formData.has("nonce")) {
-        // Si no existe en el formData, intentar obtenerlo del elemento específico
-        const nonce = $("#incentive_nonce").val();
-        if (nonce) {
-          formData.append("nonce", nonce);
-        } else {
-          // Si aún no hay nonce, intentar usar el nonce general
-          formData.append("nonce", workerPortalIncentives.nonce);
-        }
+        // Si no existe en el formData, usar el nonce del objeto global
+        formData.append("nonce", workerPortalIncentives.nonce);
       }
 
       // Enviar datos
@@ -231,7 +239,8 @@
         data: {
           action: "admin_approve_incentive",
           incentive_id: incentiveId,
-          nonce: $("#admin_nonce").val(),
+          nonce:
+            workerPortalIncentives.admin_nonce || workerPortalIncentives.nonce,
         },
         success: function (response) {
           if (response.success) {
@@ -270,7 +279,8 @@
         data: {
           action: "admin_reject_incentive",
           incentive_id: incentiveId,
-          nonce: $("#admin_nonce").val(),
+          nonce:
+            workerPortalIncentives.admin_nonce || workerPortalIncentives.nonce,
         },
         success: function (response) {
           if (response.success) {
@@ -313,7 +323,8 @@
         data: {
           action: "admin_delete_incentive",
           incentive_id: incentiveId,
-          nonce: $("#admin_nonce").val(),
+          nonce:
+            workerPortalIncentives.admin_nonce || workerPortalIncentives.nonce,
         },
         success: function (response) {
           if (response.success) {
@@ -348,7 +359,8 @@
         data: {
           action: "admin_get_incentive_details",
           incentive_id: incentiveId,
-          nonce: $("#admin_nonce").val(),
+          nonce:
+            workerPortalIncentives.admin_nonce || workerPortalIncentives.nonce,
         },
         beforeSend: function () {
           $("#incentive-details-content").html(
@@ -492,7 +504,10 @@
       // Obtener datos de filtros si existen
       var formData = new FormData();
       formData.append("action", "admin_load_incentives");
-      formData.append("nonce", $("#admin_nonce").val());
+      formData.append(
+        "nonce",
+        workerPortalIncentives.admin_nonce || workerPortalIncentives.nonce
+      );
 
       if ($("#filter-worker-inc").length) {
         formData.append("user_id", $("#filter-worker-inc").val() || "");
@@ -547,7 +562,8 @@
         data: {
           action: "admin_calculate_worksheet_incentive",
           worksheet_id: worksheetId,
-          nonce: $("#admin_nonce").val(),
+          nonce:
+            workerPortalIncentives.admin_nonce || workerPortalIncentives.nonce,
         },
         beforeSend: function () {
           $("#calculate-incentive-button")

@@ -104,13 +104,13 @@ class Worker_Portal_Module_Incentives {
         wp_enqueue_style(
             'worker-portal-incentives',
             WORKER_PORTAL_URL . 'modules/incentives/css/incentives.css',
-            array(),
+            array('worker-portal-public'),
             WORKER_PORTAL_VERSION,
             'all'
         );
         
         // Cargar scripts
-        wp_enqueue_script(
+        wp_register_script(
             'worker-portal-incentives',
             WORKER_PORTAL_URL . 'modules/incentives/js/incentives.js',
             array('jquery'),
@@ -125,6 +125,7 @@ class Worker_Portal_Module_Incentives {
             array(
                 'ajax_url' => admin_url('admin-ajax.php'),
                 'nonce' => wp_create_nonce('worker_portal_incentives_nonce'),
+                'admin_nonce' => wp_create_nonce('worker_portal_admin_nonce'),
                 'i18n' => array(
                     'error' => __('Ha ocurrido un error. Por favor, inténtalo de nuevo.', 'worker-portal'),
                     'success' => __('Operación completada con éxito.', 'worker-portal'),
@@ -133,6 +134,9 @@ class Worker_Portal_Module_Incentives {
                 )
             )
         );
+
+        // Enqueue el script después de localizarlo
+        wp_enqueue_script('worker-portal-incentives');
     }
 
     /**
@@ -536,7 +540,7 @@ class Worker_Portal_Module_Incentives {
     }
 
     /**
-     * Registra los endpoints de la API REST para futura implementación
+     * Registra los endpoints de la API REST
      *
      * @since    1.0.0
      */
@@ -600,7 +604,9 @@ class Worker_Portal_Module_Incentives {
      */
     public function ajax_admin_add_incentive() {
         // Verificar nonce
-        if (!isset($_POST['nonce']) || !wp_verify_nonce($_POST['nonce'], 'worker_portal_incentives_nonce')) {
+        if (!isset($_POST['nonce']) || 
+            (!wp_verify_nonce($_POST['nonce'], 'worker_portal_incentives_nonce') && 
+             !wp_verify_nonce($_POST['nonce'], 'worker_portal_admin_nonce'))) {
             wp_send_json_error(__('Error de seguridad. Por favor, recarga la página.', 'worker-portal'));
         }
         
@@ -664,14 +670,16 @@ class Worker_Portal_Module_Incentives {
         ));
     }
 
- /**
-     * Maneja la petición AJAX para rechazar un incentivo (admin)
+/**
+     * Maneja la petición AJAX para aprobar un incentivo (admin)
      *
      * @since    1.0.0
      */
-    public function ajax_admin_reject_incentive() {
+    public function ajax_admin_approve_incentive() {
         // Verificar nonce
-        if (!isset($_POST['nonce']) || !wp_verify_nonce($_POST['nonce'], 'worker_portal_admin_nonce')) {
+        if (!isset($_POST['nonce']) || 
+            (!wp_verify_nonce($_POST['nonce'], 'worker_portal_admin_nonce') && 
+             !wp_verify_nonce($_POST['nonce'], 'worker_portal_incentives_nonce'))) {
             wp_send_json_error(__('Error de seguridad. Por favor, recarga la página.', 'worker-portal'));
         }
         
@@ -681,6 +689,75 @@ class Worker_Portal_Module_Incentives {
         }
         
         // Validar datos
+        $incentive_id = isset($_POST['incentive_id']) ? intval($_POST['incentive_id']) : 0;
+        
+        if ($incentive_id <= 0) {
+            wp_send_json_error(__('ID de incentivo no válido', 'worker-portal'));
+        }
+        
+        // Verificar que el incentivo existe y está pendiente
+        global $wpdb;
+        
+        $incentive = $wpdb->get_row(
+            $wpdb->prepare(
+                "SELECT * FROM {$wpdb->prefix}worker_incentives WHERE id = %d",
+                $incentive_id
+            ),
+            ARRAY_A
+        );
+        
+        if (!$incentive) {
+            wp_send_json_error(__('El incentivo no existe', 'worker-portal'));
+        }
+        
+        if ($incentive['status'] !== 'pending') {
+            wp_send_json_error(__('El incentivo ya ha sido procesado', 'worker-portal'));
+        }
+        
+        // Actualizar estado del incentivo
+        $result = $wpdb->update(
+            $wpdb->prefix . 'worker_incentives',
+            array(
+                'status' => 'approved',
+                'approved_by' => get_current_user_id(),
+                'approved_date' => current_time('mysql')
+            ),
+            array('id' => $incentive_id),
+            array('%s', '%d', '%s'),
+            array('%d')
+        );
+        
+        if ($result === false) {
+            wp_send_json_error(__('Error al aprobar el incentivo. Por favor, inténtalo de nuevo.', 'worker-portal'));
+        }
+        
+        // Enviar notificación al trabajador
+        $this->send_incentive_status_notification($incentive_id, 'approved');
+        
+        wp_send_json_success(array(
+            'message' => __('Incentivo aprobado correctamente', 'worker-portal')
+        ));
+    }
+
+    /**
+     * Maneja la petición AJAX para rechazar un incentivo (admin)
+     *
+     * @since    1.0.0
+     */
+    public function ajax_admin_reject_incentive() {
+        // Verificar nonce
+        if (!isset($_POST['nonce']) || 
+            (!wp_verify_nonce($_POST['nonce'], 'worker_portal_admin_nonce') && 
+             !wp_verify_nonce($_POST['nonce'], 'worker_portal_incentives_nonce'))) {
+            wp_send_json_error(__('Error de seguridad. Por favor, recarga la página.', 'worker-portal'));
+        }
+        
+        // Verificar que el usuario es administrador
+        if (!current_user_can('manage_options') && !current_user_can('wp_worker_manage_incentives')) {
+            wp_send_json_error(__('No tienes permisos para realizar esta acción', 'worker-portal'));
+        }
+        
+        // Obtener ID del incentivo
         $incentive_id = isset($_POST['incentive_id']) ? intval($_POST['incentive_id']) : 0;
         
         if ($incentive_id <= 0) {
@@ -738,16 +815,18 @@ class Worker_Portal_Module_Incentives {
      */
     public function ajax_admin_delete_incentive() {
         // Verificar nonce
-        if (!isset($_POST['nonce']) || !wp_verify_nonce($_POST['nonce'], 'worker_portal_admin_nonce')) {
+        if (!isset($_POST['nonce']) || 
+            (!wp_verify_nonce($_POST['nonce'], 'worker_portal_admin_nonce') && 
+             !wp_verify_nonce($_POST['nonce'], 'worker_portal_incentives_nonce'))) {
             wp_send_json_error(__('Error de seguridad. Por favor, recarga la página.', 'worker-portal'));
         }
         
-        // Verificar permisos de administrador
+        // Verificar que el usuario es administrador
         if (!current_user_can('manage_options') && !current_user_can('wp_worker_manage_incentives')) {
             wp_send_json_error(__('No tienes permisos para realizar esta acción', 'worker-portal'));
         }
         
-        // Validar datos
+        // Obtener ID del incentivo
         $incentive_id = isset($_POST['incentive_id']) ? intval($_POST['incentive_id']) : 0;
         
         if ($incentive_id <= 0) {
@@ -792,16 +871,18 @@ class Worker_Portal_Module_Incentives {
      */
     public function ajax_admin_get_incentive_details() {
         // Verificar nonce
-        if (!isset($_POST['nonce']) || !wp_verify_nonce($_POST['nonce'], 'worker_portal_admin_nonce')) {
+        if (!isset($_POST['nonce']) || 
+            (!wp_verify_nonce($_POST['nonce'], 'worker_portal_admin_nonce') && 
+             !wp_verify_nonce($_POST['nonce'], 'worker_portal_incentives_nonce'))) {
             wp_send_json_error(__('Error de seguridad. Por favor, recarga la página.', 'worker-portal'));
         }
         
-        // Verificar permisos de administrador
+        // Verificar que el usuario es administrador
         if (!current_user_can('manage_options') && !current_user_can('wp_worker_manage_incentives')) {
             wp_send_json_error(__('No tienes permisos para realizar esta acción', 'worker-portal'));
         }
         
-        // Validar datos
+        // Obtener ID del incentivo
         $incentive_id = isset($_POST['incentive_id']) ? intval($_POST['incentive_id']) : 0;
         
         if ($incentive_id <= 0) {
@@ -870,11 +951,13 @@ class Worker_Portal_Module_Incentives {
      */
     public function ajax_admin_load_incentives() {
         // Verificar nonce
-        if (!isset($_POST['nonce']) || !wp_verify_nonce($_POST['nonce'], 'worker_portal_admin_nonce')) {
+        if (!isset($_POST['nonce']) || 
+            (!wp_verify_nonce($_POST['nonce'], 'worker_portal_admin_nonce') && 
+             !wp_verify_nonce($_POST['nonce'], 'worker_portal_incentives_nonce'))) {
             wp_send_json_error(__('Error de seguridad. Por favor, recarga la página.', 'worker-portal'));
         }
         
-        // Verificar permisos de administrador
+        // Verificar que el usuario es administrador
         if (!current_user_can('manage_options') && !current_user_can('wp_worker_manage_incentives')) {
             wp_send_json_error(__('No tienes permisos para realizar esta acción', 'worker-portal'));
         }
@@ -1099,16 +1182,18 @@ class Worker_Portal_Module_Incentives {
      */
     public function ajax_admin_calculate_worksheet_incentive() {
         // Verificar nonce
-        if (!isset($_POST['nonce']) || !wp_verify_nonce($_POST['nonce'], 'worker_portal_admin_nonce')) {
+        if (!isset($_POST['nonce']) || 
+            (!wp_verify_nonce($_POST['nonce'], 'worker_portal_admin_nonce') && 
+             !wp_verify_nonce($_POST['nonce'], 'worker_portal_incentives_nonce'))) {
             wp_send_json_error(__('Error de seguridad. Por favor, recarga la página.', 'worker-portal'));
         }
         
-        // Verificar permisos de administrador
+        // Verificar que el usuario es administrador
         if (!current_user_can('manage_options') && !current_user_can('wp_worker_manage_incentives')) {
             wp_send_json_error(__('No tienes permisos para realizar esta acción', 'worker-portal'));
         }
         
-        // Validar datos
+        // Obtener ID de la hoja de trabajo
         $worksheet_id = isset($_POST['worksheet_id']) ? intval($_POST['worksheet_id']) : 0;
         
         if ($worksheet_id <= 0) {
@@ -1226,7 +1311,7 @@ class Worker_Portal_Module_Incentives {
         );
     }
 
-    /**
+/**
      * Envía una notificación al usuario sobre un nuevo incentivo
      *
      * @since    1.0.0
@@ -1337,7 +1422,7 @@ Saludos,
                 get_bloginfo('name')
             );
             
-         $message = sprintf(
+            $message = sprintf(
                 __('Hola %s,
 
 Tu incentivo ha sido aprobado por %s:
@@ -1392,4 +1477,4 @@ Saludos,
         // Enviar email
         wp_mail($user->user_email, $subject, $message);
     }
-}   
+}
