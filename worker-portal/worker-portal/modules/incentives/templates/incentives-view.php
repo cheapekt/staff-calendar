@@ -18,8 +18,13 @@ if (!current_user_can('wp_worker_view_incentives')) {
     return;
 }
 
-// Cargar utilidades
-require_once WORKER_PORTAL_PATH . 'includes/class-utils.php';
+// Obtener tipos de incentivos disponibles
+$incentive_types = get_option('worker_portal_incentive_types', array(
+    'excess_meters' => __('Plus de productividad por exceso de metros ejecutados', 'worker-portal'),
+    'quality' => __('Plus de calidad', 'worker-portal'),
+    'efficiency' => __('Plus de eficiencia', 'worker-portal'),
+    'other' => __('Otros', 'worker-portal')
+));
 
 // Verificar si el usuario es administrador
 $is_admin = Worker_Portal_Utils::is_portal_admin();
@@ -36,11 +41,11 @@ $is_admin = Worker_Portal_Utils::is_portal_admin();
             <h3><?php _e('Añadir Incentivo', 'worker-portal'); ?></h3>
             
             <form id="add-incentive-form" class="worker-portal-form">
-                    <input type="hidden" id="incentive_nonce" name="nonce" value="<?php echo wp_create_nonce('worker_portal_incentives_nonce'); ?>">
+                <input type="hidden" id="incentive_nonce" name="nonce" value="<?php echo wp_create_nonce('worker_portal_incentives_nonce'); ?>">
                 <div class="worker-portal-form-row">
                     <div class="worker-portal-form-group">
                         <label for="incentive-user-id"><?php _e('Trabajador:', 'worker-portal'); ?></label>
-<select id="incentive-user-id" name="user_id" required>
+                        <select id="incentive-user-id" name="user_id" required>
                             <option value=""><?php _e('Seleccionar trabajador', 'worker-portal'); ?></option>
                             <?php 
                             $workers = get_users(array('role__not_in' => array('administrator')));
@@ -76,7 +81,6 @@ $is_admin = Worker_Portal_Utils::is_portal_admin();
                 <input type="hidden" id="incentive-worksheet-id" name="worksheet_id" value="0">
                 
                 <div class="worker-portal-form-actions">
-                    <input type="hidden" name="nonce" value="<?php echo wp_create_nonce('worker_portal_incentives_nonce'); ?>">
                     <button type="submit" class="worker-portal-button worker-portal-button-primary">
                         <i class="dashicons dashicons-plus"></i> <?php _e('Añadir Incentivo', 'worker-portal'); ?>
                     </button>

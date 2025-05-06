@@ -353,6 +353,29 @@
      * @param {number} incentiveId - ID del incentivo
      */
     viewIncentiveDetails: function (incentiveId) {
+      // Verificar si el modal existe, y si no, crearlo
+      if ($("#incentive-details-modal").length === 0) {
+        console.log("El modal no existe, creándolo...");
+        $("body").append(`
+      <div id="incentive-details-modal" class="worker-portal-modal">
+        <div class="worker-portal-modal-content">
+          <div class="worker-portal-modal-header">
+            <h3>Detalles del Incentivo</h3>
+            <button type="button" class="worker-portal-modal-close">&times;</button>
+          </div>
+          <div class="worker-portal-modal-body">
+            <div id="incentive-details-content"></div>
+          </div>
+        </div>
+      </div>
+    `);
+
+        // Reinicializar los eventos de cierre del modal
+        $(".worker-portal-modal-close").on("click", function () {
+          $(this).closest(".worker-portal-modal").fadeOut();
+        });
+      }
+
       $.ajax({
         url: workerPortalIncentives.ajax_url,
         type: "POST",
@@ -371,7 +394,14 @@
               "</p>" +
               "</div>"
           );
-          $("#incentive-details-modal").fadeIn();
+
+          // Forzar la visibilidad del modal usando CSS inline
+          $("#incentive-details-modal").css({
+            display: "block",
+            visibility: "visible",
+            opacity: "1",
+            "z-index": "9999",
+          });
         },
         success: function (response) {
           if (response.success) {
@@ -409,7 +439,7 @@
               "</td></tr>";
             html +=
               "<tr><th>Importe:</th><td>" +
-              incentive.amount.toFixed(2).replace(".", ",") +
+              parseFloat(incentive.amount).toFixed(2).replace(".", ",") +
               " €</td></tr>";
             html +=
               "<tr><th>Fecha de cálculo:</th><td>" +
@@ -473,6 +503,14 @@
             }
 
             $("#incentive-details-content").html(html);
+
+            // Forzar visibilidad del modal nuevamente para asegurar
+            $("#incentive-details-modal").css({
+              display: "block",
+              visibility: "visible",
+              opacity: "1",
+              "z-index": "9999",
+            });
           } else {
             $("#incentive-details-content").html(
               '<div class="worker-portal-error">' + response.data + "</div>"
