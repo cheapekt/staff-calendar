@@ -400,7 +400,6 @@
     // Cargar hojas de trabajo
     loadWorksheets: function () {
       console.log("Cargando hojas de trabajo...");
-
       // Mostrar indicador de carga
       $("#worksheets-list-container").html(
         '<div class="worker-portal-loading">' +
@@ -408,29 +407,23 @@
           "<p>Cargando hojas de trabajo...</p>" +
           "</div>"
       );
-
       // Crear objeto FormData para enviar los filtros
       const formData = new FormData();
       formData.append("action", "admin_load_worksheets");
       formData.append("nonce", $("#admin_nonce").val());
-
       // Añadir filtros si existen
       if ($("#filter-worker-ws").length) {
         formData.append("user_id", $("#filter-worker-ws").val() || "");
       }
-
       if ($("#filter-project").length) {
         formData.append("project_id", $("#filter-project").val() || "");
       }
-
       if ($("#filter-date-from-ws").length) {
         formData.append("date_from", $("#filter-date-from-ws").val() || "");
       }
-
       if ($("#filter-date-to-ws").length) {
         formData.append("date_to", $("#filter-date-to-ws").val() || "");
       }
-
       // Realizar petición AJAX
       $.ajax({
         url: ajaxurl,
@@ -441,11 +434,86 @@
         success: function (response) {
           console.log("Respuesta de hojas de trabajo:", response);
           if (response.success) {
+            // Insertar el HTML recibido
             $("#worksheets-list-container").html(
               response.data.html ||
                 "<p>No hay hojas de trabajo para mostrar</p>"
             );
-            // CORRECCIÓN: Asegurar que los botones tengan el atributo correcto
+
+            // MEJORAR APARIENCIA DE LA TABLA:
+
+            // 1. Asegurarse de que la tabla tiene la clase correcta
+            $("#worksheets-list-container table").addClass(
+              "worker-portal-table"
+            );
+
+            // 2. Convertir todas las instancias de "Pendiente" a badges
+            $("#worksheets-list-container td").each(function () {
+              const text = $(this).text().trim();
+              if (text === "Pendiente") {
+                $(this).html(
+                  '<span class="worker-portal-badge worker-portal-badge-warning">Pendiente</span>'
+                );
+              } else if (text === "Validada") {
+                $(this).html(
+                  '<span class="worker-portal-badge worker-portal-badge-success">Validada</span>'
+                );
+              }
+            });
+
+            // 3. Mejorar todos los botones existentes
+            $("#worksheets-list-container button").each(function () {
+              const buttonText = $(this).text().trim();
+
+              // Limpiar clases existentes
+              $(this).removeClass("validate-worksheet view-worksheet");
+
+              // Mantener atributos data importantes
+              const worksheetId =
+                $(this).data("worksheet-id") || $(this).data("id");
+
+              if (
+                buttonText === "Validar" ||
+                $(this).find(".dashicons-yes").length
+              ) {
+                $(this).addClass(
+                  "worker-portal-button worker-portal-button-small worker-portal-button-primary validate-worksheet"
+                );
+                if (worksheetId) $(this).attr("data-worksheet-id", worksheetId);
+              } else if (
+                buttonText === "Detalles" ||
+                $(this).find(".dashicons-visibility").length
+              ) {
+                $(this).addClass(
+                  "worker-portal-button worker-portal-button-small worker-portal-button-secondary view-worksheet"
+                );
+                if (worksheetId) $(this).attr("data-worksheet-id", worksheetId);
+              }
+            });
+
+            // 4. Mejorar apariencia de enlaces si existen
+            $("#worksheets-list-container a").each(function () {
+              const linkText = $(this).text().trim();
+
+              if (linkText === "Validar") {
+                $(this).addClass(
+                  "worker-portal-button worker-portal-button-small worker-portal-button-primary"
+                );
+              } else if (linkText === "Detalles") {
+                $(this).addClass(
+                  "worker-portal-button worker-portal-button-small worker-portal-button-secondary"
+                );
+              }
+            });
+
+            // 5. Añadir clase al botón de exportar si existe
+            $("button:contains('Exportar a Excel')").addClass(
+              "worker-portal-button worker-portal-button-secondary"
+            );
+
+            // MANTENER FUNCIONALIDAD EXISTENTE:
+
+            // Asegurar que los botones tengan el atributo correcto
             $(".validate-worksheet, .view-worksheet").each(function () {
               if ($(this).data("id") && !$(this).data("worksheet-id")) {
                 $(this).attr("data-worksheet-id", $(this).data("id"));
