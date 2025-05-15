@@ -14,6 +14,12 @@ if (!defined('ABSPATH')) {
 <div class="worker-portal-navigation">
     <ul>
         <li>
+            <a href="#" class="worker-portal-button worker-portal-button-primary" data-section="timeclock">
+                <i class="dashicons dashicons-clock"></i> 
+                <?php _e('Fichaje', 'worker-portal'); ?>
+            </a>
+        </li>
+        <li>
             <a href="#" class="worker-portal-button worker-portal-button-primary" data-section="documents">
                 <i class="dashicons dashicons-media-document"></i> 
                 <?php _e('Mis Documentos', 'worker-portal'); ?>
@@ -43,17 +49,14 @@ if (!defined('ABSPATH')) {
                 <i class="dashicons dashicons-calendar-alt"></i> 
                 <?php _e('Mi Calendario', 'worker-portal'); ?>
             </a>
-        </li>
-        <li>
-            <a href="#" class="worker-portal-button worker-portal-button-primary" data-section="timeclock">
-                <i class="dashicons dashicons-clock"></i> 
-                <?php _e('Fichaje', 'worker-portal'); ?>
-            </a>
-        </li>
+        </li>        
     </ul>
 </div>
 
 <div class="worker-portal-sections">
+    <div id="timeclock-section" class="worker-portal-section" style="display:none;">
+        <?php echo do_shortcode('[wp_time_clock]'); ?>
+    </div>
     <div id="documents-section" class="worker-portal-section" style="display:none;">
         <?php echo do_shortcode('[worker_documents]'); ?>
     </div>
@@ -75,9 +78,7 @@ if (!defined('ABSPATH')) {
         <?php echo do_shortcode('[staff_calendar]'); ?>
     </div>
     
-    <div id="timeclock-section" class="worker-portal-section" style="display:none;">
-        <?php echo do_shortcode('[wp_time_clock]'); ?>
-    </div>
+
 </div>
 
 <script type="text/javascript">
