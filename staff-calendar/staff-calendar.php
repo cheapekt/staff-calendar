@@ -126,93 +126,131 @@ class StaffCalendar {
         wp_localize_script('staff-calendar-frontend', 'staffCalendarConfig', $calendar_config);
     }
 
-    public function updateStaffDestinationRange() {
-        check_ajax_referer('staff_calendar_nonce', 'nonce');
-        
-        if (!current_user_can('manage_options')) {
-            wp_send_json_error('Permisos insuficientes');
-        }
+public function updateStaffDestinationRange() {
+    check_ajax_referer('staff_calendar_nonce', 'nonce');
+    
+    if (!current_user_can('manage_options')) {
+        wp_send_json_error('Permisos insuficientes');
+    }
 
-        global $wpdb;
-        $table_name = $wpdb->prefix . 'staff_calendar';
-        
-        $user_id = intval($_POST['user_id']);
-        $start_date = sanitize_text_field($_POST['start_date']);
-        $end_date = sanitize_text_field($_POST['end_date']);
-        $destination = sanitize_text_field($_POST['destination']);
-        $vehicle = isset($_POST['vehicle']) ? sanitize_text_field($_POST['vehicle']) : '';
+    global $wpdb;
+    $table_name = $wpdb->prefix . 'staff_calendar';
+    
+    $user_id = intval($_POST['user_id']);
+    $start_date = sanitize_text_field($_POST['start_date']);
+    $end_date = sanitize_text_field($_POST['end_date']);
+    $destination = sanitize_text_field($_POST['destination']);
+    $vehicle = isset($_POST['vehicle']) ? sanitize_text_field($_POST['vehicle']) : '';
 
-        $current_date = new DateTime($start_date);
-        $end = new DateTime($end_date);
-        $end->modify('+1 day');
-        $interval = new DateInterval('P1D');
-        $date_range = new DatePeriod($current_date, $interval, $end);
+    $current_date = new DateTime($start_date);
+    $end = new DateTime($end_date);
+    $end->modify('+1 day');
+    $interval = new DateInterval('P1D');
+    $date_range = new DatePeriod($current_date, $interval, $end);
 
-        $success = true;
+    $success = true;
+    
+    foreach ($date_range as $date) {
+        $formatted_date = $date->format('Y-m-d');
         
-        foreach ($date_range as $date) {
-            $formatted_date = $date->format('Y-m-d');
+        $existing_data = $wpdb->get_row($wpdb->prepare(
+            "SELECT destination, vehicle, modification_count FROM $table_name WHERE user_id = %d AND work_date = %s",
+            $user_id,
+            $formatted_date
+        ));
+
+        if ($existing_data) {
+            $modification_count = (int)$existing_data->modification_count;
             
-            $existing_data = $wpdb->get_row($wpdb->prepare(
-                "SELECT destination, vehicle, modification_count FROM $table_name WHERE user_id = %d AND work_date = %s",
-                $user_id,
-                $formatted_date
-            ));
-
-            if ($existing_data) {
-                $modification_count = (int)$existing_data->modification_count;
-                
-                if ($existing_data->destination !== $destination || $existing_data->vehicle !== $vehicle) {
-                    $modification_count = $modification_count + 1;
-                }
-                
-                $data = array(
-                    'destination' => $destination,
-                    'vehicle' => $vehicle,
-                    'modification_count' => $modification_count
-                );
-                
-                $where = array(
-                    'user_id' => $user_id,
-                    'work_date' => $formatted_date
-                );
-                
-                $result = $wpdb->update(
-                    $table_name,
-                    $data,
-                    $where,
-                    array('%s', '%s', '%d'),
-                    array('%d', '%s')
-                );
-            } else {
-                $data = array(
-                    'user_id' => $user_id,
-                    'work_date' => $formatted_date,
-                    'destination' => $destination,
-                    'vehicle' => $vehicle,
-                    'modification_count' => 0
-                );
-                
-                $result = $wpdb->insert(
-                    $table_name,
-                    $data,
-                    array('%d', '%s', '%s', '%s', '%d')
-                );
+            if ($existing_data->destination !== $destination || $existing_data->vehicle !== $vehicle) {
+                $modification_count = $modification_count + 1;
             }
-
-            if ($result === false) {
-                $success = false;
-                error_log("Error in database operation: " . $wpdb->last_error);
-                break;
-            }
+            
+            $data = array(
+                'destination' => $destination,
+                'vehicle' => $vehicle,
+                'modification_count' => $modification_count
+            );
+            
+            $where = array(
+                'user_id' => $user_id,
+                'work_date' => $formatted_date
+            );
+            
+            $result = $wpdb->update(
+                $table_name,
+                $data,
+                $where,
+                array('%s', '%s', '%d'),
+                array('%d', '%s')
+            );
+        } else {
+            $data = array(
+                'user_id' => $user_id,
+                'work_date' => $formatted_date,
+                'destination' => $destination,
+                'vehicle' => $vehicle,
+                'modification_count' => 0
+            );
+            
+            $result = $wpdb->insert(
+                $table_name,
+                $data,
+                array('%d', '%s', '%s', '%s', '%d')
+            );
         }
 
-        if ($success) {
-            wp_send_json_success('Destinos y vehículos actualizados correctamente');
-        } else {
-            wp_send_json_error('Error al actualizar los datos: ' . $wpdb->last_error);
+        if ($result === false) {
+            $success = false;
+            error_log("Error in database operation: " . $wpdb->last_error);
+            break;
         }
     }
+
+    if ($success) {
+        // 🆕 SINCRONIZACIÓN AUTOMÁTICA CON PROYECTOS
+        if (!empty($destination)) {
+            $projects_table = $wpdb->prefix . 'worker_projects';
+            
+            // Verificar si el proyecto ya existe (case-insensitive)
+            $existing_project = $wpdb->get_var(
+                $wpdb->prepare(
+                    "SELECT id FROM $projects_table WHERE LOWER(name) = LOWER(%s)",
+                    $destination
+                )
+            );
+            
+            // Si no existe, crearlo automáticamente
+            if (!$existing_project) {
+                $result = $wpdb->insert(
+                    $projects_table,
+                    array(
+                        'name' => $destination,
+                        'description' => 'Creado automáticamente desde el calendario - ' . date('Y-m-d H:i:s'),
+                        'location' => $destination,
+                        'start_date' => date('Y-m-d'),
+                        'end_date' => date('Y-m-d', strtotime('+365 days')),
+                        'status' => 'active'
+                    ),
+                    array('%s', '%s', '%s', '%s', '%s', '%s')
+                );
+                
+                if ($result !== false) {
+                    $project_id = $wpdb->insert_id;
+                    error_log("Staff Calendar: Proyecto '$destination' creado automáticamente (ID: $project_id)");
+                } else {
+                    error_log("Staff Calendar: Error al crear proyecto '$destination': " . $wpdb->last_error);
+                }
+            } else {
+                error_log("Staff Calendar: Proyecto '$destination' ya existe (ID: $existing_project)");
+            }
+        }
+        
+        wp_send_json_success('Destinos y vehículos actualizados correctamente');
+    } else {
+        wp_send_json_error('Error al actualizar los datos: ' . $wpdb->last_error);
+    }
+}
 
 public function getCalendarData() {
     check_ajax_referer('staff_calendar_nonce', 'nonce');

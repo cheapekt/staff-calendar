@@ -72,18 +72,17 @@ class Worker_Portal_Calendar_Sync {
             return false;
         }
         
-        // Obtener todos los proyectos existentes
-        $existing_projects = $wpdb->get_results("SELECT id, name, location FROM $projects_table", ARRAY_A);
+        // Obtener todos los proyectos existentes - SOLO COMPARAR POR NOMBRE
+        $existing_projects = $wpdb->get_results("SELECT id, name FROM $projects_table", ARRAY_A);
         $existing_names = array_column($existing_projects, 'name');
-        $existing_locations = array_column($existing_projects, 'location');
         
         $synced_count = 0;
         
         // Procesar cada destino
         foreach ($calendar_destinations as $destination) {
-            // Verificar si ya existe un proyecto con este nombre o ubicación
-            if (in_array($destination, $existing_names) || in_array($destination, $existing_locations)) {
-                continue; // Ya existe, saltar a la siguiente iteración
+            // Solo verificar si ya existe un proyecto con este NOMBRE
+            if (in_array($destination, $existing_names)) {
+                continue; // Ya existe un proyecto con este nombre, saltar
             }
             
             // Crear un nuevo proyecto basado en el destino
@@ -94,13 +93,14 @@ class Worker_Portal_Calendar_Sync {
                     'description' => 'Creado automáticamente desde el calendario',
                     'location' => $destination,
                     'start_date' => date('Y-m-d'),
-                    'end_date' => date('Y-m-d', strtotime('+30 days')),
+                    'end_date' => date('Y-m-d', strtotime('+365 days')),
                     'status' => 'active'
                 )
             );
             
             if ($result) {
                 $synced_count++;
+                error_log("Worker Portal: Proyecto '$destination' creado desde calendario");
             }
         }
         
@@ -138,6 +138,45 @@ class Worker_Portal_Calendar_Sync {
         } else {
             wp_send_json_error('Error al sincronizar. Verifica que las tablas existen.');
         }
+    }
+
+    /**
+     * Función para forzar sincronización inmediata cuando se crea/modifica un destino
+     */
+    public function sync_specific_destination($destination) {
+        if (empty($destination)) {
+            return false;
+        }
+        
+        global $wpdb;
+        $projects_table = $wpdb->prefix . 'worker_projects';
+        
+        // Verificar si ya existe
+        $existing = $wpdb->get_var(
+            $wpdb->prepare(
+                "SELECT id FROM $projects_table WHERE name = %s",
+                $destination
+            )
+        );
+        
+        if ($existing) {
+            return false; // Ya existe
+        }
+        
+        // Crear el proyecto
+        $result = $wpdb->insert(
+            $projects_table,
+            array(
+                'name' => $destination,
+                'description' => 'Creado automáticamente desde el calendario',
+                'location' => $destination,
+                'start_date' => date('Y-m-d'),
+                'end_date' => date('Y-m-d', strtotime('+365 days')),
+                'status' => 'active'
+            )
+        );
+        
+        return $result !== false;
     }
 
     /**
@@ -216,6 +255,7 @@ class Worker_Portal_Calendar_Sync {
                     localStorage.setItem('ultimo_destino_laboral', destination);
                 }
             });
+            
         })(jQuery);
         </script>
         <?php
